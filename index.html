@@ -4,7 +4,6 @@
 <meta charset="utf-8" />
 <meta name="viewport" content="width=device-width, initial-scale=1.0" />
 <title>GW2 Owned Material Crafting Optimizer</title>
-<meta name="description" content="Find Guild Wars 2 crafts that turn owned materials into profit, plus Research Note salvage candidates, using GW2 API and repo-hosted wiki data exports." />
 <style>
 
 
@@ -1145,7 +1144,7 @@ body:not(.research-mode) #researchFilterPanel {
 <body>
 <header>
   <h1>GW2 Owned Material Crafting Optimizer</h1>
-  <div class="sub">Find crafts that turn owned materials into profit, and identify craft-then-salvage Research Note candidates.</div>
+  <div class="sub">Find crafts that turn materials you already own into more gold than selling the materials directly.</div>
 </header>
 
 <main>
@@ -1158,21 +1157,10 @@ body:not(.research-mode) #researchFilterPanel {
         <button onclick="addAccountRow()">Add API Key</button>
         <button onclick="saveAccounts()">Save API Keys</button>
         <button onclick="loadAccounts()">Load Saved API Keys</button>
+        <button onclick="exportAccountsJson()">Export API Keys JSON</button>
+        <input id="importAccountsFile" type="file" accept=".json,application/json" style="display:none" onchange="importAccountsJson(event)">
+        <button onclick="document.getElementById('importAccountsFile').click()">Import API Keys JSON</button>
         <button class="danger" onclick="clearAccounts()">Clear Saved API Keys</button>
-      </div>
-    </details>
-  </section>
-
-  <section class="panel">
-    <details>
-      <summary style="cursor:pointer;font-weight:bold;font-size:16px;">GitHub / Repo Data</summary>
-      <div class="sub" style="margin:10px 0;">For GitHub Pages, put optional exported JSON files in <code>data/</code>. The app will auto-load them before falling back to live GW2 API/wiki scans.</div>
-      <div class="row">
-        <span class="tag">data/gw2-recipes.json</span>
-        <span class="tag">data/wiki-nested-variant-recipes.json</span>
-        <span class="tag">data/research-salvageable-item-ids.json</span>
-        <span class="tag">data/wiki-vendor-cache.json</span>
-        <span class="tag">data/mystic-forge-recipes.json</span>
       </div>
     </details>
   </section>
@@ -1195,9 +1183,6 @@ body:not(.research-mode) #researchFilterPanel {
       <button onclick="buildOpportunities()">4. Build Opportunities</button>
       <button onclick="buildNestedOpportunities()">4b. Build Nested Opportunities</button>
       <button onclick="render()">Render Table</button>
-      <button onclick="exportRecipeCacheJson()">Export Recipes JSON</button>
-      <button onclick="exportWikiVendorCacheJson()">Export Vendor JSON</button>
-      <button onclick="exportRepoDataBundleJson()">Export Repo Bundle</button>
       <button class="danger" onclick="clearDataCache()">Clear Data Cache</button>
     </div>
   </section>
@@ -1214,9 +1199,6 @@ body:not(.research-mode) #researchFilterPanel {
       <button id="partialResearchToggleBtn" onclick="togglePartialResearchRecipes()">SHOW PARTIAL RESEARCH RECIPES: <span style="color:#F6019D">OFF</span></button>
       <button onclick="debugResearchNoteYieldMatches()">Debug Research Notes</button>
       <button onclick="render()">Render Table</button>
-      <button onclick="exportResearchSalvageIdsJson()">Export Research IDs JSON</button>
-      <button onclick="exportWikiVendorCacheJson()">Export Vendor JSON</button>
-      <button onclick="exportRepoDataBundleJson()">Export Repo Bundle</button>
       <button class="danger" onclick="clearDataCache()">Clear Data Cache</button>
     </div>
   </section>
@@ -1314,15 +1296,7 @@ const DB_NAME = 'gw2OwnedMaterialCraftingOptimizerDB';
 const DB_VERSION = 1;
 const STORE_NAME = 'kv';
 const ACCOUNTS_KEY = 'accounts';
-const DATA_KEY = 'dataCacheV1_githubRepoDataSupport';
-const REPO_DATA_BASE = 'data/';
-const REPO_DATA_FILES = {
-  recipeCache: 'gw2-recipes.json',
-  nestedVariantRecipes: 'wiki-nested-variant-recipes.json',
-  researchSalvageIds: 'research-salvageable-item-ids.json',
-  wikiVendorCache: 'wiki-vendor-cache.json',
-  mysticForgeRecipes: 'mystic-forge-recipes.json'
-};
+const DATA_KEY = 'dataCacheV1_vendorHistoricalSubobjectFix';
 const BATCH_SIZE = 200;
 const ACCOUNT_CONCURRENCY = 3;
 const CHARACTER_CONCURRENCY = 6;
@@ -2555,121 +2529,6 @@ async function fetchJson(url, retries = 3, timeoutMs = 25000) {
   }
 }
 
-async function fetchRepoDataJson(fileName) {
-  const url = REPO_DATA_BASE + fileName;
-  try {
-    const res = await fetch(url, { cache: 'no-store' });
-    if (!res.ok) return null;
-    return await res.json();
-  } catch (err) {
-    // file:// cannot fetch relative JSON in most browsers. GitHub Pages/http(s) works.
-    return null;
-  }
-}
-
-function normalizeCompactRecipesPayload(payload) {
-  if (!payload) return [];
-  const rows = Array.isArray(payload) ? payload : (payload.recipes || payload.recipeCache || payload.data || []);
-  if (!Array.isArray(rows)) return [];
-  return rows.map(r => {
-    if (r && r.recipeId && r.outputItemId) return r;
-    return compactRecipeFromApi(r);
-  }).filter(Boolean);
-}
-
-async function loadRepoRecipeJson(fileName, label) {
-  const payload = await fetchRepoDataJson(fileName);
-  const rows = normalizeCompactRecipesPayload(payload);
-  if (!rows.length) return [];
-  log(`Loaded ${rows.length.toLocaleString()} ${label || 'recipe'} row(s) from data/${fileName}.`);
-  return rows;
-}
-
-function mergeRecipesIntoCache(rows) {
-  const existingRecipeIds = new Set((recipeCache || []).map(r => Number(r.recipeId)));
-  const existingOutputIds = new Set((recipeCache || []).map(r => Number(r.outputItemId)));
-  const added = [];
-  for (const r of rows || []) {
-    const compact = r && r.recipeId && r.outputItemId ? r : compactRecipeFromApi(r);
-    if (!compact || existingRecipeIds.has(Number(compact.recipeId))) continue;
-    existingRecipeIds.add(Number(compact.recipeId));
-    existingOutputIds.add(Number(compact.outputItemId));
-    recipeCache.push(compact);
-    added.push(compact);
-  }
-  return added;
-}
-
-async function loadRepoWikiVendorCache() {
-  const data = await fetchRepoDataJson(REPO_DATA_FILES.wikiVendorCache);
-  if (!data) return false;
-  wikiVendorBarterByName = data.wikiVendorBarterByName || data.barterByName || wikiVendorBarterByName || {};
-  wikiVendorNoVendorByName = data.wikiVendorNoVendorByName || data.noVendorByName || wikiVendorNoVendorByName || {};
-  wikiVendorAmbiguousByName = data.wikiVendorAmbiguousByName || data.ambiguousByName || wikiVendorAmbiguousByName || {};
-  log(`Loaded wiki vendor cache from data/${REPO_DATA_FILES.wikiVendorCache}.`);
-  return true;
-}
-
-function downloadJsonFile(fileName, data) {
-  const blob = new Blob([JSON.stringify(data, null, 2)], { type: 'application/json' });
-  const url = URL.createObjectURL(blob);
-  const a = document.createElement('a');
-  a.href = url;
-  a.download = fileName;
-  document.body.appendChild(a);
-  a.click();
-  a.remove();
-  setTimeout(() => URL.revokeObjectURL(url), 2500);
-}
-
-function exportRecipeCacheJson() {
-  downloadJsonFile(REPO_DATA_FILES.recipeCache, {
-    schema: 'gw2-owned-material-crafting-optimizer/recipes/v1',
-    generatedAt: new Date().toISOString(),
-    recipes: recipeCache || []
-  });
-}
-
-function exportNestedVariantRecipesJson() {
-  downloadJsonFile(REPO_DATA_FILES.nestedVariantRecipes, {
-    schema: 'gw2-owned-material-crafting-optimizer/nested-variant-recipes/v1',
-    generatedAt: new Date().toISOString(),
-    recipes: recipeCache || []
-  });
-}
-
-function exportResearchSalvageIdsJson() {
-  downloadJsonFile(REPO_DATA_FILES.researchSalvageIds, {
-    schema: 'gw2-owned-material-crafting-optimizer/research-salvageable-item-ids/v1',
-    generatedAt: new Date().toISOString(),
-    ids: [...(researchSalvageableItemIds || new Set())]
-  });
-}
-
-function exportWikiVendorCacheJson() {
-  downloadJsonFile(REPO_DATA_FILES.wikiVendorCache, {
-    schema: 'gw2-owned-material-crafting-optimizer/wiki-vendor-cache/v1',
-    generatedAt: new Date().toISOString(),
-    wikiVendorBarterByName,
-    wikiVendorNoVendorByName,
-    wikiVendorAmbiguousByName,
-    wikiVendorCacheSchemaVersion: WIKI_VENDOR_CACHE_SCHEMA_VERSION
-  });
-}
-
-function exportRepoDataBundleJson() {
-  downloadJsonFile('gw2-optimizer-repo-data-bundle.json', {
-    schema: 'gw2-owned-material-crafting-optimizer/repo-data-bundle/v1',
-    generatedAt: new Date().toISOString(),
-    recipes: recipeCache || [],
-    researchSalvageableItemIds: [...(researchSalvageableItemIds || new Set())],
-    wikiVendorBarterByName,
-    wikiVendorNoVendorByName,
-    wikiVendorAmbiguousByName,
-    wikiVendorCacheSchemaVersion: WIKI_VENDOR_CACHE_SCHEMA_VERSION
-  });
-}
-
 function mapToObject(map) { return Object.fromEntries([...map.entries()].map(([k, v]) => [String(k), v])); }
 function objectToMap(obj) { return new Map(Object.entries(obj || {}).map(([k, v]) => [Number(k), v])); }
 
@@ -2716,10 +2575,7 @@ async function saveDataCache() {
 
 async function loadDataCache() {
   const data = await idbGet(DATA_KEY);
-  if (!data) {
-    await loadRepoWikiVendorCache();
-    return false;
-  }
+  if (!data) return false;
 
   ownedMaterials = objectToMap(data.ownedMaterials);
   ownedBreakdown = objectToMap(data.ownedBreakdown);
@@ -2761,8 +2617,6 @@ async function clearDataCache() {
   prices.clear();
   listings.clear();
   opportunities = [];
-  researchNoteOpportunities = [];
-  partialResearchOpportunities = [];
   render();
   setStatus('Data cache cleared.');
 }
@@ -2827,6 +2681,77 @@ async function loadAccounts() {
     renderAccounts();
   }
   setStatus(`Loaded ${accounts.length} saved API key row(s).`);
+}
+
+
+function normalizeImportedAccounts(importedAccounts) {
+  return importedAccounts
+    .map((row, i) => ({
+      id: row.id || (crypto.randomUUID ? crypto.randomUUID() : String(Date.now() + Math.random() + i)),
+      label: row.label || row.name || `Account ${i + 1}`,
+      key: row.key || row.apiKey || row.token || '',
+      enabled: row.enabled !== false
+    }))
+    .filter(row => row.key);
+}
+
+async function exportAccountsJson() {
+  // Save first so the downloaded backup matches the current visible rows.
+  await idbSet(ACCOUNTS_KEY, accounts);
+
+  const payload = {
+    app: 'gw2-owned-material-crafting-optimizer',
+    type: 'api-key-backup',
+    version: 1,
+    exportedAt: new Date().toISOString(),
+    warning: 'This file contains GW2 API keys in plain text. Do not upload it to GitHub or share it.',
+    accounts: accounts.map((acc, i) => ({
+      label: acc.label || `Account ${i + 1}`,
+      key: acc.key || '',
+      enabled: acc.enabled !== false
+    }))
+  };
+
+  const blob = new Blob([JSON.stringify(payload, null, 2)], { type: 'application/json' });
+  const url = URL.createObjectURL(blob);
+  const a = document.createElement('a');
+  const stamp = new Date().toISOString().slice(0, 10);
+  a.href = url;
+  a.download = `gw2-api-keys-backup-${stamp}.json`;
+  document.body.appendChild(a);
+  a.click();
+  a.remove();
+  URL.revokeObjectURL(url);
+
+  setStatus(`Exported ${payload.accounts.length} API key row(s) to JSON. Keep that file private.`);
+}
+
+async function importAccountsJson(event) {
+  const file = event.target.files && event.target.files[0];
+  if (!file) return;
+
+  try {
+    const text = await file.text();
+    const parsed = JSON.parse(text);
+    const importedAccounts = Array.isArray(parsed) ? parsed : parsed.accounts;
+
+    if (!Array.isArray(importedAccounts)) {
+      throw new Error('JSON does not contain an accounts array.');
+    }
+
+    accounts = normalizeImportedAccounts(importedAccounts);
+    if (!accounts.length) {
+      throw new Error('No usable API keys found in the JSON file.');
+    }
+
+    renderAccounts();
+    await idbSet(ACCOUNTS_KEY, accounts);
+    setStatus(`Imported and saved ${accounts.length} API key row(s).`);
+  } catch (err) {
+    setStatus(`Import failed: ${err.message}`);
+  } finally {
+    event.target.value = '';
+  }
 }
 
 async function clearAccounts() {
@@ -3255,20 +3180,6 @@ async function loadNestedVariantRecipes() {
 
   setStatus('Scanning GW2 Wiki craft-table source for embedded variant recipe IDs...');
 
-  const repoNested = await loadRepoRecipeJson(REPO_DATA_FILES.nestedVariantRecipes, 'nested/wiki variant recipe');
-  if (repoNested.length) {
-    const added = mergeRecipesIntoCache(repoNested);
-    const itemIds = new Set();
-    for (const r of added) {
-      itemIds.add(r.outputItemId);
-      for (const ing of r.ingredients || []) itemIds.add(ing.itemId);
-    }
-    if (itemIds.size) await fetchItemDetails([...itemIds]);
-    await saveDataCache();
-    setStatus(`Loaded nested/wiki variant recipes from repo data: ${added.length.toLocaleString()} new recipes added. Total recipe cache: ${recipeCache.length.toLocaleString()}.`);
-    return;
-  }
-
   const existingOutputIds = new Set(recipeCache.map(r => Number(r.outputItemId)));
   const existingRecipeIds = new Set(recipeCache.map(r => Number(r.recipeId)));
 
@@ -3353,21 +3264,6 @@ async function loadNestedVariantRecipes() {
 
 async function loadRecipeCache() {
   setStatus('Loading recipe cache...');
-
-  const repoRecipes = await loadRepoRecipeJson(REPO_DATA_FILES.recipeCache, 'repo recipe cache');
-  if (repoRecipes.length) {
-    recipeCache = repoRecipes;
-    const itemIds = new Set();
-    for (const r of recipeCache) {
-      itemIds.add(r.outputItemId);
-      for (const ing of r.ingredients || []) itemIds.add(ing.itemId);
-    }
-    await fetchItemDetails([...itemIds]);
-    await saveDataCache();
-    setStatus(`Loaded repo recipe cache: ${recipeCache.length.toLocaleString()} recipes from data/${REPO_DATA_FILES.recipeCache}.`);
-    return;
-  }
-
   const ids = await fetchJson(`${API}/recipes`);
   const compact = [];
   const groups = chunk(ids || [], BATCH_SIZE);
@@ -4819,16 +4715,6 @@ function debugResearchNoteYieldMatches() {
 
 async function loadResearchSalvageableItemIds() {
   setStatus('Loading wiki Research salvage item ID list...');
-
-  const repoResearch = await fetchRepoDataJson(REPO_DATA_FILES.researchSalvageIds);
-  const repoIds = Array.isArray(repoResearch) ? repoResearch : (repoResearch?.ids || repoResearch?.itemIds || []);
-  if (Array.isArray(repoIds) && repoIds.length) {
-    researchSalvageableItemIds = new Set(repoIds.map(Number).filter(Boolean));
-    await saveDataCache();
-    setStatus(`Loaded Research salvage list from data/${REPO_DATA_FILES.researchSalvageIds}: ${researchSalvageableItemIds.size.toLocaleString()} item IDs.`);
-    return researchSalvageableItemIds;
-  }
-
   log('Loading Wiki Research salvage list...');
   const ids = new Set();
   let rows = 0;
