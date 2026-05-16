@@ -4592,7 +4592,7 @@ function getResearchMaterialUnitValue(itemId) {
   }
 
   if (isAccountBoundOrNoTpIngredient(itemId)) {
-    return { value: 0, source: "Owned bound/no TP" };
+    return { value: 0, source: "Account Bound" };
   }
 
   const p = prices.get(itemId);
@@ -5024,7 +5024,7 @@ function evaluateNestedRequirements(flat, outputCount) {
       // should not make the row unknown. They are treated as owned-only inputs with
       // no coin opportunity value.
       unitValue = 0;
-      valueSource = "Owned bound/no TP";
+      valueSource = "Account Bound";
       accountBoundValueIgnored = true;
     } else {
       const researchModes = tableMode === 'researchNotes' || tableMode === 'researchPartial';
@@ -7145,7 +7145,7 @@ function getDisplayIngredientWithVendorPriority(ing) {
 }
 
 function isOwnedBoundNoTpText(value) {
-  return /owned\s*bound\s*\/\s*no\s*tp/i.test(String(value || ''));
+  return /owned\s*bound\s*\/\s*no\s*tp|account\s*bound/i.test(String(value || ''));
 }
 
 function renderIngredients(ingredients) {
@@ -7181,8 +7181,14 @@ function renderIngredients(ingredients) {
       return `<span class="ingredient-chip">${renderItemLink(ing.itemId)} <span class="muted">x ${count} / ${ownedText} | Account Bound</span></span>`;
     }
 
+    const finalSource = String(ing.valueSource || '');
+    const finalOwnedBound = ing.accountBoundValueIgnored || isOwnedBoundNoTpText(finalSource) || (Number(unitValue) === 0 && isExternalAccountBoundMaterial(ing.itemId));
+    if (finalOwnedBound) {
+      return `<span class="ingredient-chip">${renderItemLink(ing.itemId)} <span class="muted">x ${count} / ${ownedText} | Account Bound</span></span>`;
+    }
+
     const priceText = unitValue == null ? '?' : formatCoin(unitValue);
-    const sourceText = ing.valueSource && !isOwnedBoundNoTpText(ing.valueSource) ? ` ${escapeHtml(ing.valueSource)}` : '';
+    const sourceText = finalSource && !isOwnedBoundNoTpText(finalSource) ? ` ${escapeHtml(finalSource)}` : '';
     return `<span class="ingredient-chip">${renderItemLink(ing.itemId)} <span class="muted">x ${count} / ${ownedText} @ ${priceText}${sourceText}</span></span>`;
   }).join('') + '</div>';
 }
