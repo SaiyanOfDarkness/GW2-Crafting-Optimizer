@@ -3305,7 +3305,8 @@ function addOwnedMaterial(itemId, count, accountLabel, source) {
   const detail = ownedBreakdown.get(itemId) || { total: 0, accounts: {} };
   detail.total += count;
   const key = accountLabel || 'Account';
-  if (!detail.accounts[key]) detail.accounts[key] = { materialStorage: 0, characters: 0 };
+  if (!detail.accounts[key]) detail.accounts[key] = { materialStorage: 0, characters: 0, bank: 0 };
+  if (typeof detail.accounts[key][source] !== 'number') detail.accounts[key][source] = 0;
   detail.accounts[key][source] += count;
   ownedBreakdown.set(itemId, detail);
 }
@@ -3335,6 +3336,16 @@ async function loadOwnedMaterials() {
     } catch (e) {
       console.warn('Material storage failed', label, e);
       log(`Material storage failed for ${label}: ${e.message}`);
+    }
+
+    log(`Loading bank materials: ${label}`);
+
+    try {
+      const bank = await fetchJson(`${API}/account/bank?access_token=${token}`);
+      scanItemListForMaterials(bank, label, 'bank');
+    } catch (e) {
+      console.warn('Bank failed', label, e);
+      log(`Bank failed for ${label}: ${e.message}`);
     }
 
     let chars = [];
@@ -3394,15 +3405,20 @@ async function loadMaterialIdSet() {
   return materialIdSet;
 }
 
+function scanItemListForMaterials(items, accountLabel, source) {
+  if (!Array.isArray(items)) return;
+  for (const slot of items) {
+    if (!slot || !slot.id || !slot.count) continue;
+    if (!materialIdSet.has(Number(slot.id))) continue;
+    addOwnedMaterial(slot.id, slot.count, accountLabel, source);
+  }
+}
+
 function scanInventoryForMaterials(inv, accountLabel) {
   if (!inv || !Array.isArray(inv.bags)) return;
   for (const bag of inv.bags) {
     if (!bag || !Array.isArray(bag.inventory)) continue;
-    for (const slot of bag.inventory) {
-      if (!slot || !slot.id || !slot.count) continue;
-      if (!materialIdSet.has(Number(slot.id))) continue;
-      addOwnedMaterial(slot.id, slot.count, accountLabel, 'characters');
-    }
+    scanItemListForMaterials(bag.inventory, accountLabel, 'characters');
   }
 }
 
