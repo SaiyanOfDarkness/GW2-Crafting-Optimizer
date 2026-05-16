@@ -7170,15 +7170,19 @@ function renderIngredients(ingredients) {
         return `<span class="ingredient-chip">${renderItemLink(ing.itemId)} <span class="muted">x ${count} / ${ownedText} | ${vendorLabel}: ${costHtml}</span></span>`;
       }
     }
-    const hasKnownPriceOrVendor = (unitValue != null) || !!ing.vendorSource || !!wikiVendorCost;
-    const isAccountBound = !hasKnownPriceOrVendor && (ing.accountBoundValueIgnored || isOwnedBoundNoTpText(ing.valueSource) || isExternalAccountBoundMaterial(ing.itemId));
+    const ownedBoundNoTp = ing.accountBoundValueIgnored || isOwnedBoundNoTpText(ing.valueSource) || isExternalAccountBoundMaterial(ing.itemId);
+    const hasBetterDisplaySource = !!ing.vendorSource || !!wikiVendorCost || /^TP\b/i.test(String(ing.valueSource || ''));
 
-    if (isAccountBound) {
+    // Account-bound owned-only materials are intentionally assigned unitValue = 0
+    // so they do not inflate opportunity cost. Do not let that 0c value make the
+    // renderer print "@ 0c Owned bound/no TP". Only fall back to Account Bound
+    // when there is no better source such as TP, direct vendor, or normalized bulk.
+    if (ownedBoundNoTp && !hasBetterDisplaySource) {
       return `<span class="ingredient-chip">${renderItemLink(ing.itemId)} <span class="muted">x ${count} / ${ownedText} | Account Bound</span></span>`;
     }
 
     const priceText = unitValue == null ? '?' : formatCoin(unitValue);
-    const sourceText = ing.valueSource ? ` ${escapeHtml(ing.valueSource)}` : '';
+    const sourceText = ing.valueSource && !isOwnedBoundNoTpText(ing.valueSource) ? ` ${escapeHtml(ing.valueSource)}` : '';
     return `<span class="ingredient-chip">${renderItemLink(ing.itemId)} <span class="muted">x ${count} / ${ownedText} @ ${priceText}${sourceText}</span></span>`;
   }).join('') + '</div>';
 }
