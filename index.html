@@ -2347,15 +2347,22 @@ const WIKI_VENDOR_CACHE_SCHEMA_VERSION = 20;
 // Embedded data remains as fallback until the migration is fully finished.
 const EXTERNAL_DATA_PATHS = {
   mysticForgeRows: './data/gw2_mystic_forge_recipe_rows.json',
-  vendorCraftingMaterialRows: './data/gw2_vendor_crafting_material_rows.json'
+  vendorCraftingMaterialRows: './data/gw2_vendor_crafting_material_rows.json',
+  vendorBulkRawRows: './data/gw2_vendor_bulk_raw_rows.json',
+  vendorBulkItems: './data/gw2_vendor_bulk_items.json'
 };
 
 let externalMysticForgeRecipeRows = {};
 let externalVendorCraftingMaterialRows = {};
+let externalVendorBulkRawRows = {};
+let externalVendorBulkItems = {};
 let externalDatasetStatus = {
   mysticForgeRows: false,
   vendorCraftingMaterialRows: false,
-  vendorRowsApplied: 0
+  vendorBulkRawRows: false,
+  vendorBulkItems: false,
+  vendorRowsApplied: 0,
+  vendorBulkRowsApplied: 0
 };
 
 
@@ -2609,6 +2616,156 @@ function externalVendorCurrencyName(rawCurrency) {
   return cur;
 }
 
+
+function currencyPartsComparableTotal(parts) {
+  if (!Array.isArray(parts) || !parts.length) return { comparable: false, currency: '', total: Infinity };
+  const currency = String(parts[0].currency || '').toLowerCase();
+  if (!currency) return { comparable: false, currency: '', total: Infinity };
+  if (!parts.every(p => String(p.currency || '').toLowerCase() === currency)) {
+    return { comparable: false, currency: '', total: Infinity };
+  }
+  const total = parts.reduce((sum, p) => sum + Number(p.count || 0), 0);
+  return { comparable: Number.isFinite(total), currency, total };
+}
+
+function shouldReplaceVendorParts(existingParts, candidateParts) {
+  if (!Array.isArray(existingParts) || !existingParts.length) return true;
+  if (!Array.isArray(candidateParts) || !candidateParts.length) return false;
+
+  const existing = currencyPartsComparableTotal(existingParts);
+  const candidate = currencyPartsComparableTotal(candidateParts);
+
+  // Replace only when both costs are safely comparable in the same currency.
+  // This lets bulk karma food replace higher per-item karma rows, while avoiding
+  // unsafe comparisons such as karma vs coin or multi-currency barter bundles.
+  if (existing.comparable && candidate.comparable && existing.currency === candidate.currency) {
+    return candidate.total < existing.total;
+  }
+
+  return false;
+}
+
+function applyVendorPartsToCache(itemNameText, parts) {
+  if (!itemNameText || !Array.isArray(parts) || !parts.length) return false;
+  const existing = wikiVendorBarterByName[itemNameText];
+  if (!existing || shouldReplaceVendorParts(existing, parts)) {
+    wikiVendorBarterByName[itemNameText] = parts;
+    return true;
+  }
+  return false;
+}
+
+function normalizeExternalBulkContentsRowsToMap(rawRows) {
+  const map = new Map();
+  const results = rawRows && rawRows.results && typeof rawRows.results === 'object'
+    ? rawRows.results
+    : rawRows;
+
+  if (!results || typeof results !== 'object') return map;
+
+  for (const row of Object.values(results)) {
+    const p = row && row.printouts;
+    if (!p) continue;
+
+    const bulkName = String(firstPrintoutValue(p, 'BulkName') || externalWikiPageName(firstPrintoutValue(p, 'BulkItem')) || '').trim();
+    const containedName = externalWikiPageName(firstPrintoutValue(p, 'ContainedItem')).trim();
+    const qty = Number(String(firstPrintoutValue(p, 'Qty') || 1).replace(/,/g, ''));
+    const chance = String(firstPrintoutValue(p, 'Chance') || '').trim();
+    const availability = String(firstPrintoutValue(p, 'Availability') || 'Current').trim();
+
+    if (!bulkName || !containedName) continue;
+    if (availability && !/^current$/i.test(availability)) continue;
+    if (chance && !/^guaranteed$/i.test(chance)) continue;
+    if (!Number.isFinite(qty) || qty <= 0) continue;
+
+    map.set(bulkName, {
+      containedName,
+      qty
+    });
+  }
+
+  return map;
+}
+
+function normalizeExternalVendorBulkRowsToWikiCache(rawRows, bulkContentsMap) {
+  if (!rawRows || typeof rawRows !== 'object' || !(bulkContentsMap instanceof Map)) return 0;
+
+  const results = rawRows && rawRows.results && typeof rawRows.results === 'object'
+    ? rawRows.results
+    : rawRows;
+
+  const chosenByItem = new Map();
+
+  for (const row of Object.values(results || {})) {
+    const p = row && row.printouts;
+    if (!p) continue;
+
+    const bulkObj = firstPrintoutValue(p, 'bulk');
+    const bulkName = externalWikiPageName(bulkObj).trim();
+    if (!bulkName) continue;
+
+    const content = bulkContentsMap.get(bulkName);
+    if (!content || !content.containedName || !Number.isFinite(Number(content.qty)) || Number(content.qty) <= 0) continue;
+
+    const itemHistorical = String(firstPrintoutValue(p, 'itemHistorical') || 'f').toLowerCase() === 't';
+    const vendorHistorical = String(firstPrintoutValue(p, 'vendorHistorical') || 'f').toLowerCase() === 't';
+    const availability = String(firstPrintoutValue(p, 'availability') || 'Current').trim();
+    if (itemHistorical || vendorHistorical) continue;
+    if (availability && !/^current$/i.test(availability)) continue;
+
+    const vendorName = String(firstPrintoutValue(p, 'vendor') || '').trim();
+    const vendorPage = vendorName ? vendorName.replace(/\s+/g, "_") : "";
+    const vendorQty = Math.max(1, Number(firstPrintoutValue(p, 'vendorQty') || 1));
+    const containedQtyPerPurchase = Number(content.qty);
+    const effectiveOutputQty = vendorQty * containedQtyPerPurchase;
+    const costRows = Array.isArray(p.cost) ? p.cost : [];
+
+    const parts = [];
+    for (const costRow of costRows) {
+      const valueRaw = costRow && costRow['Has item value'] && costRow['Has item value'].item && costRow['Has item value'].item[0];
+      const currencyRaw = costRow && costRow['Has item currency'] && costRow['Has item currency'].item && costRow['Has item currency'].item[0];
+      const value = Number(String(valueRaw || '').replace(/,/g, ''));
+      const currency = externalVendorCurrencyName(currencyRaw);
+      if (!currency || !Number.isFinite(value) || value <= 0) continue;
+
+      parts.push({
+        currency,
+        count: value / effectiveOutputQty,
+        vendorName: vendorName || null,
+        vendorPage: vendorPage || null,
+        sourceBulkItem: bulkName,
+        sourceBulkQty: containedQtyPerPurchase
+      });
+    }
+
+    if (!parts.length) continue;
+
+    const candidate = {
+      parts,
+      comparable: currencyPartsComparableTotal(parts)
+    };
+
+    const current = chosenByItem.get(content.containedName);
+    if (!current) {
+      chosenByItem.set(content.containedName, candidate);
+      continue;
+    }
+
+    const a = current.comparable;
+    const b = candidate.comparable;
+    if (a.comparable && b.comparable && a.currency === b.currency && b.total < a.total) {
+      chosenByItem.set(content.containedName, candidate);
+    }
+  }
+
+  let applied = 0;
+  for (const [itemNameText, data] of chosenByItem.entries()) {
+    if (applyVendorPartsToCache(itemNameText, data.parts)) applied++;
+  }
+
+  return applied;
+}
+
 function normalizeExternalVendorRowsToWikiCache(rawRows) {
   if (!rawRows || typeof rawRows !== 'object') return 0;
 
@@ -2667,10 +2824,7 @@ function normalizeExternalVendorRowsToWikiCache(rawRows) {
 
   let applied = 0;
   for (const [itemNameText, data] of chosenByItem.entries()) {
-    if (!wikiVendorBarterByName[itemNameText]) {
-      wikiVendorBarterByName[itemNameText] = data.parts;
-      applied++;
-    }
+    if (applyVendorPartsToCache(itemNameText, data.parts)) applied++;
   }
 
   return applied;
@@ -2683,6 +2837,8 @@ async function loadExternalRepoDatasets() {
     externalDatasetStatus.mysticForgeRows = true;
   }
 
+  let totalVendorApplied = 0;
+
   const vendorRows = await fetchOptionalRepoJson(EXTERNAL_DATA_PATHS.vendorCraftingMaterialRows, 'Vendor crafting material rows');
   if (vendorRows && typeof vendorRows === 'object') {
     externalVendorCraftingMaterialRows = vendorRows;
@@ -2690,24 +2846,56 @@ async function loadExternalRepoDatasets() {
 
     const applied = normalizeExternalVendorRowsToWikiCache(vendorRows);
     externalDatasetStatus.vendorRowsApplied = applied;
+    totalVendorApplied += applied;
 
     if (applied > 0) {
-      await saveDataCache();
       log(`[Data] Vendor rows applied to local vendor cache: ${applied.toLocaleString()} item(s).`);
     } else {
       log('[Data] Vendor rows loaded; no new vendor-cache entries needed.');
     }
   }
 
+  const bulkItems = await fetchOptionalRepoJson(EXTERNAL_DATA_PATHS.vendorBulkItems, 'Vendor bulk contents rows');
+  let bulkContentsMap = new Map();
+  if (bulkItems && typeof bulkItems === 'object') {
+    externalVendorBulkItems = bulkItems;
+    externalDatasetStatus.vendorBulkItems = true;
+    bulkContentsMap = normalizeExternalBulkContentsRowsToMap(bulkItems);
+    log(`[Data] Vendor bulk contents normalized: ${bulkContentsMap.size.toLocaleString()} bulk item(s).`);
+  }
+
+  const bulkRows = await fetchOptionalRepoJson(EXTERNAL_DATA_PATHS.vendorBulkRawRows, 'Vendor bulk raw rows');
+  if (bulkRows && typeof bulkRows === 'object') {
+    externalVendorBulkRawRows = bulkRows;
+    externalDatasetStatus.vendorBulkRawRows = true;
+
+    const applied = normalizeExternalVendorBulkRowsToWikiCache(bulkRows, bulkContentsMap);
+    externalDatasetStatus.vendorBulkRowsApplied = applied;
+    totalVendorApplied += applied;
+
+    if (applied > 0) {
+      log(`[Data] Vendor bulk rows applied to local vendor cache: ${applied.toLocaleString()} item(s).`);
+    } else if (!bulkContentsMap.size) {
+      log('[Data] Vendor bulk rows loaded, but no bulk contents mapping was available.');
+    } else {
+      log('[Data] Vendor bulk rows loaded; no new/cheaper vendor-cache entries needed.');
+    }
+  }
+
+  if (totalVendorApplied > 0) {
+    await saveDataCache();
+  }
+
   window.GW2_EXTERNAL_DATASETS = {
     mysticForgeRecipeRows: externalMysticForgeRecipeRows,
     vendorCraftingMaterialRows: externalVendorCraftingMaterialRows,
+    vendorBulkRawRows: externalVendorBulkRawRows,
+    vendorBulkItems: externalVendorBulkItems,
     status: externalDatasetStatus
   };
 
   return externalDatasetStatus;
 }
-
 
 async function saveDataCache() {
   await idbSet(DATA_KEY, {
@@ -7001,7 +7189,10 @@ setupTableSorting();
     `Repo datasets: ` +
     `Mystic Forge ${repoDataStatus.mysticForgeRows ? 'loaded' : 'fallback only'}, ` +
     `Vendor ${repoDataStatus.vendorCraftingMaterialRows ? 'loaded' : 'fallback only'}, ` +
-    `Vendor cache additions ${Number(repoDataStatus.vendorRowsApplied || 0).toLocaleString()}`
+    `Bulk contents ${repoDataStatus.vendorBulkItems ? 'loaded' : 'missing'}, ` +
+    `Bulk vendor rows ${repoDataStatus.vendorBulkRawRows ? 'loaded' : 'missing'}, ` +
+    `Vendor cache additions ${Number(repoDataStatus.vendorRowsApplied || 0).toLocaleString()}, ` +
+    `Bulk additions ${Number(repoDataStatus.vendorBulkRowsApplied || 0).toLocaleString()}`
   );
   log(`Embedded Research Note yield entries: ${EMBEDDED_RESEARCH_NOTE_YIELD_COUNT.toLocaleString()}`);
   setToolMode('profit');
