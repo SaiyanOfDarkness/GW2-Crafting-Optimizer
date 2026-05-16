@@ -1181,7 +1181,6 @@ body:not(.research-mode) #researchFilterPanel {
       <button onclick="loadNestedVariantRecipes()">2b. Load Nested Variant Recipes</button>
       <button onclick="refreshMarketPrices()">3. Refresh TP Prices</button>
       <button onclick="buildOpportunities()">4. Build Opportunities</button>
-      <button onclick="buildNestedOpportunities()">4b. Build Nested Opportunities</button>
       <button id="nestedProfitToggleBtn" onclick="toggleNestedProfitRecipes()">SHOW NESTED RECIPES: <span style="color:#F6019D">OFF</span></button>
       <button onclick="render()">Render Table</button>
       <button class="danger" onclick="clearDataCache()">Clear Data Cache</button>
@@ -5160,6 +5159,12 @@ function updateNestedProfitToggleButton() {
   btn.innerHTML = `SHOW NESTED RECIPES: <span style="color:${isOn ? '#FF6C11' : '#F6019D'}">${isOn ? 'ON' : 'OFF'}</span>`;
 }
 
+function setNestedProfitToggleBusy(isBusy) {
+  const btn = document.getElementById('nestedProfitToggleBtn');
+  if (!btn) return;
+  btn.disabled = !!isBusy;
+}
+
 async function toggleNestedProfitRecipes() {
   tableMode = 'profit';
   renderLimit = RENDER_STEP;
@@ -5181,11 +5186,13 @@ async function toggleNestedProfitRecipes() {
       opportunities = normalProfitOpportunities.slice();
       if (desc) desc.textContent = 'Profit Mode: find crafts that turn owned materials into more gold than selling the materials directly.';
       updateNestedProfitToggleButton();
+      log(`[Nested] Toggle OFF: restored cached normal Profit Mode rows (${opportunities.length.toLocaleString()} total; rendering first ${Math.min(renderLimit, opportunities.length).toLocaleString()}).`);
       render();
       return;
     }
 
     updateNestedProfitToggleButton();
+    log('[Nested] Toggle OFF: no cached normal Profit Mode rows found; rebuilding normal opportunities.');
     await buildOpportunities();
     return;
   }
@@ -5196,11 +5203,13 @@ async function toggleNestedProfitRecipes() {
     opportunities = nestedProfitOpportunities.slice();
     if (desc) desc.textContent = 'Profit Mode: showing cost-aware nested/sub-crafting opportunities.';
     updateNestedProfitToggleButton();
+    log(`[Nested] Toggle ON: using cached nested rows (${opportunities.length.toLocaleString()} total; rendering first ${Math.min(renderLimit, opportunities.length).toLocaleString()}).`);
     render();
     return;
   }
 
   updateNestedProfitToggleButton();
+  log('[Nested] Toggle ON: no cached nested rows found; building nested opportunities. This may take a bit on large recipe sets.');
   await buildNestedOpportunities();
 }
 
@@ -6647,6 +6656,8 @@ async function buildResearchNoteMode() {
 }
 
 async function buildNestedOpportunities() {
+  setNestedProfitToggleBusy(true);
+  log('[Nested] Build started.');
   tableMode = 'profit';
   profitViewMode = 'nested';
   renderLimit = RENDER_STEP;
@@ -6660,6 +6671,8 @@ async function buildNestedOpportunities() {
   setProfitTableHeaders();
   if (!ownedMaterials.size || !recipeCache.length || !prices.size) {
     setStatus('Load owned materials, recipe cache, and TP prices first.');
+    log('[Nested] Build stopped: missing owned materials, recipe cache, or TP prices.');
+    setNestedProfitToggleBusy(false);
     return;
   }
 
@@ -6668,6 +6681,8 @@ async function buildNestedOpportunities() {
   await ensureWikiVendorSourcesForIngredientIds(collectOwnedRecipeIngredientIds(), 'nested Profit Mode ingredient');
   let considered = 0;
   let nestedUsed = 0;
+
+  log(`[Nested] Inputs ready: ${recipeCache.length.toLocaleString()} recipes, ${ownedMaterials.size.toLocaleString()} owned item stacks, ${prices.size.toLocaleString()} priced items.`);
 
   for (const recipe of recipeCache) {
     considered++;
@@ -6730,7 +6745,10 @@ async function buildNestedOpportunities() {
   profitViewMode = 'nested';
   updateNestedProfitToggleButton();
   render();
-  setStatus(`Built nested opportunities with cost-aware owned sub-crafting expansion: ${opportunities.length} profitable crafts. Considered ${considered.toLocaleString()} recipes. Nested paths used: ${nestedUsed.toLocaleString()}.`);
+  const renderedNow = Math.min(renderLimit, opportunities.length);
+  setStatus(`Built nested opportunities with cost-aware owned sub-crafting expansion: ${opportunities.length.toLocaleString()} profitable crafts. Considered ${considered.toLocaleString()} recipes. Nested paths used: ${nestedUsed.toLocaleString()}. Rendering ${renderedNow.toLocaleString()} now; use Show Another ${RENDER_STEP.toLocaleString()} Rows for more.`);
+  log(`[Nested] Build complete: ${opportunities.length.toLocaleString()} rows, ${considered.toLocaleString()} recipes considered, ${nestedUsed.toLocaleString()} nested paths used, ${renderedNow.toLocaleString()} rendered now.`);
+  setNestedProfitToggleBusy(false);
 }
 
 async function buildOpportunities() {
