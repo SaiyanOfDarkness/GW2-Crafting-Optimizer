@@ -1223,6 +1223,11 @@ body:not(.research-mode) #researchFilterPanel {
   display: block;
 }
 
+
+/* === Compact table header labels === */
+th { padding-left: 6px; padding-right: 6px; }
+td { padding-left: 6px; padding-right: 6px; }
+
 </style>
 </head>
 <body>
@@ -1281,7 +1286,6 @@ body:not(.research-mode) #researchFilterPanel {
       <button onclick="loadResearchSalvageableItemIds()">3b. Load Wiki Research Salvage List</button>
       <button onclick="buildResearchNoteMode()">4. Build Research Note Table</button>
       <button id="partialResearchToggleBtn" onclick="togglePartialResearchRecipes()">SHOW PARTIAL RESEARCH RECIPES: <span style="color:#F6019D">OFF</span></button>
-      <button onclick="debugResearchNoteYieldMatches()">Debug Research Notes</button>
       <button onclick="render()">Render Table</button>
       <button class="danger" onclick="clearDataCache()">Clear Data Cache</button>
     </div>
@@ -1348,20 +1352,20 @@ body:not(.research-mode) #researchFilterPanel {
       <table id="results">
         <thead>
           <tr>
-            <th data-key="outputName">Crafted Item</th>
-            <th data-key="recipeId">Recipe ID</th>
-            <th data-key="canCraftQty">Can Craft</th>
-            <th data-key="profitableDepthQty">Profitable Qty</th>
+            <th data-key="outputName">Item</th>
+            <th data-key="recipeId">Recipe</th>
+            <th data-key="canCraftQty">Can Make</th>
+            <th data-key="profitableDepthQty">Prof Qty</th>
             <th data-key="recommendedCraftQty">Craft Qty</th>
             <th data-key="avgDepthSell">Avg Sell</th>
             <th data-key="lastDepthPrice">Last BO Hit</th>
             <th data-key="outputBuy">Top BO</th>
             <th data-key="outputNet">Top BO Net</th>
-            <th data-key="materialValue">Material Sell Value</th>
-            <th data-key="extraProfitEach">Extra Profit Each</th>
-            <th data-key="extraProfitTotal">Extra Profit Total</th>
+            <th data-key="materialValue">Mat Sell Value</th>
+            <th data-key="extraProfitEach">Profit Each</th>
+            <th data-key="extraProfitTotal">Profit Total</th>
             <th data-key="roi">ROI</th>
-            <th data-key="ingredientsText">Owned Materials Used</th>
+            <th data-key="ingredientsText">Owned Mats Used</th>
           </tr>
         </thead>
         <tbody></tbody>
@@ -4106,40 +4110,40 @@ function setResultsHeaders(headers) {
 
 function ensureProfitHeaders() {
   const headers = [
-    ["outputName", "Crafted Item"],
+    ["outputName", "Item"],
     ["rarity", "Rarity"],
     ["disciplinesText", "Professions"],
-    ["recipeId", "Recipe ID"],
-    ["canCraftQty", "Can Craft"],
-    ["profitableDepthQty", "Profitable Qty"],
+    ["recipeId", "Recipe"],
+    ["canCraftQty", "Can Make"],
+    ["profitableDepthQty", "Prof Qty"],
     ["recommendedCraftQty", "Craft Qty"],
     ["avgDepthSell", "Avg Sell"],
     ["lastDepthPrice", "Last BO Hit"],
     ["outputBuy", "Top BO"],
     ["outputNet", "Top BO Net"],
-    ["materialValue", "Material Sell Value"],
-    ["extraProfitEach", "Extra Profit Each"],
-    ["extraProfitTotal", "Extra Profit Total"],
+    ["materialValue", "Mat Sell Value"],
+    ["extraProfitEach", "Profit Each"],
+    ["extraProfitTotal", "Profit Total"],
     ["roi", "ROI"],
-    ["ingredientsText", "Owned Materials Used"]
+    ["ingredientsText", "Owned Mats Used"]
   ].map(([key, label]) => ({ key, label }));
   setResultsHeaders(headers);
 }
 
 function ensureResearchNoteHeaders() {
   const headers = [
-    ["outputName", "Crafted Item"],
+    ["outputName", "Item"],
     ["rarity", "Rarity"],
     ["disciplinesText", "Professions"],
-    ["recipeId", "Recipe ID"],
-    ["canCraftQty", "Can Craft"],
+    ["recipeId", "Recipe"],
+    ["canCraftQty", "Can Make"],
     ["recommendedCraftQty", "Craft Qty"],
     ["noteItem", "Expected Notes / Item"],
-    ["totalExpectedNotes", "Total Expected Notes"],
-    ["valuePerNote", "Material Value / Note"],
+    ["totalExpectedNotes", "Total Notes"],
+    ["valuePerNote", "Mat Value / Note"],
     ["outputCount", "Out Qty"],
-    ["materialValue", "Owned Material Value"],
-    ["ingredientsText", "Owned Materials Used"]
+    ["materialValue", "Owned Mat Value"],
+    ["ingredientsText", "Owned Mats Used"]
   ].map(([key, label]) => ({ key, label }));
   setResultsHeaders(headers);
 }
@@ -5224,20 +5228,20 @@ function evaluateNestedRequirements(flat, outputCount) {
 function setProfitTableHeaders() {
   currentTableMode = 'profit';
   document.querySelector('#results thead tr').innerHTML = `
-    <th data-key="outputName">Crafted Item</th>
-    <th data-key="recipeId">Recipe ID</th>
-    <th data-key="canCraftQty">Can Craft</th>
-    <th data-key="profitableDepthQty">Profitable Qty</th>
+    <th data-key="outputName">Item</th>
+    <th data-key="recipeId">Recipe</th>
+    <th data-key="canCraftQty">Can Make</th>
+    <th data-key="profitableDepthQty">Prof Qty</th>
     <th data-key="recommendedCraftQty">Craft Qty</th>
     <th data-key="avgDepthSell">Avg Sell</th>
     <th data-key="lastDepthPrice">Last BO Hit</th>
     <th data-key="outputBuy">Top BO</th>
     <th data-key="outputNet">Top BO Net</th>
-    <th data-key="materialValue">Material Sell Value</th>
-    <th data-key="extraProfitEach">Extra Profit Each</th>
-    <th data-key="extraProfitTotal">Extra Profit Total</th>
+    <th data-key="materialValue">Mat Sell Value</th>
+    <th data-key="extraProfitEach">Profit Each</th>
+    <th data-key="extraProfitTotal">Profit Total</th>
     <th data-key="roi">ROI</th>
-    <th data-key="ingredientsText">Owned Materials Used</th>
+    <th data-key="ingredientsText">Owned Mats Used</th>
   `;
   setupTableSorting();
 }
@@ -5245,16 +5249,16 @@ function setProfitTableHeaders() {
 function setResearchNoteTableHeaders() {
   currentTableMode = 'research';
   document.querySelector('#results thead tr').innerHTML = `
-    <th data-key="outputName">Crafted Item</th>
-    <th data-key="recipeId">Recipe ID</th>
-    <th data-key="canCraftQty">Can Craft</th>
+    <th data-key="outputName">Item</th>
+    <th data-key="recipeId">Recipe</th>
+    <th data-key="canCraftQty">Can Make</th>
     <th data-key="outputCount">Out Qty</th>
     <th data-key="notesPerItem">Notes / Item</th>
     <th data-key="notesPerCraft">Notes / Craft</th>
     <th data-key="totalExpectedNotes">Total Expected Notes</th>
-    <th data-key="materialValue">Material Value / Craft</th>
-    <th data-key="materialValueTotal">Total Material Value</th>
-    <th data-key="ingredientsText">Owned Materials Used</th>
+    <th data-key="materialValue">Mat Value / Craft</th>
+    <th data-key="materialValueTotal">Total Mat Value</th>
+    <th data-key="ingredientsText">Owned Mats Used</th>
   `;
   setupTableSorting();
 }
@@ -5450,15 +5454,15 @@ function isResearchNoteCandidateOutput(outputId, noteItem) {
 
 function ensurePartialResearchHeaders() {
   const headers = [
-    ["outputName", "Crafted Item"],
+    ["outputName", "Item"],
     ["rarity", "Rarity"],
     ["disciplinesText", "Professions"],
-    ["recipeId", "Recipe ID"],
+    ["recipeId", "Recipe"],
     ["coveragePct", "Have %"],
     ["noteItem", "Expected Notes / Item"],
-    ["valuePerNote", "Material Value / Note"],
-    ["missingText", "Missing Materials"],
-    ["ingredientsText", "Owned Materials Used"]
+    ["valuePerNote", "Mat Value / Note"],
+    ["missingText", "Missing Mats"],
+    ["ingredientsText", "Owned Mats Used"]
   ].map(([key, label]) => ({ key, label }));
   setResultsHeaders(headers);
 }
