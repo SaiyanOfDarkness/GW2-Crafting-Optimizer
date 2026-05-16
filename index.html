@@ -782,10 +782,12 @@ body.research-mode .profit-only {
 
 /* === Crafting discipline icons === */
 .discipline-icons {
-  display: inline-flex;
+  display: inline-grid;
+  grid-template-columns: repeat(5, auto);
   align-items: center;
-  gap: 3px;
-  white-space: nowrap;
+  justify-content: start;
+  gap: 2px 4px;
+  white-space: normal;
 }
 
 .discipline-icon {
@@ -2641,6 +2643,11 @@ function shouldReplaceVendorParts(existingParts, candidateParts) {
   if (!Array.isArray(existingParts) || !existingParts.length) return true;
   if (!Array.isArray(candidateParts) || !candidateParts.length) return false;
 
+  const existingHasBulkMetadata = existingParts.some(p => Number(p?.sourceBulkQty || 0) > 1 || p?.sourceBulkItem);
+  const candidateHasBulkMetadata = candidateParts.some(p => Number(p?.sourceBulkQty || 0) > 1 || p?.sourceBulkItem);
+  const existingHasPackageMetadata = existingParts.some(p => Number(p?.sourceVendorQty || 0) > 1 || Number(p?.sourceVendorTotal || 0) > 0);
+  const candidateHasPackageMetadata = candidateParts.some(p => Number(p?.sourceVendorQty || 0) > 1 || Number(p?.sourceVendorTotal || 0) > 0);
+
   const existing = currencyPartsComparableTotal(existingParts);
   const candidate = currencyPartsComparableTotal(candidateParts);
 
@@ -2648,8 +2655,19 @@ function shouldReplaceVendorParts(existingParts, candidateParts) {
   // This lets bulk karma food replace higher per-item karma rows, while avoiding
   // unsafe comparisons such as karma vs coin or multi-currency barter bundles.
   if (existing.comparable && candidate.comparable && existing.currency === candidate.currency) {
+    // If the numerical cost is equal, prefer the version with bulk metadata so
+    // the renderer can show "cost / 25 (each)" instead of only the normalized value.
+    if (candidateHasBulkMetadata && !existingHasBulkMetadata && candidate.total <= existing.total) return true;
+    if (candidateHasPackageMetadata && !existingHasPackageMetadata && candidate.total <= existing.total) return true;
     return candidate.total < existing.total;
   }
+
+  // If the old cache entry came from an older build and lacks bulk metadata,
+  // allow the repo bulk dataset to replace it even when the currencies are not
+  // otherwise safely comparable. This affects display details only for known
+  // bulk rows and keeps regular vendor rows untouched.
+  if (candidateHasBulkMetadata && !existingHasBulkMetadata) return true;
+  if (candidateHasPackageMetadata && !existingHasPackageMetadata) return true;
 
   return false;
 }
@@ -2782,7 +2800,9 @@ function normalizeExternalVendorBulkRowsToWikiCache(rawRows, bulkContentsMap) {
         vendorName: vendorName || null,
         vendorPage: vendorPage || null,
         sourceBulkItem: bulkName,
-        sourceBulkQty: containedQtyPerPurchase
+        sourceBulkQty: containedQtyPerPurchase,
+        sourceVendorQty: effectiveOutputQty,
+        sourceVendorTotal: value
       });
     }
 
@@ -2814,6 +2834,18 @@ function normalizeExternalVendorBulkRowsToWikiCache(rawRows, bulkContentsMap) {
   return applied;
 }
 
+function knownDirectVendorOutputQty(itemNameText, observedQty = 1) {
+  const clean = normalizeWikiItemName(itemNameText).toLowerCase();
+  const n = Number(observedQty || 1);
+
+  // Wiki SMW sometimes exposes the vendor row quantity as 1 even though the
+  // merchant sells a package. Keep these as direct vendor package overrides so
+  // both valuation math and display use the per-item cost, not the full pack cost.
+  if (clean === 'thermocatalytic reagent') return 10;
+
+  return Number.isFinite(n) && n > 0 ? n : 1;
+}
+
 function normalizeExternalVendorRowsToWikiCache(rawRows) {
   if (!rawRows || typeof rawRows !== 'object') return 0;
 
@@ -2833,7 +2865,8 @@ function normalizeExternalVendorRowsToWikiCache(rawRows) {
 
     const vendorName = String(firstPrintoutValue(p, 'vendor') || '').trim();
     const vendorPage = vendorName ? vendorName.replace(/\s+/g, "_") : "";
-    const outputQty = Math.max(1, Number(firstPrintoutValue(p, 'qty') || 1));
+    const observedOutputQty = Math.max(1, Number(firstPrintoutValue(p, 'qty') || 1));
+    const outputQty = knownDirectVendorOutputQty(itemNameText, observedOutputQty);
     const costRows = Array.isArray(p.cost) ? p.cost : [];
 
     const parts = [];
@@ -2851,7 +2884,9 @@ function normalizeExternalVendorRowsToWikiCache(rawRows) {
         currency,
         count: perItemCount,
         vendorName: vendorName || null,
-        vendorPage: vendorPage || null
+        vendorPage: vendorPage || null,
+        sourceVendorQty: outputQty,
+        sourceVendorTotal: value
       });
     }
 
@@ -4303,7 +4338,12 @@ function maybeApplyKnownVendorPackageQuantity(name, entries) {
   }
   // Sun Bead is sold in a package: 25 for 525 karma = 21 karma each.
   if (lower === 'sun bead') {
-    return [{ name: 'Karma', currency: 'Karma', count: 21, vendorName: 'Cuadinti', vendorPage: 'Cuadinti' }];
+    return [{ name: 'Karma', currency: 'Karma', count: 21, vendorName: 'Cuadinti', vendorPage: 'Cuadinti', sourceVendorQty: 25, sourceVendorTotal: 525 }];
+  }
+  // Thermocatalytic Reagents are sold as 10 for 14s 96c. Normalize to 149.6c each,
+  // but keep package metadata so the renderer can show the pack math.
+  if (lower === 'thermocatalytic reagent') {
+    return [{ name: 'Coin', currency: 'coin', count: 149.6, vendorName: 'Master craftsman', vendorPage: 'Master_craftsman', sourceVendorQty: 10, sourceVendorTotal: 1496 }];
   }
   return entries;
 }
@@ -4377,8 +4417,22 @@ function renderCurrencyCostFromApi(name, count) {
   return `<span class="barter-cost" title="${safeName}"><span class="barter-name">${safeName}</span><span class="barter-qty">${qty}</span></span>`;
 }
 
+function formatCoinPrecise(copper) {
+  if (copper == null || !Number.isFinite(Number(copper))) return '';
+  const n = Number(copper);
+  if (Number.isInteger(n)) return formatCoin(n);
+  const g = Math.floor(n / 10000);
+  const remAfterGold = n - g * 10000;
+  const s = Math.floor(remAfterGold / 100);
+  const c = remAfterGold - s * 100;
+  const cText = Number(c.toFixed(3)).toLocaleString(undefined, { maximumFractionDigits: 3 });
+  if (g) return `${g}g ${String(s).padStart(2, '0')}s ${cText.padStart ? cText.padStart(2, '0') : cText}c`;
+  if (s) return `${s}s ${cText}c`;
+  return `${cText}c`;
+}
+
 function renderCoinCost(copper) {
-  return `<span class="barter-cost" title="Coin"><span class="barter-qty">${formatCoin(Number(copper || 0))}</span></span>`;
+  return `<span class="barter-cost" title="Coin"><span class="barter-qty">${formatCoinPrecise(Number(copper || 0))}</span></span>`;
 }
 
 function renderBarterCostPart(p) {
@@ -4479,13 +4533,13 @@ function renderBulkAwareVendorIngredientCostHtml(baseCost, requiredCount = 1, un
   if (!parts.length) return "";
 
   const rendered = parts.map(p => {
-    const sourceBulkQty = Number(p.sourceBulkQty || 0);
-    if (sourceBulkQty > 1) {
+    const sourcePackQty = Number(p.sourceBulkQty || p.sourceVendorQty || 0);
+    if (sourcePackQty > 1) {
       const perItemCount = Number(p.count || 0);
-      const packCount = perItemCount * sourceBulkQty;
+      const packCount = Number(p.sourceVendorTotal || 0) > 0 ? Number(p.sourceVendorTotal) : perItemCount * sourcePackQty;
       const packPart = { ...p, count: packCount };
       const eachPart = { ...p, count: perItemCount };
-      return `${renderBarterCostPart(packPart)} / ${sourceBulkQty.toLocaleString()} (${renderBarterCostPart(eachPart)} each)`;
+      return `${renderBarterCostPart(packPart)} / ${sourcePackQty.toLocaleString()} (${renderBarterCostPart(eachPart)} each)`;
     }
 
     const totalCount = Number(p.count || 0) * Math.max(1, Number(requiredCount || 1));
@@ -4541,7 +4595,11 @@ function getVendorBarterCost(itemId, count = 1) {
       unitValue: unit,
       source,
       vendorName: req.vendorName || null,
-      vendorPage: req.vendorPage || null
+      vendorPage: req.vendorPage || null,
+      sourceBulkItem: req.sourceBulkItem || null,
+      sourceBulkQty: req.sourceBulkQty || null,
+      sourceVendorQty: req.sourceVendorQty || null,
+      sourceVendorTotal: req.sourceVendorTotal || null
     });
   }
 
@@ -7183,7 +7241,7 @@ function renderIngredients(ingredients) {
 
     const finalSource = String(ing.valueSource || '');
     const finalOwnedBound = ing.accountBoundValueIgnored || isOwnedBoundNoTpText(finalSource) || (Number(unitValue) === 0 && isExternalAccountBoundMaterial(ing.itemId));
-    if (finalOwnedBound) {
+    if (finalOwnedBound && !hasBetterDisplaySource) {
       return `<span class="ingredient-chip">${renderItemLink(ing.itemId)} <span class="muted">x ${count} / ${ownedText} | Account Bound</span></span>`;
     }
 
