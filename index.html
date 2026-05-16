@@ -2500,7 +2500,7 @@ const VENDOR_BULK_SOURCES_BY_NAME = new Map([
 
   // Fixed vendor reagents. These can show TP listings, but for owned-material
   // valuation the NPC vendor price is authoritative. Thermocatalytic Reagent is
-  // sold by crafting vendors for 14s 96c each.
+  // sold by crafting vendors as 10 for 14s 96c.
   ["thermocatalytic reagent", { ingredientName: "Thermocatalytic Reagent", sourceName: "Crafting vendor", sourcePage: "", currency: "coin", cost: 1496, outputCount: 10, forceVendor: true }],
 
   // Standard vendor packages with live TP listings. Keep these static so the
@@ -2559,12 +2559,22 @@ const BULK_FOOD_CONTAINER_BY_INGREDIENT = new Map([
 
 
 
+const SHOW_STARTUP_DATASET_DEBUG_LOGS = false;
+
 function sanitizeLogText(value) {
   return String(value ?? '').replace(/access_token=[^&\s]+/g, 'access_token=[hidden]');
 }
 
+function isStartupDatasetDebugLog(msg) {
+  const text = String(msg || '');
+  return /^\[Data\]/.test(text)
+    || /^Repo datasets:/.test(text)
+    || /^Embedded Research Note yield entries:/.test(text);
+}
+
 function log(msg) {
   msg = sanitizeLogText(msg);
+  if (!SHOW_STARTUP_DATASET_DEBUG_LOGS && isStartupDatasetDebugLog(msg)) return;
   const el = document.getElementById('status');
   el.textContent += `
 [${new Date().toLocaleTimeString()}] ${msg}`;
@@ -7165,7 +7175,13 @@ function getOwnedMaterialTpSellUnitValue(ingId) {
 }
 
 function addOwnedMaterialTpSellValue(runningTotal, itemId, count) {
-  const unit = getOwnedMaterialTpSellUnitValue(itemId);
+  // Material Sell Value / Owned Material Value should use the same normalized
+  // per-item valuation that the ingredient renderer displays. This prevents
+  // package-priced vendor materials (for example Thermocatalytic Reagent
+  // 14s 96c / 10) from being calculated with their TP price or full package
+  // price while the chip shows the corrected per-unit vendor value.
+  const valued = getMaterialValueUnitForIngredient(itemId);
+  const unit = valued && valued.value != null ? Number(valued.value) : null;
   if (unit == null || !Number.isFinite(unit)) return runningTotal;
   return runningTotal + (Number(count || 0) * unit);
 }
