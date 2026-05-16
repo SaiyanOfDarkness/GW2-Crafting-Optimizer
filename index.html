@@ -4422,6 +4422,32 @@ function renderVendorBarterCostParts(barterCost) {
   return `<span class="barter-cost-list">` + parts.map(renderBarterCostPart).join(`<span class="barter-sep">+</span>`) + `</span>`;
 }
 
+
+function renderBulkAwareVendorIngredientCostHtml(baseCost, requiredCount = 1, unitValue = null) {
+  const parts = dedupeBarterCostPartsForDisplay(baseCost?.parts || []);
+  if (!parts.length) return "";
+
+  const rendered = parts.map(p => {
+    const sourceBulkQty = Number(p.sourceBulkQty || 0);
+    if (sourceBulkQty > 1) {
+      const perItemCount = Number(p.count || 0);
+      const packCount = perItemCount * sourceBulkQty;
+      const packPart = { ...p, count: packCount };
+      const eachPart = { ...p, count: perItemCount };
+      return `${renderBarterCostPart(packPart)} / ${sourceBulkQty.toLocaleString()} (${renderBarterCostPart(eachPart)} each)`;
+    }
+
+    const totalCount = Number(p.count || 0) * Math.max(1, Number(requiredCount || 1));
+    const totalPart = { ...p, count: totalCount };
+    if (unitValue != null && p.currency === 'coin') {
+      return `${renderBarterCostPart(totalPart)} (${formatCoin(unitValue)} each)`;
+    }
+    return renderBarterCostPart(totalPart);
+  }).join(`<span class="barter-sep">+</span>`);
+
+  return `<span class="barter-cost-list">${rendered}</span>`;
+}
+
 function getVendorBarterCost(itemId, count = 1) {
   const barter = getVendorBarterSourceForItem(itemId);
   if (!barter) return null;
@@ -6927,8 +6953,10 @@ function renderVendorCostOnlyHtml(source) {
   }
 
   const currencyName = String(source.currency || '').toLowerCase() === 'karma' ? 'Karma' : (source.currency || 'Currency');
+  const each = Number(source.cost || 0) / Math.max(1, Number(source.outputCount || 1));
   const currencyPart = renderCurrencyCostFromApi(currencyName, source.cost || 0);
-  return `${currencyPart} / ${outputCount}`;
+  const eachPart = renderCurrencyCostFromApi(currencyName, each);
+  return `${currencyPart} / ${outputCount} (${eachPart} each)`;
 }
 
 function renderVendorSourceHtml(source) {
@@ -6995,13 +7023,14 @@ function renderIngredients(ingredients) {
 
     const unitValue = ing.unitValue ?? ing.unitSell;
     const wikiVendorCost = ing.vendorBarterCost || getVendorBarterCost(ing.itemId, 1);
-    if (wikiVendorCost && !wikiVendorCost.missingPrice && /^Vendor/i.test(String(ing.valueSource || ''))) {
-      const totalForCount = getVendorBarterCost(ing.itemId, Number(ing.count || 1));
+    if (wikiVendorCost && wikiVendorCost.parts?.length) {
       const vendorName = wikiVendorCost.parts?.find(p => p.vendorName)?.vendorName || 'Vendor';
       const vendorPage = wikiVendorCost.parts?.find(p => p.vendorPage)?.vendorPage || vendorName;
       const vendorLabel = `<a class="item-link vendor-link" href="https://wiki.guildwars2.com/wiki/${encodeURIComponent(String(vendorPage).replace(/ /g, '_'))}" target="_blank" rel="noopener noreferrer">Vendor</a>`;
-      const eachText = unitValue == null ? '' : ` (${formatCoin(unitValue)} each)`;
-      return `<span class="ingredient-chip">${renderItemLink(ing.itemId)} <span class="muted">x ${count} / ${ownedText} | ${vendorLabel}: ${formatCoin(totalForCount?.total ?? wikiVendorCost.total)}${eachText}</span></span>`;
+      const costHtml = renderBulkAwareVendorIngredientCostHtml(wikiVendorCost, Number(ing.count || 1), unitValue);
+      if (costHtml) {
+        return `<span class="ingredient-chip">${renderItemLink(ing.itemId)} <span class="muted">x ${count} / ${ownedText} | ${vendorLabel}: ${costHtml}</span></span>`;
+      }
     }
     const hasKnownPriceOrVendor = (unitValue != null) || !!ing.vendorSource || !!wikiVendorCost;
     const isAccountBound = !hasKnownPriceOrVendor && (ing.accountBoundValueIgnored || isOwnedBoundNoTpText(ing.valueSource) || isExternalAccountBoundMaterial(ing.itemId));
