@@ -2349,18 +2349,24 @@ const EXTERNAL_DATA_PATHS = {
   mysticForgeRows: './data/gw2_mystic_forge_recipe_rows.json',
   vendorCraftingMaterialRows: './data/gw2_vendor_crafting_material_rows.json',
   vendorBulkRawRows: './data/gw2_vendor_bulk_raw_rows.json',
-  vendorBulkItems: './data/gw2_vendor_bulk_items.json'
+  vendorBulkItems: './data/gw2_vendor_bulk_items.json',
+  accountBoundMaterialRows: './data/gw2_account_bound_material_rows.json'
 };
 
 let externalMysticForgeRecipeRows = {};
 let externalVendorCraftingMaterialRows = {};
 let externalVendorBulkRawRows = {};
 let externalVendorBulkItems = {};
+let externalAccountBoundMaterialRows = {};
+let externalAccountBoundMaterialIds = new Set();
+let externalAccountBoundMaterialNames = new Set();
 let externalDatasetStatus = {
   mysticForgeRows: false,
   vendorCraftingMaterialRows: false,
   vendorBulkRawRows: false,
   vendorBulkItems: false,
+  accountBoundMaterialRows: false,
+  accountBoundMaterialCount: 0,
   vendorRowsApplied: 0,
   vendorBulkRowsApplied: 0
 };
@@ -2687,6 +2693,43 @@ function normalizeExternalBulkContentsRowsToMap(rawRows) {
   return map;
 }
 
+function normalizeExternalAccountBoundMaterialRows(rawRows) {
+  const ids = new Set();
+  const names = new Set();
+  const results = rawRows && rawRows.results && typeof rawRows.results === 'object'
+    ? rawRows.results
+    : rawRows;
+
+  if (!results || typeof results !== 'object') return { ids, names, count: 0 };
+
+  for (const row of Object.values(results)) {
+    const p = row && row.printouts;
+    if (!p) continue;
+
+    const binding = String(firstPrintoutValue(p, 'Binding') || '').trim();
+    const type = String(firstPrintoutValue(p, 'Type') || '').trim();
+    const availability = String(firstPrintoutValue(p, 'Availability') || 'Current').trim();
+    if (!/^AccountBound$/i.test(binding)) continue;
+    if (type && !/^Crafting material$/i.test(type)) continue;
+    if (availability && !/^Current$/i.test(availability)) continue;
+
+    const id = Number(firstPrintoutValue(p, 'Item ID') || 0);
+    const name = String(firstPrintoutValue(p, 'Name') || row.fulltext || '').trim();
+
+    if (Number.isFinite(id) && id > 0) ids.add(id);
+    if (name) names.add(normalizeWikiItemName(name).toLowerCase());
+  }
+
+  return { ids, names, count: Math.max(ids.size, names.size) };
+}
+
+function isExternalAccountBoundMaterial(itemId, name = '') {
+  const id = Number(itemId || 0);
+  if (id && externalAccountBoundMaterialIds.has(id)) return true;
+  const key = normalizeWikiItemName(name || (id ? itemName(id) : '')).toLowerCase();
+  return !!key && externalAccountBoundMaterialNames.has(key);
+}
+
 function normalizeExternalVendorBulkRowsToWikiCache(rawRows, bulkContentsMap) {
   if (!rawRows || typeof rawRows !== 'object' || !(bulkContentsMap instanceof Map)) return 0;
 
@@ -2882,6 +2925,17 @@ async function loadExternalRepoDatasets() {
     }
   }
 
+  const accountBoundRows = await fetchOptionalRepoJson(EXTERNAL_DATA_PATHS.accountBoundMaterialRows, 'Account-bound material rows');
+  if (accountBoundRows && typeof accountBoundRows === 'object') {
+    externalAccountBoundMaterialRows = accountBoundRows;
+    externalDatasetStatus.accountBoundMaterialRows = true;
+    const normalized = normalizeExternalAccountBoundMaterialRows(accountBoundRows);
+    externalAccountBoundMaterialIds = normalized.ids;
+    externalAccountBoundMaterialNames = normalized.names;
+    externalDatasetStatus.accountBoundMaterialCount = normalized.count;
+    log(`[Data] Account-bound material rows normalized: ${normalized.count.toLocaleString()} item(s).`);
+  }
+
   if (totalVendorApplied > 0) {
     await saveDataCache();
   }
@@ -2891,6 +2945,9 @@ async function loadExternalRepoDatasets() {
     vendorCraftingMaterialRows: externalVendorCraftingMaterialRows,
     vendorBulkRawRows: externalVendorBulkRawRows,
     vendorBulkItems: externalVendorBulkItems,
+    accountBoundMaterialRows: externalAccountBoundMaterialRows,
+    accountBoundMaterialIds: Array.from(externalAccountBoundMaterialIds),
+    accountBoundMaterialNames: Array.from(externalAccountBoundMaterialNames),
     status: externalDatasetStatus
   };
 
@@ -6946,7 +7003,8 @@ function renderIngredients(ingredients) {
       const eachText = unitValue == null ? '' : ` (${formatCoin(unitValue)} each)`;
       return `<span class="ingredient-chip">${renderItemLink(ing.itemId)} <span class="muted">x ${count} / ${ownedText} | ${vendorLabel}: ${formatCoin(totalForCount?.total ?? wikiVendorCost.total)}${eachText}</span></span>`;
     }
-    const isAccountBound = ing.accountBoundValueIgnored || isOwnedBoundNoTpText(ing.valueSource);
+    const hasKnownPriceOrVendor = (unitValue != null) || !!ing.vendorSource || !!wikiVendorCost;
+    const isAccountBound = !hasKnownPriceOrVendor && (ing.accountBoundValueIgnored || isOwnedBoundNoTpText(ing.valueSource) || isExternalAccountBoundMaterial(ing.itemId));
 
     if (isAccountBound) {
       return `<span class="ingredient-chip">${renderItemLink(ing.itemId)} <span class="muted">x ${count} / ${ownedText} | Account Bound</span></span>`;
@@ -7191,6 +7249,7 @@ setupTableSorting();
     `Vendor ${repoDataStatus.vendorCraftingMaterialRows ? 'loaded' : 'fallback only'}, ` +
     `Bulk contents ${repoDataStatus.vendorBulkItems ? 'loaded' : 'missing'}, ` +
     `Bulk vendor rows ${repoDataStatus.vendorBulkRawRows ? 'loaded' : 'missing'}, ` +
+    `Account-bound materials ${repoDataStatus.accountBoundMaterialRows ? 'loaded' : 'missing'} (${Number(repoDataStatus.accountBoundMaterialCount || 0).toLocaleString()}), ` +
     `Vendor cache additions ${Number(repoDataStatus.vendorRowsApplied || 0).toLocaleString()}, ` +
     `Bulk additions ${Number(repoDataStatus.vendorBulkRowsApplied || 0).toLocaleString()}`
   );
