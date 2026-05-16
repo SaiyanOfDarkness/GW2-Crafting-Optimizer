@@ -1141,6 +1141,88 @@ body:not(.research-mode) #researchFilterPanel {
   color: rgba(246,1,157,0.62);
 }
 
+
+
+/* === Patch: stable ingredient/currency alignment === */
+.ingredient-chip,
+.item-cell,
+.barter-cost,
+.barter-cost-list,
+.vendor-link {
+  vertical-align: middle;
+}
+
+.ingredient-chip {
+  display: inline-flex !important;
+  align-items: center !important;
+  gap: 5px;
+  line-height: 1.15;
+}
+
+.item-cell {
+  display: inline-flex !important;
+  align-items: center !important;
+  gap: 5px;
+  line-height: 1;
+}
+
+.item-icon {
+  width: 18px !important;
+  height: 18px !important;
+  min-width: 18px;
+  min-height: 18px;
+  object-fit: contain;
+  object-position: center;
+  display: block;
+  flex: 0 0 18px;
+}
+
+.barter-cost {
+  display: inline-flex !important;
+  align-items: center !important;
+  gap: 3px;
+  line-height: 1;
+  vertical-align: middle;
+}
+
+.barter-icon {
+  width: 16px !important;
+  height: 16px !important;
+  min-width: 16px;
+  min-height: 16px;
+  object-fit: contain;
+  object-position: center;
+  display: block;
+  flex: 0 0 16px;
+  vertical-align: middle;
+}
+
+.barter-qty {
+  display: inline-block;
+  line-height: 1;
+}
+
+.profession-icons,
+.profession-list,
+.professions,
+.profession-cell .icons,
+.profession-icon-list {
+  display: grid !important;
+  grid-template-columns: repeat(5, auto);
+  gap: 2px 6px;
+  align-items: center;
+  justify-content: start;
+  white-space: normal;
+}
+
+.profession-icons img,
+.profession-list img,
+.professions img,
+.profession-cell .icons img,
+.profession-icon-list img {
+  display: block;
+}
+
 </style>
 </head>
 <body>
@@ -2413,18 +2495,18 @@ const VENDOR_BULK_SOURCES_BY_NAME = new Map([
   ["jar of vinegar", { ingredientName: "Jar of Vinegar", sourceName: "Apprentice (cooking)", sourcePage: "Apprentice_(cooking)", currency: "coin", cost: 80, outputCount: 10 }],
   ["packet of salt", { ingredientName: "Packet of Salt", sourceName: "Apprentice (cooking)", sourcePage: "Apprentice_(cooking)", currency: "coin", cost: 80, outputCount: 10 }],
   ["milling basin", { ingredientName: "Milling Basin", sourceName: "Apprentice (cooking)", sourcePage: "Apprentice_(cooking)", currency: "coin", cost: 560, outputCount: 10 }],
-  ["spool of gossamer thread", { ingredientName: "Spool of Gossamer Thread", sourceName: "Crafting vendor", sourcePage: "Master_craftsman", currency: "coin", cost: 640, outputCount: 10 }],
+  ["spool of gossamer thread", { ingredientName: "Spool of Gossamer Thread", sourceName: "Crafting vendor", sourcePage: "", currency: "coin", cost: 640, outputCount: 10 }],
   ["celery stalk", { ingredientName: "Celery Stalk", sourceName: "Celery Stalks in Bulk", sourcePage: "Milton_Book", currency: "karma", cost: 35, outputCount: 25 }],
 
   // Fixed vendor reagents. These can show TP listings, but for owned-material
   // valuation the NPC vendor price is authoritative. Thermocatalytic Reagent is
   // sold by crafting vendors for 14s 96c each.
-  ["thermocatalytic reagent", { ingredientName: "Thermocatalytic Reagent", sourceName: "Crafting vendor", sourcePage: "Master_craftsman", currency: "coin", cost: 1496, outputCount: 1, forceVendor: true }],
+  ["thermocatalytic reagent", { ingredientName: "Thermocatalytic Reagent", sourceName: "Crafting vendor", sourcePage: "", currency: "coin", cost: 1496, outputCount: 10, forceVendor: true }],
 
   // Standard vendor packages with live TP listings. Keep these static so the
   // research scan does not have to run a Wiki vendor query over thousands of
   // ingredients just to discover common vendor-price overrides.
-  ["lump of coal", { ingredientName: "Lump of Coal", sourceName: "Master craftsman", sourcePage: "Master_craftsman", currency: "coin", cost: 160, outputCount: 10 }],
+  ["lump of coal", { ingredientName: "Lump of Coal", sourceName: "Crafting vendor", sourcePage: "", currency: "coin", cost: 160, outputCount: 10 }],
   ["pile of powdered gelatin mix", { ingredientName: "Pile of Powdered Gelatin Mix", sourceName: "Apprentice (cooking)", sourcePage: "Apprentice_(cooking)", currency: "coin", cost: 1000, outputCount: 5 }]
 ]);
 
@@ -2864,6 +2946,7 @@ function normalizeExternalVendorRowsToWikiCache(rawRows) {
     if (itemHistorical || vendorHistorical) continue;
 
     const vendorName = String(firstPrintoutValue(p, 'vendor') || '').trim();
+    if (isBannedVendorName(vendorName)) continue;
     const vendorPage = vendorName ? vendorName.replace(/\s+/g, "_") : "";
     const observedOutputQty = Math.max(1, Number(firstPrintoutValue(p, 'qty') || 1));
     const outputQty = knownDirectVendorOutputQty(itemNameText, observedOutputQty);
@@ -4241,7 +4324,8 @@ function isDeprecatedVendorCurrencyName(name) {
 
 const BANNED_VENDOR_NAMES = new Set([
   'Lyhr',
-  'Ward Crafter Lucirae'
+  'Ward Crafter Lucirae',
+  'Master craftsman'
 ]);
 
 function isBannedVendorName(name) {
@@ -4343,7 +4427,7 @@ function maybeApplyKnownVendorPackageQuantity(name, entries) {
   // Thermocatalytic Reagents are sold as 10 for 14s 96c. Normalize to 149.6c each,
   // but keep package metadata so the renderer can show the pack math.
   if (lower === 'thermocatalytic reagent') {
-    return [{ name: 'Coin', currency: 'coin', count: 149.6, vendorName: 'Master craftsman', vendorPage: 'Master_craftsman', sourceVendorQty: 10, sourceVendorTotal: 1496 }];
+    return [{ name: 'Coin', currency: 'coin', count: 149.6, vendorName: 'Crafting vendor', vendorPage: '', sourceVendorQty: 10, sourceVendorTotal: 1496 }];
   }
   return entries;
 }
@@ -7130,7 +7214,7 @@ function formatVendorSource(source) {
 }
 
 function renderVendorLabelHtml(source) {
-  if (!source || !source.sourcePage) return 'Vendor';
+  if (!source || !source.sourcePage || isBannedVendorName(source.sourcePage) || isBannedVendorName(source.sourceName)) return 'Vendor';
   return `<a class="item-link vendor-link" href="https://wiki.guildwars2.com/wiki/${encodeURIComponent(source.sourcePage).replace(/%20/g, '_')}" target="_blank" rel="noopener noreferrer">Vendor</a>`;
 }
 
