@@ -4423,6 +4423,22 @@ function renderVendorBarterCostParts(barterCost) {
 }
 
 
+function shouldRenderVendorBarterIngredientLine(ing, barterCost) {
+  if (!barterCost || !Array.isArray(barterCost.parts) || !barterCost.parts.length) return false;
+  if (isLikelyIndirectContainerCostPackage(barterCost.parts)) return false;
+
+  const source = String(ing?.valueSource || '');
+
+  // If TP already won the valuation comparison, do not display a more expensive
+  // vendor/barter source as though it is the chosen source.
+  if (/^TP/i.test(source) || /TP\s+(?:Sell|Buy)\s+cheaper/i.test(source)) return false;
+
+  // Render vendor/barter when it is the chosen valuation source or when it is a
+  // non-coin/currency acquisition that has no better display source.
+  return !source || /^Vendor(?:|\/barter| karma)/i.test(source);
+}
+
+
 function renderBulkAwareVendorIngredientCostHtml(baseCost, requiredCount = 1, unitValue = null) {
   const parts = dedupeBarterCostPartsForDisplay(baseCost?.parts || []);
   if (!parts.length) return "";
@@ -7022,8 +7038,9 @@ function renderIngredients(ingredients) {
     }
 
     const unitValue = ing.unitValue ?? ing.unitSell;
-    const wikiVendorCost = ing.vendorBarterCost || getVendorBarterCost(ing.itemId, 1);
-    if (wikiVendorCost && wikiVendorCost.parts?.length) {
+    const wikiVendorCostRaw = ing.vendorBarterCost || getVendorBarterCost(ing.itemId, 1);
+    const wikiVendorCost = wikiVendorCostRaw && !isLikelyIndirectContainerCostPackage(wikiVendorCostRaw.parts || []) ? wikiVendorCostRaw : null;
+    if (shouldRenderVendorBarterIngredientLine(ing, wikiVendorCost)) {
       const vendorName = wikiVendorCost.parts?.find(p => p.vendorName)?.vendorName || 'Vendor';
       const vendorPage = wikiVendorCost.parts?.find(p => p.vendorPage)?.vendorPage || vendorName;
       const vendorLabel = `<a class="item-link vendor-link" href="https://wiki.guildwars2.com/wiki/${encodeURIComponent(String(vendorPage).replace(/ /g, '_'))}" target="_blank" rel="noopener noreferrer">Vendor</a>`;
