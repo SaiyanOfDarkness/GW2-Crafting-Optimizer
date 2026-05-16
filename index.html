@@ -1182,6 +1182,7 @@ body:not(.research-mode) #researchFilterPanel {
       <button onclick="refreshMarketPrices()">3. Refresh TP Prices</button>
       <button onclick="buildOpportunities()">4. Build Opportunities</button>
       <button onclick="buildNestedOpportunities()">4b. Build Nested Opportunities</button>
+      <button id="nestedProfitToggleBtn" onclick="toggleNestedProfitRecipes()">SHOW NESTED RECIPES: <span style="color:#F6019D">OFF</span></button>
       <button onclick="render()">Render Table</button>
       <button class="danger" onclick="clearDataCache()">Clear Data Cache</button>
     </div>
@@ -1320,6 +1321,9 @@ let recipeCache = [];
 let prices = new Map();
 let listings = new Map();
 let opportunities = [];
+let normalProfitOpportunities = [];
+let nestedProfitOpportunities = [];
+let profitViewMode = 'normal';
 let researchNoteOpportunities = [];
 let partialResearchOpportunities = [];
 let tableMode = 'profit';
@@ -5146,6 +5150,58 @@ function setToolMode(mode) {
 
   render();
   updatePartialResearchToggleButton();
+  updateNestedProfitToggleButton();
+}
+
+function updateNestedProfitToggleButton() {
+  const btn = document.getElementById('nestedProfitToggleBtn');
+  if (!btn) return;
+  const isOn = tableMode === 'profit' && profitViewMode === 'nested';
+  btn.innerHTML = `SHOW NESTED RECIPES: <span style="color:${isOn ? '#FF6C11' : '#F6019D'}">${isOn ? 'ON' : 'OFF'}</span>`;
+}
+
+async function toggleNestedProfitRecipes() {
+  tableMode = 'profit';
+  renderLimit = RENDER_STEP;
+  ensureProfitHeaders();
+  setProfitTableHeaders();
+
+  const profitTab = document.getElementById('profitModeTab');
+  const researchTab = document.getElementById('researchModeTab');
+  if (profitTab) profitTab.classList.add('active');
+  if (researchTab) researchTab.classList.remove('active');
+  document.body.classList.remove('research-mode');
+
+  const desc = document.getElementById('modeDescription');
+
+  if (profitViewMode === 'nested') {
+    profitViewMode = 'normal';
+
+    if (normalProfitOpportunities && normalProfitOpportunities.length) {
+      opportunities = normalProfitOpportunities.slice();
+      if (desc) desc.textContent = 'Profit Mode: find crafts that turn owned materials into more gold than selling the materials directly.';
+      updateNestedProfitToggleButton();
+      render();
+      return;
+    }
+
+    updateNestedProfitToggleButton();
+    await buildOpportunities();
+    return;
+  }
+
+  profitViewMode = 'nested';
+
+  if (nestedProfitOpportunities && nestedProfitOpportunities.length) {
+    opportunities = nestedProfitOpportunities.slice();
+    if (desc) desc.textContent = 'Profit Mode: showing cost-aware nested/sub-crafting opportunities.';
+    updateNestedProfitToggleButton();
+    render();
+    return;
+  }
+
+  updateNestedProfitToggleButton();
+  await buildNestedOpportunities();
 }
 
 async function runResearchNoteScan() {
@@ -6592,13 +6648,15 @@ async function buildResearchNoteMode() {
 
 async function buildNestedOpportunities() {
   tableMode = 'profit';
+  profitViewMode = 'nested';
   renderLimit = RENDER_STEP;
   ensureProfitHeaders();
   if (document.getElementById('profitModeTab')) document.getElementById('profitModeTab').classList.add('active');
   if (document.getElementById('researchModeTab')) document.getElementById('researchModeTab').classList.remove('active');
   document.body.classList.remove('research-mode');
   const modeDesc = document.getElementById('modeDescription');
-  if (modeDesc) modeDesc.textContent = 'Profit Mode: find crafts that turn owned materials into more gold than selling the materials directly.';
+  if (modeDesc) modeDesc.textContent = 'Profit Mode: showing cost-aware nested/sub-crafting opportunities.';
+  updateNestedProfitToggleButton();
   setProfitTableHeaders();
   if (!ownedMaterials.size || !recipeCache.length || !prices.size) {
     setStatus('Load owned materials, recipe cache, and TP prices first.');
@@ -6668,12 +6726,16 @@ async function buildNestedOpportunities() {
   }
 
   opportunities.sort((a, b) => b.extraProfitTotal - a.extraProfitTotal);
+  nestedProfitOpportunities = opportunities.slice();
+  profitViewMode = 'nested';
+  updateNestedProfitToggleButton();
   render();
   setStatus(`Built nested opportunities with cost-aware owned sub-crafting expansion: ${opportunities.length} profitable crafts. Considered ${considered.toLocaleString()} recipes. Nested paths used: ${nestedUsed.toLocaleString()}.`);
 }
 
 async function buildOpportunities() {
   tableMode = 'profit';
+  profitViewMode = 'normal';
   renderLimit = RENDER_STEP;
   ensureProfitHeaders();
   if (document.getElementById('profitModeTab')) document.getElementById('profitModeTab').classList.add('active');
@@ -6681,6 +6743,7 @@ async function buildOpportunities() {
   document.body.classList.remove('research-mode');
   const modeDesc = document.getElementById('modeDescription');
   if (modeDesc) modeDesc.textContent = 'Profit Mode: find crafts that turn owned materials into more gold than selling the materials directly.';
+  updateNestedProfitToggleButton();
   setProfitTableHeaders();
   if (!ownedMaterials.size || !recipeCache.length || !prices.size) {
     setStatus('Load owned materials, recipe cache, and TP prices first.');
@@ -6766,6 +6829,9 @@ async function buildOpportunities() {
   }
 
   opportunities.sort((a, b) => b.extraProfitTotal - a.extraProfitTotal);
+  normalProfitOpportunities = opportunities.slice();
+  profitViewMode = 'normal';
+  updateNestedProfitToggleButton();
   render();
   setStatus(`Built opportunities: ${opportunities.length} profitable crafts.`);
 }
