@@ -2340,7 +2340,7 @@ let researchSalvageableItemIds = new Set();
 let wikiVendorBarterByName = {};
 let wikiVendorNoVendorByName = {};
 let wikiVendorAmbiguousByName = {};
-const WIKI_VENDOR_CACHE_SCHEMA_VERSION = 20;
+const WIKI_VENDOR_CACHE_SCHEMA_VERSION = 21;
 
 // GitHub Pages external dataset files.
 // These are loaded from /data when the app is hosted from the repo.
@@ -2757,6 +2757,7 @@ function normalizeExternalVendorBulkRowsToWikiCache(rawRows, bulkContentsMap) {
     if (availability && !/^current$/i.test(availability)) continue;
 
     const vendorName = String(firstPrintoutValue(p, 'vendor') || '').trim();
+    if (isBannedVendorName(vendorName)) continue;
     const vendorPage = vendorName ? vendorName.replace(/\s+/g, "_") : "";
     const vendorQty = Math.max(1, Number(firstPrintoutValue(p, 'vendorQty') || 1));
     const containedQtyPerPurchase = Number(content.qty);
@@ -2770,6 +2771,7 @@ function normalizeExternalVendorBulkRowsToWikiCache(rawRows, bulkContentsMap) {
       const value = Number(String(valueRaw || '').replace(/,/g, ''));
       const currency = externalVendorCurrencyName(currencyRaw);
       if (!currency || !Number.isFinite(value) || value <= 0) continue;
+      if (currency !== 'coin' && !isKnownWalletCurrencyName(currency) && isLikelyIndirectContainerCostName(currency)) continue;
 
       parts.push({
         currency,
@@ -4106,6 +4108,7 @@ function getVendorBarterSourceForItem(itemId) {
   }
 
   entries = maybeApplyKnownVendorPackageQuantity(name, cleanBarterEntries(entries));
+  entries = (entries || []).filter(e => !isBannedVendorName(e.vendorName || e.vendorPage || e.vendorBrowseTitle || ''));
 
   if (!entries || !entries.length) return null;
 
@@ -4197,6 +4200,29 @@ function isDeprecatedVendorCurrencyName(name) {
   return DEPRECATED_VENDOR_CURRENCY_NAMES.has(clean);
 }
 
+
+const BANNED_VENDOR_NAMES = new Set([
+  'Lyhr',
+  'Ward Crafter Lucirae'
+]);
+
+function isBannedVendorName(name) {
+  const clean = normalizeWikiItemName(name).toLowerCase();
+  if (!clean) return false;
+  return [...BANNED_VENDOR_NAMES].some(v => normalizeWikiItemName(v).toLowerCase() === clean) || clean === 'lyhr';
+}
+
+function isLikelyIndirectContainerCostName(name) {
+  const clean = normalizeWikiItemName(name).toLowerCase();
+  if (!clean) return false;
+  return /\b(choice chest|commander'?s choice chest|hero'?s choice chest|chest|container|cache|coffer|box|bag|sack|satchel|crate|bundle)\b/.test(clean);
+}
+function isKnownWalletCurrencyName(name) {
+  const clean = normalizeWikiItemName(name);
+  if (!clean) return false;
+  return /^coin$/i.test(clean) || WIKI_VENDOR_CURRENCY_NAMES.has(clean);
+}
+
 function isHistoricalVendorRow(tr) {
   const html = String(tr?.innerHTML || '').toLowerCase();
   const text = String(tr?.textContent || '').toLowerCase();
@@ -4229,6 +4255,8 @@ function cleanBarterEntries(entries) {
     const name = normalizeWikiItemName(e.name || e.currency || '');
     if (!name) continue;
     if (isDeprecatedVendorCurrencyName(name)) continue;
+    const rawCurrencyName = e.currency ? normalizeWikiItemName(e.currency) : '';
+    if (isLikelyIndirectContainerCostName(name) || (rawCurrencyName && isLikelyIndirectContainerCostName(rawCurrencyName) && !isKnownWalletCurrencyName(rawCurrencyName))) continue;
     const currency = e.currency || (WIKI_VENDOR_CURRENCY_NAMES.has(name) ? name : null);
     const count = Number(e.count || 0);
     if (!isFinite(count) || count <= 0) continue;
@@ -4328,15 +4356,19 @@ function renderVendorLink(vendorName, vendorPage) {
 }
 
 function renderCurrencyCostFromApi(name, count) {
-  const cur = findCurrencyByName(name);
-  const qty = Number(count || 0).toLocaleString();
-  const safeName = escapeHtml(name || cur?.name || "Currency");
+  const rawName = name || "";
+  const cur = findCurrencyByName(rawName);
+  const displayName = cur?.name || (/^karma$/i.test(String(rawName)) ? "Karma" : rawName) || "Currency";
+  const qty = Number(count || 0).toLocaleString(undefined, { maximumFractionDigits: 3 });
+  const safeName = escapeHtml(displayName);
+  const overrideKey = Object.keys(typeof GW2_CURRENCY_ICONS !== "undefined" ? GW2_CURRENCY_ICONS : {})
+    .find(k => k.toLowerCase() === String(displayName).toLowerCase() || k.toLowerCase() === String(rawName).toLowerCase());
   const icon = cur?.icon
-    || (typeof GW2_CURRENCY_ICONS !== "undefined" ? GW2_CURRENCY_ICONS[name] : "")
-    || wikiFilePathIconUrl(name || cur?.name || "");
+    || (overrideKey ? GW2_CURRENCY_ICONS[overrideKey] : "")
+    || wikiFilePathIconUrl(displayName);
 
   if (icon) {
-    return `<span class="barter-cost" title="${safeName}"><img class="barter-icon" src="${escapeHtml(icon)}" alt="${safeName}"><span class="barter-qty">${qty}</span></span>`;
+    return `<span class="barter-cost" title="${safeName}"><img class="barter-icon" src="${escapeHtml(icon)}" alt="${safeName}" onerror="this.style.display='none'"><span class="barter-qty">${qty}</span></span>`;
   }
 
   return `<span class="barter-cost" title="${safeName}"><span class="barter-name">${safeName}</span><span class="barter-qty">${qty}</span></span>`;
@@ -4379,15 +4411,15 @@ function isLikelyIndirectContainerCostPackage(parts) {
   // These are not real vendor costs. The wiki can list indirect sources where an
   // NPC exchanges/open-selects a container for the item. In the optimizer, those
   // should not become a fake vendor cost line. Prefer TP if available; otherwise
-  // show Acquisition Info. Example: Intact Mosaic from multiple Commander's Choice Chest sources.
-  return list.every(p => {
-    const name = normalizeWikiItemName(p?.name || '').toLowerCase();
-    const isCoinOrCurrency = p?.currency === 'coin' || !!p?.currency;
-    if (isCoinOrCurrency) return false;
-    return /\b(chest|choice chest|container|cache|coffer|box|bag|sack|satchel|crate|bundle)\b/.test(name);
+  // show Acquisition Info. Example: Commander's/Hero's Choice Chest sources.
+  return list.some(p => {
+    const name = normalizeWikiItemName(p?.name || p?.currency || (p?.itemId ? itemName(p.itemId) : ''));
+    if (!name) return false;
+    if (p?.currency === 'coin') return false;
+    if (p?.currency && isKnownWalletCurrencyName(p.currency)) return false;
+    return isLikelyIndirectContainerCostName(name);
   });
 }
-
 function renderVendorBarterLine(acq) {
   if (!acq) return "";
   const vendor = acq.vendorName || acq.vendor || acq.vendorPage;
@@ -4431,11 +4463,11 @@ function shouldRenderVendorBarterIngredientLine(ing, barterCost) {
 
   // If TP already won the valuation comparison, do not display a more expensive
   // vendor/barter source as though it is the chosen source.
-  if (/^TP/i.test(source) || /TP\s+(?:Sell|Buy)\s+cheaper/i.test(source)) return false;
+  if (/^TP\b/i.test(source) || /TP\s+(?:Sell|Buy)\s+cheaper/i.test(source)) return false;
 
   // Render vendor/barter when it is the chosen valuation source or when it is a
   // non-coin/currency acquisition that has no better display source.
-  return !source || /^Vendor(?:|\/barter| karma)/i.test(source);
+  return !source || /^Vendor(?:\b|\/barter| karma)/i.test(source);
 }
 
 
@@ -5951,6 +5983,7 @@ function parseWikiVendorQueryHtmlToBarterEntries(html, wantedName) {
       }) : null;
 
       const vendorName = vendorLink ? vendorLink.textContent.trim() : (vendorCell?.textContent || '').replace(/\s+/g, ' ').trim();
+      if (isBannedVendorName(vendorName)) continue;
       const vendorHref = vendorLink ? (vendorLink.getAttribute('href') || '') : '';
       const vendorBrowseTitle = vendorBrowseTitleFromHref(vendorHref);
       const vendorPage = vendorHref
@@ -7005,6 +7038,10 @@ function getDisplayIngredientWithVendorPriority(ing) {
   const vendorCoinEach = getVendorSourceUnitCoinValue(vendorSource);
   if (vendorCoinEach == null) {
     out.vendorSource = vendorSource;
+    if (!/TP\s+(?:Sell|Buy)\s+cheaper/i.test(String(out.valueSource || ''))) {
+      out.valueSource = 'Vendor';
+      out.accountBoundValueIgnored = false;
+    }
     return out;
   }
 
@@ -7033,7 +7070,7 @@ function renderIngredients(ingredients) {
     const count = Number(ing.count || 0).toLocaleString();
     const ownedText = `Owned ${Number(ing.owned || 0).toLocaleString()}`;
 
-    if (ing.vendorSource && /^Vendor(?:\b| karma)/i.test(String(ing.valueSource || ''))) {
+    if (ing.vendorSource && !/TP\s+(?:Sell|Buy)\s+cheaper/i.test(String(ing.valueSource || ''))) {
       return `<span class="ingredient-chip">${renderItemLink(ing.itemId)} <span class="muted">x ${count} / ${ownedText} | ${renderVendorSourceHtml(ing.vendorSource)}</span></span>`;
     }
 
