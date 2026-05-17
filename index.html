@@ -1228,6 +1228,23 @@ body:not(.research-mode) #researchFilterPanel {
 th { padding-left: 6px; padding-right: 6px; }
 td { padding-left: 6px; padding-right: 6px; }
 
+
+
+.profit-value-group select {
+  min-width: 170px;
+}
+
+@media (max-width: 700px) {
+  .profit-value-group {
+    width: 100%;
+  }
+
+  .profit-value-group select {
+    width: 100%;
+    min-width: 0;
+  }
+}
+
 </style>
 </head>
 <body>
@@ -1270,12 +1287,6 @@ td { padding-left: 6px; padding-right: 6px; }
       <button onclick="loadNestedVariantRecipes()">2b. Load Nested Variant Recipes</button>
       <button onclick="refreshMarketPrices()">3. Refresh TP Prices</button>
       <button onclick="buildOpportunities()">4. Build Opportunities</button>
-      <label class="profit-only">Profit Value:
-        <select id="profitValuationMode" onchange="setProfitValuationMode(this.value)">
-          <option value="instant">Instant Sell</option>
-          <option value="listing">Sell Listing</option>
-        </select>
-      </label>
       <button id="nestedProfitToggleBtn" onclick="toggleNestedProfitRecipes()">SHOW NESTED RECIPES: <span style="color:#F6019D">OFF</span></button>
       <button onclick="render()">Render Table</button>
       <button class="danger" onclick="clearDataCache()">Clear Data Cache</button>
@@ -1302,6 +1313,14 @@ td { padding-left: 6px; padding-right: 6px; }
       <div class="filter-group search-group">
         <label for="searchBox">SEARCH</label>
         <input id="searchBox" type="text" placeholder="item, material, recipe...">
+      </div>
+
+      <div class="filter-group profit-value-group profit-only">
+        <label for="profitValuationMode">PROFIT VALUE</label>
+        <select id="profitValuationMode" onchange="setProfitValuationMode(this.value)">
+          <option value="instant">Instant Sell</option>
+          <option value="listing">Sell Listing</option>
+        </select>
       </div>
 
       <div class="filter-group profit-filter-group">
@@ -5444,9 +5463,57 @@ function getProfitMaterialValueForMode(o, mode) {
   return total;
 }
 
+
+function getProfitDisplayIngredientsForMode(o, mode) {
+  return ((o && o.ingredients) || []).map(raw => {
+    const ing = Object.assign({}, raw || {});
+    const itemId = Number(ing.itemId || 0);
+    if (!itemId) return ing;
+
+    const replacementUnit = getCraftReplacementUnitForAccountBoundIngredient(itemId, mode, activeProfitRecipeIndexForValuation);
+    if (replacementUnit != null) {
+      ing.unitValue = replacementUnit;
+      ing.unitSell = replacementUnit;
+      ing.valueSource = 'Craft replacement';
+      ing.accountBoundValueIgnored = false;
+      return ing;
+    }
+
+    const vendorSource = ing.vendorSource || getVendorBulkSourceForIngredient(itemId);
+    if (vendorSource || String(ing.valueSource || '').toLowerCase().includes('vendor')) {
+      const materialUnit = getMaterialValueUnitForIngredient(itemId);
+      if (materialUnit && materialUnit.value != null) {
+        ing.unitValue = Number(materialUnit.value);
+        ing.unitSell = Number(materialUnit.value);
+        ing.valueSource = materialUnit.source || ing.valueSource || 'Vendor';
+      }
+      return ing;
+    }
+
+    const p = prices.get(itemId);
+    if (p) {
+      if (mode === 'listing' && p.sell != null) {
+        ing.unitValue = Math.floor(Number(p.sell) * 0.85);
+        ing.unitSell = ing.unitValue;
+        ing.valueSource = 'TP Sell net';
+        ing.accountBoundValueIgnored = false;
+      } else if (mode !== 'listing' && p.buy != null) {
+        ing.unitValue = Math.floor(Number(p.buy) * 0.85);
+        ing.unitSell = ing.unitValue;
+        ing.valueSource = 'TP Buy net';
+        ing.accountBoundValueIgnored = false;
+      }
+    }
+
+    return ing;
+  });
+}
+
+
 function getProfitDisplayRow(o) {
   const mode = getProfitValuationMode();
   const out = Object.assign({}, o || {});
+  out.ingredients = getProfitDisplayIngredientsForMode(out, mode);
   const outputCount = Math.max(1, Number(out.outputCount || 1));
   const price = prices.get(Number(out.outputItemId));
   const materialValue = getProfitMaterialValueForMode(out, mode);
@@ -7704,8 +7771,10 @@ function renderIngredients(ingredients) {
         return `<span class="ingredient-chip">${renderItemLink(ing.itemId)} <span class="muted">x ${count} / ${ownedText} | ${vendorLabel}: ${costHtml}</span></span>`;
       }
     }
-    const ownedBoundNoTp = ing.accountBoundValueIgnored || isOwnedBoundNoTpText(ing.valueSource) || isExternalAccountBoundMaterial(ing.itemId);
-    const hasBetterDisplaySource = !!ing.vendorSource || !!wikiVendorCost || /^TP\b/i.test(String(ing.valueSource || ''));
+    const finalSource = String(ing.valueSource || '');
+    const isCraftReplacement = /craft replacement/i.test(finalSource);
+    const ownedBoundNoTp = !isCraftReplacement && (ing.accountBoundValueIgnored || isOwnedBoundNoTpText(ing.valueSource) || isExternalAccountBoundMaterial(ing.itemId));
+    const hasBetterDisplaySource = isCraftReplacement || !!ing.vendorSource || !!wikiVendorCost || /^TP\b/i.test(String(ing.valueSource || ''));
 
     // Account-bound owned-only materials are intentionally assigned unitValue = 0
     // so they do not inflate opportunity cost. Do not let that 0c value make the
@@ -7715,8 +7784,7 @@ function renderIngredients(ingredients) {
       return `<span class="ingredient-chip">${renderItemLink(ing.itemId)} <span class="muted">x ${count} / ${ownedText} | Account Bound</span></span>`;
     }
 
-    const finalSource = String(ing.valueSource || '');
-    const finalOwnedBound = ing.accountBoundValueIgnored || isOwnedBoundNoTpText(finalSource) || (Number(unitValue) === 0 && isExternalAccountBoundMaterial(ing.itemId));
+    const finalOwnedBound = !isCraftReplacement && (ing.accountBoundValueIgnored || isOwnedBoundNoTpText(finalSource) || (Number(unitValue) === 0 && isExternalAccountBoundMaterial(ing.itemId)));
     if (finalOwnedBound && !hasBetterDisplaySource) {
       return `<span class="ingredient-chip">${renderItemLink(ing.itemId)} <span class="muted">x ${count} / ${ownedText} | Account Bound</span></span>`;
     }
