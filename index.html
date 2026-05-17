@@ -4862,6 +4862,20 @@ function getResearchMaterialUnitValue(itemId) {
   }
 
   if (isAccountBoundOrNoTpIngredient(itemId)) {
+    const recipeIndex = activeProfitRecipeIndexForValuation && activeProfitRecipeIndexForValuation.size
+      ? activeProfitRecipeIndexForValuation
+      : buildRecipeIndexByOutput();
+    const profitMode = researchMaterialValueMode === 'buy' ? 'instant' : 'listing';
+    const replacementUnit = getCraftReplacementUnitForAccountBoundIngredient(itemId, profitMode, recipeIndex);
+
+    if (replacementUnit != null && Number.isFinite(Number(replacementUnit))) {
+      return {
+        value: Number(replacementUnit),
+        source: "Craft replacement",
+        craftReplacement: true
+      };
+    }
+
     return { value: 0, source: "Account Bound" };
   }
 
@@ -7001,6 +7015,7 @@ async function buildPartialResearchRecipes() {
   const recipeIndex = (typeof buildRecipeIndexByOutput === "function")
     ? buildRecipeIndexByOutput()
     : new Map(recipeCache.map(r => [Number(r.outputItemId), r]));
+  activeProfitRecipeIndexForValuation = recipeIndex;
 
   partialResearchOpportunities = [];
   log('[Research Partial] Using cached vendor/barter datasets only (live wiki lookup skipped).');
@@ -7152,6 +7167,7 @@ async function buildResearchNoteMode() {
   const recipeIndex = (typeof buildRecipeIndexByOutput === "function")
     ? buildRecipeIndexByOutput()
     : new Map(recipeCache.map(r => [Number(r.outputItemId), r]));
+  activeProfitRecipeIndexForValuation = recipeIndex;
 
   researchNoteOpportunities = [];
 
@@ -7952,6 +7968,14 @@ function getResearchDisplayIngredientsForCurrentMode(ingredients) {
       ing.valueSource = materialUnit.source || (researchMaterialValueMode === 'buy' ? 'TP Buy' : 'TP Sell');
       ing.vendorSource = materialUnit.vendorSource || ing.vendorSource;
       ing.accountBoundValueIgnored = false;
+
+      if (materialUnit.craftReplacement || /craft replacement/i.test(String(materialUnit.source || ''))) {
+        const recipeIndex = activeProfitRecipeIndexForValuation && activeProfitRecipeIndexForValuation.size
+          ? activeProfitRecipeIndexForValuation
+          : buildRecipeIndexByOutput();
+        const profitMode = researchMaterialValueMode === 'buy' ? 'instant' : 'listing';
+        ing.valueSourceHtml = craftReplacementTooltipHtml(itemId, Number(ing.count || 1), profitMode, recipeIndex);
+      }
     } else if (materialUnit && materialUnit.source) {
       ing.valueSource = materialUnit.source;
     }
