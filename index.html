@@ -1562,9 +1562,108 @@ function optimizedIconAttrs() {
   return ' loading="lazy" decoding="async" fetchpriority="low"';
 }
 
+const WIKI_ICON_URL_CACHE_STORAGE_KEY = 'gw2CraftingOptimizerWikiIconUrlCache.v1';
+const wikiIconUrlCache = new Map();
+const pendingWikiIconFiles = new Set();
+let wikiIconResolveTimer = null;
+
+(function hydrateWikiIconUrlCache() {
+  try {
+    const raw = localStorage.getItem(WIKI_ICON_URL_CACHE_STORAGE_KEY);
+    if (!raw) return;
+    const parsed = JSON.parse(raw);
+    if (!parsed || typeof parsed !== 'object') return;
+    for (const [file, url] of Object.entries(parsed)) {
+      if (file && typeof url === 'string' && url) wikiIconUrlCache.set(file, url);
+    }
+  } catch (_) {
+    // localStorage can be unavailable on some file/browser policy combinations.
+  }
+})();
+
+function persistWikiIconUrlCache() {
+  try {
+    const obj = {};
+    for (const [file, url] of wikiIconUrlCache.entries()) obj[file] = url;
+    localStorage.setItem(WIKI_ICON_URL_CACHE_STORAGE_KEY, JSON.stringify(obj));
+  } catch (_) {}
+}
+
+function wikiFileNameFromSpecialFilePath(src) {
+  if (!src || !/Special:FilePath/i.test(String(src))) return '';
+  try {
+    const url = new URL(src, document.baseURI);
+    const marker = '/Special:FilePath/';
+    const idx = url.pathname.indexOf(marker);
+    if (idx < 0) return '';
+    return decodeURIComponent(url.pathname.slice(idx + marker.length)).replace(/_/g, ' ').trim();
+  } catch (_) {
+    const m = String(src).match(/Special:FilePath\/([^?#]+)/i);
+    return m ? decodeURIComponent(m[1]).replace(/_/g, ' ').trim() : '';
+  }
+}
+
+function cachedIconSrc(src) {
+  const file = wikiFileNameFromSpecialFilePath(src);
+  return file ? (wikiIconUrlCache.get(file) || src) : src;
+}
+
+function iconResolveDataAttrs(src) {
+  const file = wikiFileNameFromSpecialFilePath(src);
+  if (!file) return '';
+  if (!wikiIconUrlCache.has(file)) pendingWikiIconFiles.add(file);
+  return ` data-wiki-icon-file="${escapeHtml(file)}"`;
+}
+
+function scheduleWikiIconResolution() {
+  if (!pendingWikiIconFiles.size || wikiIconResolveTimer) return;
+  wikiIconResolveTimer = setTimeout(resolvePendingWikiIcons, 50);
+}
+
+async function resolvePendingWikiIcons() {
+  wikiIconResolveTimer = null;
+  const files = Array.from(pendingWikiIconFiles).filter(file => file && !wikiIconUrlCache.has(file));
+  pendingWikiIconFiles.clear();
+  if (!files.length) return;
+
+  const batchSize = 45;
+  let changed = false;
+  for (let i = 0; i < files.length; i += batchSize) {
+    const batch = files.slice(i, i + batchSize);
+    const titles = batch.map(file => 'File:' + file).join('|');
+    const api = 'https://wiki.guildwars2.com/api.php?action=query&format=json&origin=*&prop=imageinfo&iiprop=url&titles=' + encodeURIComponent(titles);
+    try {
+      const res = await fetch(api, { cache: 'force-cache' });
+      if (!res.ok) continue;
+      const json = await res.json();
+      const pages = json?.query?.pages || {};
+      for (const page of Object.values(pages)) {
+        const title = String(page?.title || '');
+        const file = title.replace(/^File:/i, '').trim();
+        const url = page?.imageinfo?.[0]?.url;
+        if (file && typeof url === 'string' && url) {
+          wikiIconUrlCache.set(file, url);
+          changed = true;
+        }
+      }
+    } catch (_) {
+      // If the wiki/API is blocked or offline, fall back to the original Special:FilePath URL.
+    }
+  }
+
+  if (changed) {
+    persistWikiIconUrlCache();
+    document.querySelectorAll('img[data-wiki-icon-file]').forEach(img => {
+      const finalUrl = wikiIconUrlCache.get(img.getAttribute('data-wiki-icon-file'));
+      if (finalUrl && img.getAttribute('src') !== finalUrl) img.setAttribute('src', finalUrl);
+    });
+  }
+}
+
 function renderIconImg(className, src, alt = '', extraAttrs = '') {
   if (!src) return '';
-  return `<img class="${escapeHtml(className)}" src="${escapeHtml(src)}" alt="${escapeHtml(alt)}"${optimizedIconAttrs()}${extraAttrs}>`;
+  const renderedSrc = cachedIconSrc(src);
+  return `<img class="${escapeHtml(className)}" src="${escapeHtml(renderedSrc)}" alt="${escapeHtml(alt)}"${optimizedIconAttrs()}${iconResolveDataAttrs(src)}${extraAttrs}>`;
 }
 
 function setResultsTbodyHtml(tbody, html) {
@@ -1574,6 +1673,7 @@ function setResultsTbodyHtml(tbody, html) {
   if (tbody.__lastResultsHtml === html) return;
   tbody.__lastResultsHtml = html;
   tbody.innerHTML = html;
+  scheduleWikiIconResolution();
 }
 
 // Embedded Id -> average Research Notes per item salvaged.
