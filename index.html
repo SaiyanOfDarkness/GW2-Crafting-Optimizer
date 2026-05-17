@@ -1270,6 +1270,12 @@ td { padding-left: 6px; padding-right: 6px; }
       <button onclick="loadNestedVariantRecipes()">2b. Load Nested Variant Recipes</button>
       <button onclick="refreshMarketPrices()">3. Refresh TP Prices</button>
       <button onclick="buildOpportunities()">4. Build Opportunities</button>
+      <label class="profit-only">Profit Value:
+        <select id="profitValuationMode" onchange="setProfitValuationMode(this.value)">
+          <option value="instant">Instant Sell</option>
+          <option value="listing">Sell Listing</option>
+        </select>
+      </label>
       <button id="nestedProfitToggleBtn" onclick="toggleNestedProfitRecipes()">SHOW NESTED RECIPES: <span style="color:#F6019D">OFF</span></button>
       <button onclick="render()">Render Table</button>
       <button class="danger" onclick="clearDataCache()">Clear Data Cache</button>
@@ -2445,6 +2451,8 @@ const RESEARCH_NOTE_YIELDS = new Map([
 ]);
 
 let sortState = { key: 'extraProfitTotal', dir: -1 };
+let profitValuationMode = 'instant';
+let activeProfitRecipeIndexForValuation = new Map();
 let materialIdSet = new Set();
 let invalidItemIds = new Set();
 let researchSalvageableItemIds = new Set();
@@ -4828,6 +4836,89 @@ function getResearchMaterialUnitValue(itemId) {
   };
 }
 
+
+function getTpOpportunityUnitForProfitMode(itemId, mode = null) {
+  const p = prices.get(Number(itemId));
+  if (!p) return null;
+  const selectedMode = mode || getProfitValuationMode();
+  if (selectedMode === 'listing') {
+    return p.sell == null ? null : Math.floor(Number(p.sell) * 0.85);
+  }
+  return p.buy == null ? null : Math.floor(Number(p.buy) * 0.85);
+}
+
+function getVendorOpportunityUnitValue(itemId) {
+  const vendorSource = getVendorBulkSourceForIngredient(itemId);
+  const vendorCoinEach = getVendorSourceUnitCoinValue(vendorSource);
+  if (vendorCoinEach != null) {
+    const materialUnit = getMaterialValueUnitForIngredient(itemId);
+    return materialUnit.value == null ? vendorCoinEach : Number(materialUnit.value);
+  }
+  if (vendorSource && vendorSource.currency === "karma") return 0;
+
+  const barterCost = getVendorBarterCost(itemId, 1);
+  if (barterCost && !barterCost.missingPrice) return Number(barterCost.total || 0);
+
+  return null;
+}
+
+function getCraftReplacementCostForMode(itemId, count = 1, mode = null, recipeIndex = null, path = new Set()) {
+  itemId = Number(itemId);
+  count = Number(count || 0);
+  if (!itemId || count <= 0) return null;
+
+  const selectedMode = mode || getProfitValuationMode();
+  const index = recipeIndex || activeProfitRecipeIndexForValuation || buildRecipeIndexByOutput();
+  const vendorUnit = getVendorOpportunityUnitValue(itemId);
+  if (vendorUnit != null) return vendorUnit * count;
+
+  const isBoundOrNoTp = isAccountBoundOrNoTpIngredient(itemId);
+  const tpUnit = getTpOpportunityUnitForProfitMode(itemId, selectedMode);
+
+  // Normal tradable materials use the selected TP valuation.
+  if (!isBoundOrNoTp && tpUnit != null) return tpUnit * count;
+
+  // Account-bound/no-TP craftable intermediates still have replacement cost.
+  // Value them by recursively pricing their recipe inputs.
+  const recipe = index?.get(Number(itemId));
+  if (!recipe || !Array.isArray(recipe.ingredients) || !recipe.ingredients.length) {
+    return isBoundOrNoTp ? 0 : null;
+  }
+
+  if (path.has(itemId)) return isBoundOrNoTp ? 0 : null;
+
+  const outCount = Math.max(1, Number(recipe.outputCount || 1));
+  const batches = Math.ceil(count / outCount);
+  const nextPath = new Set(path);
+  nextPath.add(itemId);
+
+  let total = 0;
+  for (const ing of recipe.ingredients || []) {
+    const ingId = Number(ing.itemId);
+    const ingCount = Number(ing.count || 0) * batches;
+    if (!ingId || !ingCount) continue;
+
+    const part = getCraftReplacementCostForMode(ingId, ingCount, selectedMode, index, nextPath);
+    if (part == null || !Number.isFinite(part)) return null;
+    total += part;
+  }
+
+  return total;
+}
+
+function getCraftReplacementUnitForAccountBoundIngredient(itemId, mode = null, recipeIndex = null) {
+  itemId = Number(itemId);
+  if (!itemId || !isAccountBoundOrNoTpIngredient(itemId)) return null;
+  const index = recipeIndex || activeProfitRecipeIndexForValuation || buildRecipeIndexByOutput();
+  const recipe = index?.get(Number(itemId));
+  if (!recipe || !Array.isArray(recipe.ingredients) || !recipe.ingredients.length) return null;
+  const outCount = Math.max(1, Number(recipe.outputCount || 1));
+  const cost = getCraftReplacementCostForMode(itemId, outCount, mode, index);
+  if (cost == null || !Number.isFinite(cost)) return null;
+  return cost / outCount;
+}
+
+
 function getIngredientUnitOpportunityValue(itemId) {
   const researchModes = tableMode === 'researchNotes' || tableMode === 'researchPartial';
   if (researchModes) {
@@ -4843,7 +4934,10 @@ function getIngredientUnitOpportunityValue(itemId) {
     return priced.value == null ? vendorCoinEach : Number(priced.value);
   }
   if (vendorSource && vendorSource.currency === "karma") return 0;
-  if (isAccountBoundOrNoTpIngredient(itemId)) return 0;
+  if (isAccountBoundOrNoTpIngredient(itemId)) {
+    const replacementUnit = getCraftReplacementUnitForAccountBoundIngredient(itemId, getProfitValuationMode(), activeProfitRecipeIndexForValuation);
+    return replacementUnit == null ? 0 : replacementUnit;
+  }
 
   const materialUnit = getMaterialValueUnitForIngredient(itemId);
   return materialUnit.value == null ? Infinity : Number(materialUnit.value);
@@ -5237,12 +5331,17 @@ function evaluateNestedRequirements(flat, outputCount) {
       unitValue = 0;
       valueSource = "Vendor karma";
     } else if (isBoundNoTp) {
-      // For owned-material / research-note mode, account-bound or non-TP materials
-      // should not make the row unknown. They are treated as owned-only inputs with
-      // no coin opportunity value.
-      unitValue = 0;
-      valueSource = "Account Bound";
-      accountBoundValueIgnored = true;
+      // Account-bound/no-TP ingredients are not sellable directly, but if they are
+      // craftable intermediates, they still have replacement cost through their recipe.
+      const replacementUnit = getCraftReplacementUnitForAccountBoundIngredient(itemId, getProfitValuationMode(), activeProfitRecipeIndexForValuation);
+      if (replacementUnit != null) {
+        unitValue = replacementUnit;
+        valueSource = "Craft replacement";
+      } else {
+        unitValue = 0;
+        valueSource = "Account Bound";
+        accountBoundValueIgnored = true;
+      }
     } else {
       const researchModes = tableMode === 'researchNotes' || tableMode === 'researchPartial';
       const materialUnit = researchModes ? getResearchMaterialUnitValue(itemId) : getMaterialValueUnitForIngredient(itemId);
@@ -5259,7 +5358,13 @@ function evaluateNestedRequirements(flat, outputCount) {
     // Count only materials that have an actual TP sell value. Vendor-only, karma,
     // account-bound, and unknown acquisition values stay visible in the ingredient
     // display but do not inflate this total.
-    materialValue = addOwnedMaterialTpSellValue(materialValue, itemId, count);
+    if (isBoundNoTp) {
+      const replacementUnit = getCraftReplacementUnitForAccountBoundIngredient(itemId, getProfitValuationMode(), activeProfitRecipeIndexForValuation);
+      if (replacementUnit != null) materialValue += replacementUnit * Number(count || 0);
+      else materialValue = addOwnedMaterialTpSellValue(materialValue, itemId, count);
+    } else {
+      materialValue = addOwnedMaterialTpSellValue(materialValue, itemId, count);
+    }
 
     ingredients.push({
       itemId,
@@ -5286,19 +5391,124 @@ function evaluateNestedRequirements(flat, outputCount) {
 }
 
 
+
+function getProfitValuationMode() {
+  const el = document.getElementById('profitValuationMode');
+  const mode = el ? el.value : profitValuationMode;
+  return mode === 'listing' ? 'listing' : 'instant';
+}
+
+function setProfitValuationMode(mode) {
+  profitValuationMode = mode === 'listing' ? 'listing' : 'instant';
+  const el = document.getElementById('profitValuationMode');
+  if (el && el.value !== profitValuationMode) el.value = profitValuationMode;
+  setProfitTableHeaders();
+  render();
+}
+
+function getProfitIngredientUnitValueForMode(itemId, ing, mode) {
+  itemId = Number(itemId);
+  const vendorSource = (ing && ing.vendorSource) || getVendorBulkSourceForIngredient(itemId);
+
+  // Vendor / barter / karma inputs stay on their vendor valuation. They do not
+  // switch between TP buy and TP sell with the Profit Value selector.
+  if (vendorSource || (ing && String(ing.valueSource || '').toLowerCase().includes('vendor'))) {
+    const materialUnit = getMaterialValueUnitForIngredient(itemId);
+    return materialUnit && materialUnit.value != null ? Number(materialUnit.value) : 0;
+  }
+
+  const replacementUnit = getCraftReplacementUnitForAccountBoundIngredient(itemId, mode, activeProfitRecipeIndexForValuation);
+  if (replacementUnit != null) return replacementUnit;
+
+  const p = prices.get(itemId);
+  if (!p) return isAccountBoundOrNoTpIngredient(itemId) ? 0 : null;
+
+  if (mode === 'listing') {
+    return p.sell == null ? null : Math.floor(Number(p.sell) * 0.85);
+  }
+
+  return p.buy == null ? null : Math.floor(Number(p.buy) * 0.85);
+}
+
+function getProfitMaterialValueForMode(o, mode) {
+  let total = 0;
+  for (const ing of (o && o.ingredients) || []) {
+    const itemId = Number(ing.itemId || 0);
+    const count = Number(ing.count || 0);
+    if (!itemId || !count) continue;
+
+    const unit = getProfitIngredientUnitValueForMode(itemId, ing, mode);
+    if (unit == null || !Number.isFinite(unit)) return null;
+    total += unit * count;
+  }
+  return total;
+}
+
+function getProfitDisplayRow(o) {
+  const mode = getProfitValuationMode();
+  const out = Object.assign({}, o || {});
+  const outputCount = Math.max(1, Number(out.outputCount || 1));
+  const price = prices.get(Number(out.outputItemId));
+  const materialValue = getProfitMaterialValueForMode(out, mode);
+  const safeMaterialValue = materialValue == null ? Number(out.materialValue || 0) : materialValue;
+
+  const instantGrossEach = Number.isFinite(Number(out.outputBuy)) ? Number(out.outputBuy) : Number(price?.buy);
+  const instantNet = Number.isFinite(instantGrossEach) ? Math.floor(instantGrossEach * 0.85) * outputCount : null;
+  const instantProfitEach = instantNet == null ? null : instantNet - safeMaterialValue;
+
+  const listingGrossEach = Number.isFinite(Number(out.outputSell)) ? Number(out.outputSell) : Number(price?.sell);
+  const listingNet = Number.isFinite(listingGrossEach) ? Math.floor(listingGrossEach * 0.85) * outputCount : null;
+  const listingProfitEach = listingNet == null ? null : listingNet - safeMaterialValue;
+
+  if (mode === 'listing') {
+    const craftQty = Math.max(0, Math.floor(Number(out.canCraftQty || 0)));
+    out.avgDepthSell = listingGrossEach;
+    out.lastDepthPrice = null;
+    out.outputBuy = listingGrossEach;
+    out.outputNet = listingNet;
+    out.materialValue = safeMaterialValue;
+    out.extraProfitEach = listingProfitEach;
+    out.extraProfitTotal = listingProfitEach == null ? null : listingProfitEach * craftQty;
+    out.roi = safeMaterialValue ? (listingProfitEach / safeMaterialValue) * 100 : null;
+    out.recommendedCraftQty = craftQty;
+    out.profitableDepthQty = craftQty * outputCount;
+    out.profitValuationMode = 'listing';
+    return out;
+  }
+
+  out.outputBuy = instantGrossEach;
+  out.outputNet = instantNet;
+  out.materialValue = safeMaterialValue;
+  out.extraProfitEach = Number.isFinite(Number(out.instantProfitEach)) ? Number(out.instantProfitEach) : instantProfitEach;
+  out.extraProfitTotal = Number.isFinite(Number(out.instantProfitTotal)) ? Number(out.instantProfitTotal) : out.extraProfitTotal;
+  out.roi = safeMaterialValue ? (out.extraProfitEach / safeMaterialValue) * 100 : null;
+  out.profitValuationMode = 'instant';
+  return out;
+}
+
+function getProfitSortValue(row, key) {
+  if (key === 'ingredientsText') return renderIngredients(row.ingredients);
+  return row[key];
+}
+
 function setProfitTableHeaders() {
   currentTableMode = 'profit';
+  const mode = getProfitValuationMode();
+  const salePriceHeader = mode === 'listing' ? 'List Price' : 'Top BO';
+  const saleNetHeader = mode === 'listing' ? 'List Net' : 'Top BO Net';
+  const avgHeader = mode === 'listing' ? 'List Price' : 'Avg BO Hit';
+  const lastHeader = mode === 'listing' ? '—' : 'Last BO Hit';
   document.querySelector('#results thead tr').innerHTML = `
     <th data-key="outputName">Item</th>
     <th data-key="recipeId">Recipe</th>
     <th data-key="canCraftQty">Can Make</th>
     <th data-key="profitableDepthQty">Prof Qty</th>
     <th data-key="recommendedCraftQty">Craft Qty</th>
-    <th data-key="avgDepthSell">Avg Sell</th>
-    <th data-key="lastDepthPrice">Last BO Hit</th>
-    <th data-key="outputBuy">Top BO</th>
-    <th data-key="outputNet">Top BO Net</th>
-    <th data-key="materialValue">Mat Sell Value</th>
+    <th data-key="avgDepthSell">${avgHeader}</th>
+    <th data-key="lastDepthPrice">${lastHeader}</th>
+    <th data-key="outputBuy">${salePriceHeader}</th>
+    <th data-key="outputNet">${saleNetHeader}</th>
+    <th data-key="materialValue">Mat Value</th>
     <th data-key="extraProfitEach">Profit Each</th>
     <th data-key="extraProfitTotal">Profit Total</th>
     <th data-key="roi">ROI</th>
@@ -6968,6 +7178,7 @@ async function buildNestedOpportunities() {
   }
 
   const recipeIndex = buildRecipeIndexByOutput();
+  activeProfitRecipeIndexForValuation = recipeIndex;
   opportunities = [];
   // Disabled live wiki vendor/barter lookup during nested mode.
 // Nested mode now relies on cached/preloaded vendor datasets only.
@@ -7039,6 +7250,8 @@ log('[Nested] Using cached vendor/barter datasets only (live wiki lookup skipped
       outputBuy: outputPrice.buy,
       outputNet,
       materialValue: evald.materialValue,
+      instantProfitEach: depthExtraProfitEachCraft,
+      instantProfitTotal: extraProfitTotal,
       extraProfitEach: depthExtraProfitEachCraft,
       extraProfitTotal,
       roi,
@@ -7076,6 +7289,7 @@ async function buildOpportunities() {
   }
 
   opportunities = [];
+  activeProfitRecipeIndexForValuation = buildRecipeIndexByOutput();
 
   await ensureWikiVendorSourcesForIngredientIds(collectOwnedRecipeIngredientIds(), 'Profit Mode ingredient');
 
@@ -7136,8 +7350,11 @@ async function buildOpportunities() {
       avgDepthSell: depth.avgDepthSell,
       lastDepthPrice: depth.lastDepthPrice,
       outputBuy: outputPrice.buy,
+      outputSell: outputPrice.sell,
       outputNet,
       materialValue,
+      instantProfitEach: depthExtraProfitEachCraft,
+      instantProfitTotal: extraProfitTotal,
       extraProfitEach: depthExtraProfitEachCraft,
       extraProfitTotal,
       roi,
@@ -7653,17 +7870,17 @@ function render() {
 
   ensureProfitHeaders();
 
-  let filtered = opportunities.filter(o => {
+  let filtered = opportunities.map(getProfitDisplayRow).filter(o => {
     if (q && !(`${o.outputName} ${o.recipeId} ${o.outputItemId}`.toLowerCase().includes(q))) return false;
-    if (o.extraProfitEach < minProfit) return false;
+    if ((o.extraProfitEach ?? -Infinity) < minProfit) return false;
     if (o.canCraftQty < minCraftQty) return false;
-    if (hideLoss && o.extraProfitEach <= 0) return false;
+    if (hideLoss && (o.extraProfitEach ?? -Infinity) <= 0) return false;
     return true;
   });
 
   filtered.sort((a, b) => {
-    const av = a[sortState.key];
-    const bv = b[sortState.key];
+    const av = getProfitSortValue(a, sortState.key);
+    const bv = getProfitSortValue(b, sortState.key);
 
     if (typeof av === 'number' || typeof bv === 'number') {
       const nullForA = sortState.dir === -1 ? -Infinity : Infinity;
