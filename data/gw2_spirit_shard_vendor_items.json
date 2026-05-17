@@ -1,0 +1,7040 @@
+[
+  {
+    "vendorSubobject": "Annona Vinedrummer#vendor4",
+    "item": "Salvage Empowerment",
+    "itemQuantity": 1,
+    "itemCostRaw": [
+      {
+        "Has item value": {
+          "label": "Has item value",
+          "key": "Has_item_value",
+          "typeid": "_txt",
+          "item": [
+            "50000"
+          ]
+        },
+        "Has item currency": {
+          "label": "Has item currency",
+          "key": "Has_item_currency",
+          "typeid": "_txt",
+          "item": [
+            "Coin"
+          ]
+        }
+      },
+      {
+        "Has item value": {
+          "label": "Has item value",
+          "key": "Has_item_value",
+          "typeid": "_txt",
+          "item": [
+            "5"
+          ]
+        },
+        "Has item currency": {
+          "label": "Has item currency",
+          "key": "Has_item_currency",
+          "typeid": "_txt",
+          "item": [
+            "Spirit Shard"
+          ]
+        }
+      }
+    ],
+    "vendor": "Annona Vinedrummer",
+    "historical": "f"
+  },
+  {
+    "vendorSubobject": "Annona Vinedrummer#vendor5",
+    "item": "Salvage Empowerment",
+    "itemQuantity": 1,
+    "itemCostRaw": [
+      {
+        "Has item value": {
+          "label": "Has item value",
+          "key": "Has_item_value",
+          "typeid": "_txt",
+          "item": [
+            "100000"
+          ]
+        },
+        "Has item currency": {
+          "label": "Has item currency",
+          "key": "Has_item_currency",
+          "typeid": "_txt",
+          "item": [
+            "Coin"
+          ]
+        }
+      },
+      {
+        "Has item value": {
+          "label": "Has item value",
+          "key": "Has_item_value",
+          "typeid": "_txt",
+          "item": [
+            "10"
+          ]
+        },
+        "Has item currency": {
+          "label": "Has item currency",
+          "key": "Has_item_currency",
+          "typeid": "_txt",
+          "item": [
+            "Spirit Shard"
+          ]
+        }
+      }
+    ],
+    "vendor": "Annona Vinedrummer",
+    "historical": "f"
+  },
+  {
+    "vendorSubobject": "Annona Vinedrummer#vendor6",
+    "item": "Salvage Empowerment",
+    "itemQuantity": 1,
+    "itemCostRaw": [
+      {
+        "Has item value": {
+          "label": "Has item value",
+          "key": "Has_item_value",
+          "typeid": "_txt",
+          "item": [
+            "150000"
+          ]
+        },
+        "Has item currency": {
+          "label": "Has item currency",
+          "key": "Has_item_currency",
+          "typeid": "_txt",
+          "item": [
+            "Coin"
+          ]
+        }
+      },
+      {
+        "Has item value": {
+          "label": "Has item value",
+          "key": "Has_item_value",
+          "typeid": "_txt",
+          "item": [
+            "20"
+          ]
+        },
+        "Has item currency": {
+          "label": "Has item currency",
+          "key": "Has_item_currency",
+          "typeid": "_txt",
+          "item": [
+            "Spirit Shard"
+          ]
+        }
+      }
+    ],
+    "vendor": "Annona Vinedrummer",
+    "historical": "f"
+  },
+  {
+    "vendorSubobject": "Ascended Armor League Vendor#vendor66",
+    "item": "Glob of Condensed Spirit Energy",
+    "itemQuantity": 1,
+    "itemCostRaw": [
+      {
+        "Has item value": {
+          "label": "Has item value",
+          "key": "Has_item_value",
+          "typeid": "_txt",
+          "item": [
+            "100"
+          ]
+        },
+        "Has item currency": {
+          "label": "Has item currency",
+          "key": "Has_item_currency",
+          "typeid": "_txt",
+          "item": [
+            "Spirit Shard"
+          ]
+        }
+      }
+    ],
+    "vendor": "Ascended Armor League Vendor",
+    "historical": "f"
+  },
+  {
+    "vendorSubobject": "BUY-4373#vendor11",
+    "item": "Mystic Clover",
+    "itemQuantity": 1,
+    "itemCostRaw": [
+      {
+        "Has item value": {
+          "label": "Has item value",
+          "key": "Has_item_value",
+          "typeid": "_txt",
+          "item": [
+            "150"
+          ]
+        },
+        "Has item currency": {
+          "label": "Has item currency",
+          "key": "Has_item_currency",
+          "typeid": "_txt",
+          "item": [
+            "Fractal Relic"
+          ]
+        }
+      },
+      {
+        "Has item value": {
+          "label": "Has item value",
+          "key": "Has_item_value",
+          "typeid": "_txt",
+          "item": [
+            "2"
+          ]
+        },
+        "Has item currency": {
+          "label": "Has item currency",
+          "key": "Has_item_currency",
+          "typeid": "_txt",
+          "item": [
+            "Mystic Coin"
+          ]
+        }
+      },
+      {
+        "Has item value": {
+          "label": "Has item value",
+          "key": "Has_item_value",
+          "typeid": "_txt",
+          "item": [
+            "2"
+          ]
+        },
+        "Has item currency": {
+          "label": "Has item currency",
+          "key": "Has_item_currency",
+          "typeid": "_txt",
+          "item": [
+            "Glob of Ectoplasm"
+          ]
+        }
+      },
+      {
+        "Has item value": {
+          "label": "Has item value",
+          "key": "Has_item_value",
+          "typeid": "_txt",
+          "item": [
+            "2"
+          ]
+        },
+        "Has item currency": {
+          "label": "Has item currency",
+          "key": "Has_item_currency",
+          "typeid": "_txt",
+          "item": [
+            "Spirit Shard"
+          ]
+        }
+      }
+    ],
+    "vendor": "BUY-4373",
+    "historical": "f"
+  },
+  {
+    "vendorSubobject": "Grandmaster Craftsman Hobbs#vendor25",
+    "item": "Bolt Vol. 2",
+    "itemQuantity": 1,
+    "itemCostRaw": [
+      {
+        "Has item value": {
+          "label": "Has item value",
+          "key": "Has_item_value",
+          "typeid": "_txt",
+          "item": [
+            "10003"
+          ]
+        },
+        "Has item currency": {
+          "label": "Has item currency",
+          "key": "Has_item_currency",
+          "typeid": "_txt",
+          "item": [
+            "Karma"
+          ]
+        }
+      },
+      {
+        "Has item value": {
+          "label": "Has item value",
+          "key": "Has_item_value",
+          "typeid": "_txt",
+          "item": [
+            "5"
+          ]
+        },
+        "Has item currency": {
+          "label": "Has item currency",
+          "key": "Has_item_currency",
+          "typeid": "_txt",
+          "item": [
+            "Spirit Shard"
+          ]
+        }
+      }
+    ],
+    "vendor": "Grandmaster Craftsman Hobbs",
+    "historical": "f"
+  },
+  {
+    "vendorSubobject": "Grandmaster Craftsman Hobbs#vendor26",
+    "item": "The Flameseeker Prophecies Vol. 2",
+    "itemQuantity": 1,
+    "itemCostRaw": [
+      {
+        "Has item value": {
+          "label": "Has item value",
+          "key": "Has_item_value",
+          "typeid": "_txt",
+          "item": [
+            "10003"
+          ]
+        },
+        "Has item currency": {
+          "label": "Has item currency",
+          "key": "Has_item_currency",
+          "typeid": "_txt",
+          "item": [
+            "Karma"
+          ]
+        }
+      },
+      {
+        "Has item value": {
+          "label": "Has item value",
+          "key": "Has_item_value",
+          "typeid": "_txt",
+          "item": [
+            "5"
+          ]
+        },
+        "Has item currency": {
+          "label": "Has item currency",
+          "key": "Has_item_currency",
+          "typeid": "_txt",
+          "item": [
+            "Spirit Shard"
+          ]
+        }
+      }
+    ],
+    "vendor": "Grandmaster Craftsman Hobbs",
+    "historical": "f"
+  },
+  {
+    "vendorSubobject": "Grandmaster Craftsman Hobbs#vendor27",
+    "item": "Frenzy Vol. 2",
+    "itemQuantity": 1,
+    "itemCostRaw": [
+      {
+        "Has item value": {
+          "label": "Has item value",
+          "key": "Has_item_value",
+          "typeid": "_txt",
+          "item": [
+            "10003"
+          ]
+        },
+        "Has item currency": {
+          "label": "Has item currency",
+          "key": "Has_item_currency",
+          "typeid": "_txt",
+          "item": [
+            "Karma"
+          ]
+        }
+      },
+      {
+        "Has item value": {
+          "label": "Has item value",
+          "key": "Has_item_value",
+          "typeid": "_txt",
+          "item": [
+            "5"
+          ]
+        },
+        "Has item currency": {
+          "label": "Has item currency",
+          "key": "Has_item_currency",
+          "typeid": "_txt",
+          "item": [
+            "Spirit Shard"
+          ]
+        }
+      }
+    ],
+    "vendor": "Grandmaster Craftsman Hobbs",
+    "historical": "f"
+  },
+  {
+    "vendorSubobject": "Grandmaster Craftsman Hobbs#vendor28",
+    "item": "Frostfang Vol. 2",
+    "itemQuantity": 1,
+    "itemCostRaw": [
+      {
+        "Has item value": {
+          "label": "Has item value",
+          "key": "Has_item_value",
+          "typeid": "_txt",
+          "item": [
+            "10003"
+          ]
+        },
+        "Has item currency": {
+          "label": "Has item currency",
+          "key": "Has_item_currency",
+          "typeid": "_txt",
+          "item": [
+            "Karma"
+          ]
+        }
+      },
+      {
+        "Has item value": {
+          "label": "Has item value",
+          "key": "Has_item_value",
+          "typeid": "_txt",
+          "item": [
+            "5"
+          ]
+        },
+        "Has item currency": {
+          "label": "Has item currency",
+          "key": "Has_item_currency",
+          "typeid": "_txt",
+          "item": [
+            "Spirit Shard"
+          ]
+        }
+      }
+    ],
+    "vendor": "Grandmaster Craftsman Hobbs",
+    "historical": "f"
+  },
+  {
+    "vendorSubobject": "Grandmaster Craftsman Hobbs#vendor29",
+    "item": "Howler Vol. 2",
+    "itemQuantity": 1,
+    "itemCostRaw": [
+      {
+        "Has item value": {
+          "label": "Has item value",
+          "key": "Has_item_value",
+          "typeid": "_txt",
+          "item": [
+            "10003"
+          ]
+        },
+        "Has item currency": {
+          "label": "Has item currency",
+          "key": "Has_item_currency",
+          "typeid": "_txt",
+          "item": [
+            "Karma"
+          ]
+        }
+      },
+      {
+        "Has item value": {
+          "label": "Has item value",
+          "key": "Has_item_value",
+          "typeid": "_txt",
+          "item": [
+            "5"
+          ]
+        },
+        "Has item currency": {
+          "label": "Has item currency",
+          "key": "Has_item_currency",
+          "typeid": "_txt",
+          "item": [
+            "Spirit Shard"
+          ]
+        }
+      }
+    ],
+    "vendor": "Grandmaster Craftsman Hobbs",
+    "historical": "f"
+  },
+  {
+    "vendorSubobject": "Grandmaster Craftsman Hobbs#vendor30",
+    "item": "Incinerator Vol. 2",
+    "itemQuantity": 1,
+    "itemCostRaw": [
+      {
+        "Has item value": {
+          "label": "Has item value",
+          "key": "Has_item_value",
+          "typeid": "_txt",
+          "item": [
+            "10003"
+          ]
+        },
+        "Has item currency": {
+          "label": "Has item currency",
+          "key": "Has_item_currency",
+          "typeid": "_txt",
+          "item": [
+            "Karma"
+          ]
+        }
+      },
+      {
+        "Has item value": {
+          "label": "Has item value",
+          "key": "Has_item_value",
+          "typeid": "_txt",
+          "item": [
+            "5"
+          ]
+        },
+        "Has item currency": {
+          "label": "Has item currency",
+          "key": "Has_item_currency",
+          "typeid": "_txt",
+          "item": [
+            "Spirit Shard"
+          ]
+        }
+      }
+    ],
+    "vendor": "Grandmaster Craftsman Hobbs",
+    "historical": "f"
+  },
+  {
+    "vendorSubobject": "Grandmaster Craftsman Hobbs#vendor31",
+    "item": "The Juggernaut Vol. 2",
+    "itemQuantity": 1,
+    "itemCostRaw": [
+      {
+        "Has item value": {
+          "label": "Has item value",
+          "key": "Has_item_value",
+          "typeid": "_txt",
+          "item": [
+            "10003"
+          ]
+        },
+        "Has item currency": {
+          "label": "Has item currency",
+          "key": "Has_item_currency",
+          "typeid": "_txt",
+          "item": [
+            "Karma"
+          ]
+        }
+      },
+      {
+        "Has item value": {
+          "label": "Has item value",
+          "key": "Has_item_value",
+          "typeid": "_txt",
+          "item": [
+            "5"
+          ]
+        },
+        "Has item currency": {
+          "label": "Has item currency",
+          "key": "Has_item_currency",
+          "typeid": "_txt",
+          "item": [
+            "Spirit Shard"
+          ]
+        }
+      }
+    ],
+    "vendor": "Grandmaster Craftsman Hobbs",
+    "historical": "f"
+  },
+  {
+    "vendorSubobject": "Grandmaster Craftsman Hobbs#vendor32",
+    "item": "Kamohoali'i Kotaki Vol. 2",
+    "itemQuantity": 1,
+    "itemCostRaw": [
+      {
+        "Has item value": {
+          "label": "Has item value",
+          "key": "Has_item_value",
+          "typeid": "_txt",
+          "item": [
+            "10003"
+          ]
+        },
+        "Has item currency": {
+          "label": "Has item currency",
+          "key": "Has_item_currency",
+          "typeid": "_txt",
+          "item": [
+            "Karma"
+          ]
+        }
+      },
+      {
+        "Has item value": {
+          "label": "Has item value",
+          "key": "Has_item_value",
+          "typeid": "_txt",
+          "item": [
+            "5"
+          ]
+        },
+        "Has item currency": {
+          "label": "Has item currency",
+          "key": "Has_item_currency",
+          "typeid": "_txt",
+          "item": [
+            "Spirit Shard"
+          ]
+        }
+      }
+    ],
+    "vendor": "Grandmaster Craftsman Hobbs",
+    "historical": "f"
+  },
+  {
+    "vendorSubobject": "Grandmaster Craftsman Hobbs#vendor33",
+    "item": "Kraitkin Vol. 2",
+    "itemQuantity": 1,
+    "itemCostRaw": [
+      {
+        "Has item value": {
+          "label": "Has item value",
+          "key": "Has_item_value",
+          "typeid": "_txt",
+          "item": [
+            "10003"
+          ]
+        },
+        "Has item currency": {
+          "label": "Has item currency",
+          "key": "Has_item_currency",
+          "typeid": "_txt",
+          "item": [
+            "Karma"
+          ]
+        }
+      },
+      {
+        "Has item value": {
+          "label": "Has item value",
+          "key": "Has_item_value",
+          "typeid": "_txt",
+          "item": [
+            "5"
+          ]
+        },
+        "Has item currency": {
+          "label": "Has item currency",
+          "key": "Has_item_currency",
+          "typeid": "_txt",
+          "item": [
+            "Spirit Shard"
+          ]
+        }
+      }
+    ],
+    "vendor": "Grandmaster Craftsman Hobbs",
+    "historical": "f"
+  },
+  {
+    "vendorSubobject": "Grandmaster Craftsman Hobbs#vendor34",
+    "item": "Kudzu Vol. 2",
+    "itemQuantity": 1,
+    "itemCostRaw": [
+      {
+        "Has item value": {
+          "label": "Has item value",
+          "key": "Has_item_value",
+          "typeid": "_txt",
+          "item": [
+            "10003"
+          ]
+        },
+        "Has item currency": {
+          "label": "Has item currency",
+          "key": "Has_item_currency",
+          "typeid": "_txt",
+          "item": [
+            "Karma"
+          ]
+        }
+      },
+      {
+        "Has item value": {
+          "label": "Has item value",
+          "key": "Has_item_value",
+          "typeid": "_txt",
+          "item": [
+            "5"
+          ]
+        },
+        "Has item currency": {
+          "label": "Has item currency",
+          "key": "Has_item_currency",
+          "typeid": "_txt",
+          "item": [
+            "Spirit Shard"
+          ]
+        }
+      }
+    ],
+    "vendor": "Grandmaster Craftsman Hobbs",
+    "historical": "f"
+  },
+  {
+    "vendorSubobject": "Grandmaster Craftsman Hobbs#vendor35",
+    "item": "Meteorlogicus Vol. 2",
+    "itemQuantity": 1,
+    "itemCostRaw": [
+      {
+        "Has item value": {
+          "label": "Has item value",
+          "key": "Has_item_value",
+          "typeid": "_txt",
+          "item": [
+            "10003"
+          ]
+        },
+        "Has item currency": {
+          "label": "Has item currency",
+          "key": "Has_item_currency",
+          "typeid": "_txt",
+          "item": [
+            "Karma"
+          ]
+        }
+      },
+      {
+        "Has item value": {
+          "label": "Has item value",
+          "key": "Has_item_value",
+          "typeid": "_txt",
+          "item": [
+            "5"
+          ]
+        },
+        "Has item currency": {
+          "label": "Has item currency",
+          "key": "Has_item_currency",
+          "typeid": "_txt",
+          "item": [
+            "Spirit Shard"
+          ]
+        }
+      }
+    ],
+    "vendor": "Grandmaster Craftsman Hobbs",
+    "historical": "f"
+  },
+  {
+    "vendorSubobject": "Grandmaster Craftsman Hobbs#vendor36",
+    "item": "Quip Vol. 2",
+    "itemQuantity": 1,
+    "itemCostRaw": [
+      {
+        "Has item value": {
+          "label": "Has item value",
+          "key": "Has_item_value",
+          "typeid": "_txt",
+          "item": [
+            "10003"
+          ]
+        },
+        "Has item currency": {
+          "label": "Has item currency",
+          "key": "Has_item_currency",
+          "typeid": "_txt",
+          "item": [
+            "Karma"
+          ]
+        }
+      },
+      {
+        "Has item value": {
+          "label": "Has item value",
+          "key": "Has_item_value",
+          "typeid": "_txt",
+          "item": [
+            "5"
+          ]
+        },
+        "Has item currency": {
+          "label": "Has item currency",
+          "key": "Has_item_currency",
+          "typeid": "_txt",
+          "item": [
+            "Spirit Shard"
+          ]
+        }
+      }
+    ],
+    "vendor": "Grandmaster Craftsman Hobbs",
+    "historical": "f"
+  },
+  {
+    "vendorSubobject": "Grandmaster Craftsman Hobbs#vendor37",
+    "item": "Rodgort Vol. 2",
+    "itemQuantity": 1,
+    "itemCostRaw": [
+      {
+        "Has item value": {
+          "label": "Has item value",
+          "key": "Has_item_value",
+          "typeid": "_txt",
+          "item": [
+            "10003"
+          ]
+        },
+        "Has item currency": {
+          "label": "Has item currency",
+          "key": "Has_item_currency",
+          "typeid": "_txt",
+          "item": [
+            "Karma"
+          ]
+        }
+      },
+      {
+        "Has item value": {
+          "label": "Has item value",
+          "key": "Has_item_value",
+          "typeid": "_txt",
+          "item": [
+            "5"
+          ]
+        },
+        "Has item currency": {
+          "label": "Has item currency",
+          "key": "Has_item_currency",
+          "typeid": "_txt",
+          "item": [
+            "Spirit Shard"
+          ]
+        }
+      }
+    ],
+    "vendor": "Grandmaster Craftsman Hobbs",
+    "historical": "f"
+  },
+  {
+    "vendorSubobject": "Grandmaster Craftsman Hobbs#vendor38",
+    "item": "Sunrise Vol. 2",
+    "itemQuantity": 1,
+    "itemCostRaw": [
+      {
+        "Has item value": {
+          "label": "Has item value",
+          "key": "Has_item_value",
+          "typeid": "_txt",
+          "item": [
+            "10003"
+          ]
+        },
+        "Has item currency": {
+          "label": "Has item currency",
+          "key": "Has_item_currency",
+          "typeid": "_txt",
+          "item": [
+            "Karma"
+          ]
+        }
+      },
+      {
+        "Has item value": {
+          "label": "Has item value",
+          "key": "Has_item_value",
+          "typeid": "_txt",
+          "item": [
+            "5"
+          ]
+        },
+        "Has item currency": {
+          "label": "Has item currency",
+          "key": "Has_item_currency",
+          "typeid": "_txt",
+          "item": [
+            "Spirit Shard"
+          ]
+        }
+      }
+    ],
+    "vendor": "Grandmaster Craftsman Hobbs",
+    "historical": "f"
+  },
+  {
+    "vendorSubobject": "Grandmaster Craftsman Hobbs#vendor39",
+    "item": "The Bifrost Vol. 2",
+    "itemQuantity": 1,
+    "itemCostRaw": [
+      {
+        "Has item value": {
+          "label": "Has item value",
+          "key": "Has_item_value",
+          "typeid": "_txt",
+          "item": [
+            "10003"
+          ]
+        },
+        "Has item currency": {
+          "label": "Has item currency",
+          "key": "Has_item_currency",
+          "typeid": "_txt",
+          "item": [
+            "Karma"
+          ]
+        }
+      },
+      {
+        "Has item value": {
+          "label": "Has item value",
+          "key": "Has_item_value",
+          "typeid": "_txt",
+          "item": [
+            "5"
+          ]
+        },
+        "Has item currency": {
+          "label": "Has item currency",
+          "key": "Has_item_currency",
+          "typeid": "_txt",
+          "item": [
+            "Spirit Shard"
+          ]
+        }
+      }
+    ],
+    "vendor": "Grandmaster Craftsman Hobbs",
+    "historical": "f"
+  },
+  {
+    "vendorSubobject": "Grandmaster Craftsman Hobbs#vendor40",
+    "item": "The Dreamer Vol. 2",
+    "itemQuantity": 1,
+    "itemCostRaw": [
+      {
+        "Has item value": {
+          "label": "Has item value",
+          "key": "Has_item_value",
+          "typeid": "_txt",
+          "item": [
+            "10003"
+          ]
+        },
+        "Has item currency": {
+          "label": "Has item currency",
+          "key": "Has_item_currency",
+          "typeid": "_txt",
+          "item": [
+            "Karma"
+          ]
+        }
+      },
+      {
+        "Has item value": {
+          "label": "Has item value",
+          "key": "Has_item_value",
+          "typeid": "_txt",
+          "item": [
+            "5"
+          ]
+        },
+        "Has item currency": {
+          "label": "Has item currency",
+          "key": "Has_item_currency",
+          "typeid": "_txt",
+          "item": [
+            "Spirit Shard"
+          ]
+        }
+      }
+    ],
+    "vendor": "Grandmaster Craftsman Hobbs",
+    "historical": "f"
+  },
+  {
+    "vendorSubobject": "Grandmaster Craftsman Hobbs#vendor41",
+    "item": "The Minstrel Vol. 2",
+    "itemQuantity": 1,
+    "itemCostRaw": [
+      {
+        "Has item value": {
+          "label": "Has item value",
+          "key": "Has_item_value",
+          "typeid": "_txt",
+          "item": [
+            "10003"
+          ]
+        },
+        "Has item currency": {
+          "label": "Has item currency",
+          "key": "Has_item_currency",
+          "typeid": "_txt",
+          "item": [
+            "Karma"
+          ]
+        }
+      },
+      {
+        "Has item value": {
+          "label": "Has item value",
+          "key": "Has_item_value",
+          "typeid": "_txt",
+          "item": [
+            "5"
+          ]
+        },
+        "Has item currency": {
+          "label": "Has item currency",
+          "key": "Has_item_currency",
+          "typeid": "_txt",
+          "item": [
+            "Spirit Shard"
+          ]
+        }
+      }
+    ],
+    "vendor": "Grandmaster Craftsman Hobbs",
+    "historical": "f"
+  },
+  {
+    "vendorSubobject": "Grandmaster Craftsman Hobbs#vendor42",
+    "item": "The Moot Vol. 2",
+    "itemQuantity": 1,
+    "itemCostRaw": [
+      {
+        "Has item value": {
+          "label": "Has item value",
+          "key": "Has_item_value",
+          "typeid": "_txt",
+          "item": [
+            "10003"
+          ]
+        },
+        "Has item currency": {
+          "label": "Has item currency",
+          "key": "Has_item_currency",
+          "typeid": "_txt",
+          "item": [
+            "Karma"
+          ]
+        }
+      },
+      {
+        "Has item value": {
+          "label": "Has item value",
+          "key": "Has_item_value",
+          "typeid": "_txt",
+          "item": [
+            "5"
+          ]
+        },
+        "Has item currency": {
+          "label": "Has item currency",
+          "key": "Has_item_currency",
+          "typeid": "_txt",
+          "item": [
+            "Spirit Shard"
+          ]
+        }
+      }
+    ],
+    "vendor": "Grandmaster Craftsman Hobbs",
+    "historical": "f"
+  },
+  {
+    "vendorSubobject": "Grandmaster Craftsman Hobbs#vendor43",
+    "item": "The Predator Vol. 2",
+    "itemQuantity": 1,
+    "itemCostRaw": [
+      {
+        "Has item value": {
+          "label": "Has item value",
+          "key": "Has_item_value",
+          "typeid": "_txt",
+          "item": [
+            "10003"
+          ]
+        },
+        "Has item currency": {
+          "label": "Has item currency",
+          "key": "Has_item_currency",
+          "typeid": "_txt",
+          "item": [
+            "Karma"
+          ]
+        }
+      },
+      {
+        "Has item value": {
+          "label": "Has item value",
+          "key": "Has_item_value",
+          "typeid": "_txt",
+          "item": [
+            "5"
+          ]
+        },
+        "Has item currency": {
+          "label": "Has item currency",
+          "key": "Has_item_currency",
+          "typeid": "_txt",
+          "item": [
+            "Spirit Shard"
+          ]
+        }
+      }
+    ],
+    "vendor": "Grandmaster Craftsman Hobbs",
+    "historical": "f"
+  },
+  {
+    "vendorSubobject": "Grandmaster Craftsman Hobbs#vendor44",
+    "item": "Twilight Vol. 2",
+    "itemQuantity": 1,
+    "itemCostRaw": [
+      {
+        "Has item value": {
+          "label": "Has item value",
+          "key": "Has_item_value",
+          "typeid": "_txt",
+          "item": [
+            "10003"
+          ]
+        },
+        "Has item currency": {
+          "label": "Has item currency",
+          "key": "Has_item_currency",
+          "typeid": "_txt",
+          "item": [
+            "Karma"
+          ]
+        }
+      },
+      {
+        "Has item value": {
+          "label": "Has item value",
+          "key": "Has_item_value",
+          "typeid": "_txt",
+          "item": [
+            "5"
+          ]
+        },
+        "Has item currency": {
+          "label": "Has item currency",
+          "key": "Has_item_currency",
+          "typeid": "_txt",
+          "item": [
+            "Spirit Shard"
+          ]
+        }
+      }
+    ],
+    "vendor": "Grandmaster Craftsman Hobbs",
+    "historical": "f"
+  },
+  {
+    "vendorSubobject": "Grandmaster Craftsman Hobbs#vendor45",
+    "item": "Astralaria Vol. 2",
+    "itemQuantity": 1,
+    "itemCostRaw": [
+      {
+        "Has item value": {
+          "label": "Has item value",
+          "key": "Has_item_value",
+          "typeid": "_txt",
+          "item": [
+            "10003"
+          ]
+        },
+        "Has item currency": {
+          "label": "Has item currency",
+          "key": "Has_item_currency",
+          "typeid": "_txt",
+          "item": [
+            "Karma"
+          ]
+        }
+      },
+      {
+        "Has item value": {
+          "label": "Has item value",
+          "key": "Has_item_value",
+          "typeid": "_txt",
+          "item": [
+            "5"
+          ]
+        },
+        "Has item currency": {
+          "label": "Has item currency",
+          "key": "Has_item_currency",
+          "typeid": "_txt",
+          "item": [
+            "Spirit Shard"
+          ]
+        }
+      }
+    ],
+    "vendor": "Grandmaster Craftsman Hobbs",
+    "historical": "f"
+  },
+  {
+    "vendorSubobject": "Grandmaster Craftsman Hobbs#vendor46",
+    "item": "HOPE Vol. 2",
+    "itemQuantity": 1,
+    "itemCostRaw": [
+      {
+        "Has item value": {
+          "label": "Has item value",
+          "key": "Has_item_value",
+          "typeid": "_txt",
+          "item": [
+            "10003"
+          ]
+        },
+        "Has item currency": {
+          "label": "Has item currency",
+          "key": "Has_item_currency",
+          "typeid": "_txt",
+          "item": [
+            "Karma"
+          ]
+        }
+      },
+      {
+        "Has item value": {
+          "label": "Has item value",
+          "key": "Has_item_value",
+          "typeid": "_txt",
+          "item": [
+            "5"
+          ]
+        },
+        "Has item currency": {
+          "label": "Has item currency",
+          "key": "Has_item_currency",
+          "typeid": "_txt",
+          "item": [
+            "Spirit Shard"
+          ]
+        }
+      }
+    ],
+    "vendor": "Grandmaster Craftsman Hobbs",
+    "historical": "f"
+  },
+  {
+    "vendorSubobject": "Grandmaster Craftsman Hobbs#vendor47",
+    "item": "Nevermore Vol. 2",
+    "itemQuantity": 1,
+    "itemCostRaw": [
+      {
+        "Has item value": {
+          "label": "Has item value",
+          "key": "Has_item_value",
+          "typeid": "_txt",
+          "item": [
+            "10003"
+          ]
+        },
+        "Has item currency": {
+          "label": "Has item currency",
+          "key": "Has_item_currency",
+          "typeid": "_txt",
+          "item": [
+            "Karma"
+          ]
+        }
+      },
+      {
+        "Has item value": {
+          "label": "Has item value",
+          "key": "Has_item_value",
+          "typeid": "_txt",
+          "item": [
+            "5"
+          ]
+        },
+        "Has item currency": {
+          "label": "Has item currency",
+          "key": "Has_item_currency",
+          "typeid": "_txt",
+          "item": [
+            "Spirit Shard"
+          ]
+        }
+      }
+    ],
+    "vendor": "Grandmaster Craftsman Hobbs",
+    "historical": "f"
+  },
+  {
+    "vendorSubobject": "Grandmaster Craftsman Hobbs#vendor48",
+    "item": "Chuka and Champawat Vol. 2",
+    "itemQuantity": 1,
+    "itemCostRaw": [
+      {
+        "Has item value": {
+          "label": "Has item value",
+          "key": "Has_item_value",
+          "typeid": "_txt",
+          "item": [
+            "10003"
+          ]
+        },
+        "Has item currency": {
+          "label": "Has item currency",
+          "key": "Has_item_currency",
+          "typeid": "_txt",
+          "item": [
+            "Karma"
+          ]
+        }
+      },
+      {
+        "Has item value": {
+          "label": "Has item value",
+          "key": "Has_item_value",
+          "typeid": "_txt",
+          "item": [
+            "5"
+          ]
+        },
+        "Has item currency": {
+          "label": "Has item currency",
+          "key": "Has_item_currency",
+          "typeid": "_txt",
+          "item": [
+            "Spirit Shard"
+          ]
+        }
+      }
+    ],
+    "vendor": "Grandmaster Craftsman Hobbs",
+    "historical": "f"
+  },
+  {
+    "vendorSubobject": "Grandmaster Craftsman Hobbs#vendor49",
+    "item": "Bolt Vol. 3",
+    "itemQuantity": 1,
+    "itemCostRaw": [
+      {
+        "Has item value": {
+          "label": "Has item value",
+          "key": "Has_item_value",
+          "typeid": "_txt",
+          "item": [
+            "10003"
+          ]
+        },
+        "Has item currency": {
+          "label": "Has item currency",
+          "key": "Has_item_currency",
+          "typeid": "_txt",
+          "item": [
+            "Karma"
+          ]
+        }
+      },
+      {
+        "Has item value": {
+          "label": "Has item value",
+          "key": "Has_item_value",
+          "typeid": "_txt",
+          "item": [
+            "5"
+          ]
+        },
+        "Has item currency": {
+          "label": "Has item currency",
+          "key": "Has_item_currency",
+          "typeid": "_txt",
+          "item": [
+            "Spirit Shard"
+          ]
+        }
+      }
+    ],
+    "vendor": "Grandmaster Craftsman Hobbs",
+    "historical": "f"
+  },
+  {
+    "vendorSubobject": "Grandmaster Craftsman Hobbs#vendor50",
+    "item": "The Flameseeker Prophecies Vol. 3",
+    "itemQuantity": 1,
+    "itemCostRaw": [
+      {
+        "Has item value": {
+          "label": "Has item value",
+          "key": "Has_item_value",
+          "typeid": "_txt",
+          "item": [
+            "10003"
+          ]
+        },
+        "Has item currency": {
+          "label": "Has item currency",
+          "key": "Has_item_currency",
+          "typeid": "_txt",
+          "item": [
+            "Karma"
+          ]
+        }
+      },
+      {
+        "Has item value": {
+          "label": "Has item value",
+          "key": "Has_item_value",
+          "typeid": "_txt",
+          "item": [
+            "5"
+          ]
+        },
+        "Has item currency": {
+          "label": "Has item currency",
+          "key": "Has_item_currency",
+          "typeid": "_txt",
+          "item": [
+            "Spirit Shard"
+          ]
+        }
+      }
+    ],
+    "vendor": "Grandmaster Craftsman Hobbs",
+    "historical": "f"
+  },
+  {
+    "vendorSubobject": "Grandmaster Craftsman Hobbs#vendor51",
+    "item": "Frenzy Vol. 3",
+    "itemQuantity": 1,
+    "itemCostRaw": [
+      {
+        "Has item value": {
+          "label": "Has item value",
+          "key": "Has_item_value",
+          "typeid": "_txt",
+          "item": [
+            "10003"
+          ]
+        },
+        "Has item currency": {
+          "label": "Has item currency",
+          "key": "Has_item_currency",
+          "typeid": "_txt",
+          "item": [
+            "Karma"
+          ]
+        }
+      },
+      {
+        "Has item value": {
+          "label": "Has item value",
+          "key": "Has_item_value",
+          "typeid": "_txt",
+          "item": [
+            "5"
+          ]
+        },
+        "Has item currency": {
+          "label": "Has item currency",
+          "key": "Has_item_currency",
+          "typeid": "_txt",
+          "item": [
+            "Spirit Shard"
+          ]
+        }
+      }
+    ],
+    "vendor": "Grandmaster Craftsman Hobbs",
+    "historical": "f"
+  },
+  {
+    "vendorSubobject": "Grandmaster Craftsman Hobbs#vendor52",
+    "item": "Frostfang Vol. 3",
+    "itemQuantity": 1,
+    "itemCostRaw": [
+      {
+        "Has item value": {
+          "label": "Has item value",
+          "key": "Has_item_value",
+          "typeid": "_txt",
+          "item": [
+            "10003"
+          ]
+        },
+        "Has item currency": {
+          "label": "Has item currency",
+          "key": "Has_item_currency",
+          "typeid": "_txt",
+          "item": [
+            "Karma"
+          ]
+        }
+      },
+      {
+        "Has item value": {
+          "label": "Has item value",
+          "key": "Has_item_value",
+          "typeid": "_txt",
+          "item": [
+            "5"
+          ]
+        },
+        "Has item currency": {
+          "label": "Has item currency",
+          "key": "Has_item_currency",
+          "typeid": "_txt",
+          "item": [
+            "Spirit Shard"
+          ]
+        }
+      }
+    ],
+    "vendor": "Grandmaster Craftsman Hobbs",
+    "historical": "f"
+  },
+  {
+    "vendorSubobject": "Grandmaster Craftsman Hobbs#vendor53",
+    "item": "Howler Vol. 3",
+    "itemQuantity": 1,
+    "itemCostRaw": [
+      {
+        "Has item value": {
+          "label": "Has item value",
+          "key": "Has_item_value",
+          "typeid": "_txt",
+          "item": [
+            "10003"
+          ]
+        },
+        "Has item currency": {
+          "label": "Has item currency",
+          "key": "Has_item_currency",
+          "typeid": "_txt",
+          "item": [
+            "Karma"
+          ]
+        }
+      },
+      {
+        "Has item value": {
+          "label": "Has item value",
+          "key": "Has_item_value",
+          "typeid": "_txt",
+          "item": [
+            "5"
+          ]
+        },
+        "Has item currency": {
+          "label": "Has item currency",
+          "key": "Has_item_currency",
+          "typeid": "_txt",
+          "item": [
+            "Spirit Shard"
+          ]
+        }
+      }
+    ],
+    "vendor": "Grandmaster Craftsman Hobbs",
+    "historical": "f"
+  },
+  {
+    "vendorSubobject": "Grandmaster Craftsman Hobbs#vendor54",
+    "item": "Incinerator Vol. 3",
+    "itemQuantity": 1,
+    "itemCostRaw": [
+      {
+        "Has item value": {
+          "label": "Has item value",
+          "key": "Has_item_value",
+          "typeid": "_txt",
+          "item": [
+            "10003"
+          ]
+        },
+        "Has item currency": {
+          "label": "Has item currency",
+          "key": "Has_item_currency",
+          "typeid": "_txt",
+          "item": [
+            "Karma"
+          ]
+        }
+      },
+      {
+        "Has item value": {
+          "label": "Has item value",
+          "key": "Has_item_value",
+          "typeid": "_txt",
+          "item": [
+            "5"
+          ]
+        },
+        "Has item currency": {
+          "label": "Has item currency",
+          "key": "Has_item_currency",
+          "typeid": "_txt",
+          "item": [
+            "Spirit Shard"
+          ]
+        }
+      }
+    ],
+    "vendor": "Grandmaster Craftsman Hobbs",
+    "historical": "f"
+  },
+  {
+    "vendorSubobject": "Grandmaster Craftsman Hobbs#vendor55",
+    "item": "The Juggernaut Vol. 3",
+    "itemQuantity": 1,
+    "itemCostRaw": [
+      {
+        "Has item value": {
+          "label": "Has item value",
+          "key": "Has_item_value",
+          "typeid": "_txt",
+          "item": [
+            "10003"
+          ]
+        },
+        "Has item currency": {
+          "label": "Has item currency",
+          "key": "Has_item_currency",
+          "typeid": "_txt",
+          "item": [
+            "Karma"
+          ]
+        }
+      },
+      {
+        "Has item value": {
+          "label": "Has item value",
+          "key": "Has_item_value",
+          "typeid": "_txt",
+          "item": [
+            "5"
+          ]
+        },
+        "Has item currency": {
+          "label": "Has item currency",
+          "key": "Has_item_currency",
+          "typeid": "_txt",
+          "item": [
+            "Spirit Shard"
+          ]
+        }
+      }
+    ],
+    "vendor": "Grandmaster Craftsman Hobbs",
+    "historical": "f"
+  },
+  {
+    "vendorSubobject": "Grandmaster Craftsman Hobbs#vendor56",
+    "item": "Kamohoali'i Kotaki Vol. 3",
+    "itemQuantity": 1,
+    "itemCostRaw": [
+      {
+        "Has item value": {
+          "label": "Has item value",
+          "key": "Has_item_value",
+          "typeid": "_txt",
+          "item": [
+            "10003"
+          ]
+        },
+        "Has item currency": {
+          "label": "Has item currency",
+          "key": "Has_item_currency",
+          "typeid": "_txt",
+          "item": [
+            "Karma"
+          ]
+        }
+      },
+      {
+        "Has item value": {
+          "label": "Has item value",
+          "key": "Has_item_value",
+          "typeid": "_txt",
+          "item": [
+            "5"
+          ]
+        },
+        "Has item currency": {
+          "label": "Has item currency",
+          "key": "Has_item_currency",
+          "typeid": "_txt",
+          "item": [
+            "Spirit Shard"
+          ]
+        }
+      }
+    ],
+    "vendor": "Grandmaster Craftsman Hobbs",
+    "historical": "f"
+  },
+  {
+    "vendorSubobject": "Grandmaster Craftsman Hobbs#vendor57",
+    "item": "Kraitkin Vol. 3",
+    "itemQuantity": 1,
+    "itemCostRaw": [
+      {
+        "Has item value": {
+          "label": "Has item value",
+          "key": "Has_item_value",
+          "typeid": "_txt",
+          "item": [
+            "10003"
+          ]
+        },
+        "Has item currency": {
+          "label": "Has item currency",
+          "key": "Has_item_currency",
+          "typeid": "_txt",
+          "item": [
+            "Karma"
+          ]
+        }
+      },
+      {
+        "Has item value": {
+          "label": "Has item value",
+          "key": "Has_item_value",
+          "typeid": "_txt",
+          "item": [
+            "5"
+          ]
+        },
+        "Has item currency": {
+          "label": "Has item currency",
+          "key": "Has_item_currency",
+          "typeid": "_txt",
+          "item": [
+            "Spirit Shard"
+          ]
+        }
+      }
+    ],
+    "vendor": "Grandmaster Craftsman Hobbs",
+    "historical": "f"
+  },
+  {
+    "vendorSubobject": "Grandmaster Craftsman Hobbs#vendor58",
+    "item": "Kudzu Vol. 3",
+    "itemQuantity": 1,
+    "itemCostRaw": [
+      {
+        "Has item value": {
+          "label": "Has item value",
+          "key": "Has_item_value",
+          "typeid": "_txt",
+          "item": [
+            "10003"
+          ]
+        },
+        "Has item currency": {
+          "label": "Has item currency",
+          "key": "Has_item_currency",
+          "typeid": "_txt",
+          "item": [
+            "Karma"
+          ]
+        }
+      },
+      {
+        "Has item value": {
+          "label": "Has item value",
+          "key": "Has_item_value",
+          "typeid": "_txt",
+          "item": [
+            "5"
+          ]
+        },
+        "Has item currency": {
+          "label": "Has item currency",
+          "key": "Has_item_currency",
+          "typeid": "_txt",
+          "item": [
+            "Spirit Shard"
+          ]
+        }
+      }
+    ],
+    "vendor": "Grandmaster Craftsman Hobbs",
+    "historical": "f"
+  },
+  {
+    "vendorSubobject": "Grandmaster Craftsman Hobbs#vendor59",
+    "item": "Meteorlogicus Vol. 3",
+    "itemQuantity": 1,
+    "itemCostRaw": [
+      {
+        "Has item value": {
+          "label": "Has item value",
+          "key": "Has_item_value",
+          "typeid": "_txt",
+          "item": [
+            "10003"
+          ]
+        },
+        "Has item currency": {
+          "label": "Has item currency",
+          "key": "Has_item_currency",
+          "typeid": "_txt",
+          "item": [
+            "Karma"
+          ]
+        }
+      },
+      {
+        "Has item value": {
+          "label": "Has item value",
+          "key": "Has_item_value",
+          "typeid": "_txt",
+          "item": [
+            "5"
+          ]
+        },
+        "Has item currency": {
+          "label": "Has item currency",
+          "key": "Has_item_currency",
+          "typeid": "_txt",
+          "item": [
+            "Spirit Shard"
+          ]
+        }
+      }
+    ],
+    "vendor": "Grandmaster Craftsman Hobbs",
+    "historical": "f"
+  },
+  {
+    "vendorSubobject": "Grandmaster Craftsman Hobbs#vendor60",
+    "item": "Quip Vol. 3",
+    "itemQuantity": 1,
+    "itemCostRaw": [
+      {
+        "Has item value": {
+          "label": "Has item value",
+          "key": "Has_item_value",
+          "typeid": "_txt",
+          "item": [
+            "10003"
+          ]
+        },
+        "Has item currency": {
+          "label": "Has item currency",
+          "key": "Has_item_currency",
+          "typeid": "_txt",
+          "item": [
+            "Karma"
+          ]
+        }
+      },
+      {
+        "Has item value": {
+          "label": "Has item value",
+          "key": "Has_item_value",
+          "typeid": "_txt",
+          "item": [
+            "5"
+          ]
+        },
+        "Has item currency": {
+          "label": "Has item currency",
+          "key": "Has_item_currency",
+          "typeid": "_txt",
+          "item": [
+            "Spirit Shard"
+          ]
+        }
+      }
+    ],
+    "vendor": "Grandmaster Craftsman Hobbs",
+    "historical": "f"
+  },
+  {
+    "vendorSubobject": "Grandmaster Craftsman Hobbs#vendor61",
+    "item": "Rodgort Vol. 3",
+    "itemQuantity": 1,
+    "itemCostRaw": [
+      {
+        "Has item value": {
+          "label": "Has item value",
+          "key": "Has_item_value",
+          "typeid": "_txt",
+          "item": [
+            "10003"
+          ]
+        },
+        "Has item currency": {
+          "label": "Has item currency",
+          "key": "Has_item_currency",
+          "typeid": "_txt",
+          "item": [
+            "Karma"
+          ]
+        }
+      },
+      {
+        "Has item value": {
+          "label": "Has item value",
+          "key": "Has_item_value",
+          "typeid": "_txt",
+          "item": [
+            "5"
+          ]
+        },
+        "Has item currency": {
+          "label": "Has item currency",
+          "key": "Has_item_currency",
+          "typeid": "_txt",
+          "item": [
+            "Spirit Shard"
+          ]
+        }
+      }
+    ],
+    "vendor": "Grandmaster Craftsman Hobbs",
+    "historical": "f"
+  },
+  {
+    "vendorSubobject": "Grandmaster Craftsman Hobbs#vendor62",
+    "item": "Sunrise Vol. 3",
+    "itemQuantity": 1,
+    "itemCostRaw": [
+      {
+        "Has item value": {
+          "label": "Has item value",
+          "key": "Has_item_value",
+          "typeid": "_txt",
+          "item": [
+            "10003"
+          ]
+        },
+        "Has item currency": {
+          "label": "Has item currency",
+          "key": "Has_item_currency",
+          "typeid": "_txt",
+          "item": [
+            "Karma"
+          ]
+        }
+      },
+      {
+        "Has item value": {
+          "label": "Has item value",
+          "key": "Has_item_value",
+          "typeid": "_txt",
+          "item": [
+            "5"
+          ]
+        },
+        "Has item currency": {
+          "label": "Has item currency",
+          "key": "Has_item_currency",
+          "typeid": "_txt",
+          "item": [
+            "Spirit Shard"
+          ]
+        }
+      }
+    ],
+    "vendor": "Grandmaster Craftsman Hobbs",
+    "historical": "f"
+  },
+  {
+    "vendorSubobject": "Grandmaster Craftsman Hobbs#vendor63",
+    "item": "The Bifrost Vol. 3",
+    "itemQuantity": 1,
+    "itemCostRaw": [
+      {
+        "Has item value": {
+          "label": "Has item value",
+          "key": "Has_item_value",
+          "typeid": "_txt",
+          "item": [
+            "10003"
+          ]
+        },
+        "Has item currency": {
+          "label": "Has item currency",
+          "key": "Has_item_currency",
+          "typeid": "_txt",
+          "item": [
+            "Karma"
+          ]
+        }
+      },
+      {
+        "Has item value": {
+          "label": "Has item value",
+          "key": "Has_item_value",
+          "typeid": "_txt",
+          "item": [
+            "5"
+          ]
+        },
+        "Has item currency": {
+          "label": "Has item currency",
+          "key": "Has_item_currency",
+          "typeid": "_txt",
+          "item": [
+            "Spirit Shard"
+          ]
+        }
+      }
+    ],
+    "vendor": "Grandmaster Craftsman Hobbs",
+    "historical": "f"
+  },
+  {
+    "vendorSubobject": "Grandmaster Craftsman Hobbs#vendor64",
+    "item": "The Dreamer Vol. 3",
+    "itemQuantity": 1,
+    "itemCostRaw": [
+      {
+        "Has item value": {
+          "label": "Has item value",
+          "key": "Has_item_value",
+          "typeid": "_txt",
+          "item": [
+            "10003"
+          ]
+        },
+        "Has item currency": {
+          "label": "Has item currency",
+          "key": "Has_item_currency",
+          "typeid": "_txt",
+          "item": [
+            "Karma"
+          ]
+        }
+      },
+      {
+        "Has item value": {
+          "label": "Has item value",
+          "key": "Has_item_value",
+          "typeid": "_txt",
+          "item": [
+            "5"
+          ]
+        },
+        "Has item currency": {
+          "label": "Has item currency",
+          "key": "Has_item_currency",
+          "typeid": "_txt",
+          "item": [
+            "Spirit Shard"
+          ]
+        }
+      }
+    ],
+    "vendor": "Grandmaster Craftsman Hobbs",
+    "historical": "f"
+  },
+  {
+    "vendorSubobject": "Grandmaster Craftsman Hobbs#vendor65",
+    "item": "The Minstrel Vol. 3",
+    "itemQuantity": 1,
+    "itemCostRaw": [
+      {
+        "Has item value": {
+          "label": "Has item value",
+          "key": "Has_item_value",
+          "typeid": "_txt",
+          "item": [
+            "10003"
+          ]
+        },
+        "Has item currency": {
+          "label": "Has item currency",
+          "key": "Has_item_currency",
+          "typeid": "_txt",
+          "item": [
+            "Karma"
+          ]
+        }
+      },
+      {
+        "Has item value": {
+          "label": "Has item value",
+          "key": "Has_item_value",
+          "typeid": "_txt",
+          "item": [
+            "5"
+          ]
+        },
+        "Has item currency": {
+          "label": "Has item currency",
+          "key": "Has_item_currency",
+          "typeid": "_txt",
+          "item": [
+            "Spirit Shard"
+          ]
+        }
+      }
+    ],
+    "vendor": "Grandmaster Craftsman Hobbs",
+    "historical": "f"
+  },
+  {
+    "vendorSubobject": "Grandmaster Craftsman Hobbs#vendor66",
+    "item": "The Moot Vol. 3",
+    "itemQuantity": 1,
+    "itemCostRaw": [
+      {
+        "Has item value": {
+          "label": "Has item value",
+          "key": "Has_item_value",
+          "typeid": "_txt",
+          "item": [
+            "10003"
+          ]
+        },
+        "Has item currency": {
+          "label": "Has item currency",
+          "key": "Has_item_currency",
+          "typeid": "_txt",
+          "item": [
+            "Karma"
+          ]
+        }
+      },
+      {
+        "Has item value": {
+          "label": "Has item value",
+          "key": "Has_item_value",
+          "typeid": "_txt",
+          "item": [
+            "5"
+          ]
+        },
+        "Has item currency": {
+          "label": "Has item currency",
+          "key": "Has_item_currency",
+          "typeid": "_txt",
+          "item": [
+            "Spirit Shard"
+          ]
+        }
+      }
+    ],
+    "vendor": "Grandmaster Craftsman Hobbs",
+    "historical": "f"
+  },
+  {
+    "vendorSubobject": "Grandmaster Craftsman Hobbs#vendor67",
+    "item": "The Predator Vol. 3",
+    "itemQuantity": 1,
+    "itemCostRaw": [
+      {
+        "Has item value": {
+          "label": "Has item value",
+          "key": "Has_item_value",
+          "typeid": "_txt",
+          "item": [
+            "10003"
+          ]
+        },
+        "Has item currency": {
+          "label": "Has item currency",
+          "key": "Has_item_currency",
+          "typeid": "_txt",
+          "item": [
+            "Karma"
+          ]
+        }
+      },
+      {
+        "Has item value": {
+          "label": "Has item value",
+          "key": "Has_item_value",
+          "typeid": "_txt",
+          "item": [
+            "5"
+          ]
+        },
+        "Has item currency": {
+          "label": "Has item currency",
+          "key": "Has_item_currency",
+          "typeid": "_txt",
+          "item": [
+            "Spirit Shard"
+          ]
+        }
+      }
+    ],
+    "vendor": "Grandmaster Craftsman Hobbs",
+    "historical": "f"
+  },
+  {
+    "vendorSubobject": "Grandmaster Craftsman Hobbs#vendor68",
+    "item": "Twilight Vol. 3",
+    "itemQuantity": 1,
+    "itemCostRaw": [
+      {
+        "Has item value": {
+          "label": "Has item value",
+          "key": "Has_item_value",
+          "typeid": "_txt",
+          "item": [
+            "10003"
+          ]
+        },
+        "Has item currency": {
+          "label": "Has item currency",
+          "key": "Has_item_currency",
+          "typeid": "_txt",
+          "item": [
+            "Karma"
+          ]
+        }
+      },
+      {
+        "Has item value": {
+          "label": "Has item value",
+          "key": "Has_item_value",
+          "typeid": "_txt",
+          "item": [
+            "5"
+          ]
+        },
+        "Has item currency": {
+          "label": "Has item currency",
+          "key": "Has_item_currency",
+          "typeid": "_txt",
+          "item": [
+            "Spirit Shard"
+          ]
+        }
+      }
+    ],
+    "vendor": "Grandmaster Craftsman Hobbs",
+    "historical": "f"
+  },
+  {
+    "vendorSubobject": "Grandmaster Craftsman Hobbs#vendor69",
+    "item": "Astralaria Vol. 3",
+    "itemQuantity": 1,
+    "itemCostRaw": [
+      {
+        "Has item value": {
+          "label": "Has item value",
+          "key": "Has_item_value",
+          "typeid": "_txt",
+          "item": [
+            "10003"
+          ]
+        },
+        "Has item currency": {
+          "label": "Has item currency",
+          "key": "Has_item_currency",
+          "typeid": "_txt",
+          "item": [
+            "Karma"
+          ]
+        }
+      },
+      {
+        "Has item value": {
+          "label": "Has item value",
+          "key": "Has_item_value",
+          "typeid": "_txt",
+          "item": [
+            "5"
+          ]
+        },
+        "Has item currency": {
+          "label": "Has item currency",
+          "key": "Has_item_currency",
+          "typeid": "_txt",
+          "item": [
+            "Spirit Shard"
+          ]
+        }
+      }
+    ],
+    "vendor": "Grandmaster Craftsman Hobbs",
+    "historical": "f"
+  },
+  {
+    "vendorSubobject": "Grandmaster Craftsman Hobbs#vendor70",
+    "item": "HOPE Vol. 3",
+    "itemQuantity": 1,
+    "itemCostRaw": [
+      {
+        "Has item value": {
+          "label": "Has item value",
+          "key": "Has_item_value",
+          "typeid": "_txt",
+          "item": [
+            "10003"
+          ]
+        },
+        "Has item currency": {
+          "label": "Has item currency",
+          "key": "Has_item_currency",
+          "typeid": "_txt",
+          "item": [
+            "Karma"
+          ]
+        }
+      },
+      {
+        "Has item value": {
+          "label": "Has item value",
+          "key": "Has_item_value",
+          "typeid": "_txt",
+          "item": [
+            "5"
+          ]
+        },
+        "Has item currency": {
+          "label": "Has item currency",
+          "key": "Has_item_currency",
+          "typeid": "_txt",
+          "item": [
+            "Spirit Shard"
+          ]
+        }
+      }
+    ],
+    "vendor": "Grandmaster Craftsman Hobbs",
+    "historical": "f"
+  },
+  {
+    "vendorSubobject": "Grandmaster Craftsman Hobbs#vendor71",
+    "item": "Nevermore Vol. 3",
+    "itemQuantity": 1,
+    "itemCostRaw": [
+      {
+        "Has item value": {
+          "label": "Has item value",
+          "key": "Has_item_value",
+          "typeid": "_txt",
+          "item": [
+            "10003"
+          ]
+        },
+        "Has item currency": {
+          "label": "Has item currency",
+          "key": "Has_item_currency",
+          "typeid": "_txt",
+          "item": [
+            "Karma"
+          ]
+        }
+      },
+      {
+        "Has item value": {
+          "label": "Has item value",
+          "key": "Has_item_value",
+          "typeid": "_txt",
+          "item": [
+            "5"
+          ]
+        },
+        "Has item currency": {
+          "label": "Has item currency",
+          "key": "Has_item_currency",
+          "typeid": "_txt",
+          "item": [
+            "Spirit Shard"
+          ]
+        }
+      }
+    ],
+    "vendor": "Grandmaster Craftsman Hobbs",
+    "historical": "f"
+  },
+  {
+    "vendorSubobject": "Grandmaster Craftsman Hobbs#vendor72",
+    "item": "Chuka and Champawat Vol. 3",
+    "itemQuantity": 1,
+    "itemCostRaw": [
+      {
+        "Has item value": {
+          "label": "Has item value",
+          "key": "Has_item_value",
+          "typeid": "_txt",
+          "item": [
+            "10003"
+          ]
+        },
+        "Has item currency": {
+          "label": "Has item currency",
+          "key": "Has_item_currency",
+          "typeid": "_txt",
+          "item": [
+            "Karma"
+          ]
+        }
+      },
+      {
+        "Has item value": {
+          "label": "Has item value",
+          "key": "Has_item_value",
+          "typeid": "_txt",
+          "item": [
+            "5"
+          ]
+        },
+        "Has item currency": {
+          "label": "Has item currency",
+          "key": "Has_item_currency",
+          "typeid": "_txt",
+          "item": [
+            "Spirit Shard"
+          ]
+        }
+      }
+    ],
+    "vendor": "Grandmaster Craftsman Hobbs",
+    "historical": "f"
+  },
+  {
+    "vendorSubobject": "Grandmaster Craftsman Hobbs#vendor78",
+    "item": "Recipe: For Science",
+    "itemQuantity": 1,
+    "itemCostRaw": [
+      {
+        "Has item value": {
+          "label": "Has item value",
+          "key": "Has_item_value",
+          "typeid": "_txt",
+          "item": [
+            "10003"
+          ]
+        },
+        "Has item currency": {
+          "label": "Has item currency",
+          "key": "Has_item_currency",
+          "typeid": "_txt",
+          "item": [
+            "Karma"
+          ]
+        }
+      },
+      {
+        "Has item value": {
+          "label": "Has item value",
+          "key": "Has_item_value",
+          "typeid": "_txt",
+          "item": [
+            "5"
+          ]
+        },
+        "Has item currency": {
+          "label": "Has item currency",
+          "key": "Has_item_currency",
+          "typeid": "_txt",
+          "item": [
+            "Spirit Shard"
+          ]
+        }
+      }
+    ],
+    "vendor": "Grandmaster Craftsman Hobbs",
+    "historical": "f"
+  },
+  {
+    "vendorSubobject": "Grandmaster Craftsman Hobbs#vendor79",
+    "item": "Recipe: Endeavor",
+    "itemQuantity": 1,
+    "itemCostRaw": [
+      {
+        "Has item value": {
+          "label": "Has item value",
+          "key": "Has_item_value",
+          "typeid": "_txt",
+          "item": [
+            "10003"
+          ]
+        },
+        "Has item currency": {
+          "label": "Has item currency",
+          "key": "Has_item_currency",
+          "typeid": "_txt",
+          "item": [
+            "Karma"
+          ]
+        }
+      },
+      {
+        "Has item value": {
+          "label": "Has item value",
+          "key": "Has_item_value",
+          "typeid": "_txt",
+          "item": [
+            "5"
+          ]
+        },
+        "Has item currency": {
+          "label": "Has item currency",
+          "key": "Has_item_currency",
+          "typeid": "_txt",
+          "item": [
+            "Spirit Shard"
+          ]
+        }
+      }
+    ],
+    "vendor": "Grandmaster Craftsman Hobbs",
+    "historical": "f"
+  },
+  {
+    "vendorSubobject": "Grandmaster Craftsman Hobbs#vendor81",
+    "item": "Recipe: Loyalty",
+    "itemQuantity": 1,
+    "itemCostRaw": [
+      {
+        "Has item value": {
+          "label": "Has item value",
+          "key": "Has_item_value",
+          "typeid": "_txt",
+          "item": [
+            "10003"
+          ]
+        },
+        "Has item currency": {
+          "label": "Has item currency",
+          "key": "Has_item_currency",
+          "typeid": "_txt",
+          "item": [
+            "Karma"
+          ]
+        }
+      },
+      {
+        "Has item value": {
+          "label": "Has item value",
+          "key": "Has_item_value",
+          "typeid": "_txt",
+          "item": [
+            "5"
+          ]
+        },
+        "Has item currency": {
+          "label": "Has item currency",
+          "key": "Has_item_currency",
+          "typeid": "_txt",
+          "item": [
+            "Spirit Shard"
+          ]
+        }
+      }
+    ],
+    "vendor": "Grandmaster Craftsman Hobbs",
+    "historical": "f"
+  },
+  {
+    "vendorSubobject": "Grandmaster Craftsman Hobbs#vendor82",
+    "item": "Recipe: Friendship",
+    "itemQuantity": 1,
+    "itemCostRaw": [
+      {
+        "Has item value": {
+          "label": "Has item value",
+          "key": "Has_item_value",
+          "typeid": "_txt",
+          "item": [
+            "10003"
+          ]
+        },
+        "Has item currency": {
+          "label": "Has item currency",
+          "key": "Has_item_currency",
+          "typeid": "_txt",
+          "item": [
+            "Karma"
+          ]
+        }
+      },
+      {
+        "Has item value": {
+          "label": "Has item value",
+          "key": "Has_item_value",
+          "typeid": "_txt",
+          "item": [
+            "5"
+          ]
+        },
+        "Has item currency": {
+          "label": "Has item currency",
+          "key": "Has_item_currency",
+          "typeid": "_txt",
+          "item": [
+            "Spirit Shard"
+          ]
+        }
+      }
+    ],
+    "vendor": "Grandmaster Craftsman Hobbs",
+    "historical": "f"
+  },
+  {
+    "vendorSubobject": "Grandmaster Craftsman Hobbs#vendor84",
+    "item": "Recipe: Frigate",
+    "itemQuantity": 1,
+    "itemCostRaw": [
+      {
+        "Has item value": {
+          "label": "Has item value",
+          "key": "Has_item_value",
+          "typeid": "_txt",
+          "item": [
+            "10003"
+          ]
+        },
+        "Has item currency": {
+          "label": "Has item currency",
+          "key": "Has_item_currency",
+          "typeid": "_txt",
+          "item": [
+            "Karma"
+          ]
+        }
+      },
+      {
+        "Has item value": {
+          "label": "Has item value",
+          "key": "Has_item_value",
+          "typeid": "_txt",
+          "item": [
+            "5"
+          ]
+        },
+        "Has item currency": {
+          "label": "Has item currency",
+          "key": "Has_item_currency",
+          "typeid": "_txt",
+          "item": [
+            "Spirit Shard"
+          ]
+        }
+      }
+    ],
+    "vendor": "Grandmaster Craftsman Hobbs",
+    "historical": "f"
+  },
+  {
+    "vendorSubobject": "Grandmaster Craftsman Hobbs#vendor85",
+    "item": "Recipe: Man o' War",
+    "itemQuantity": 1,
+    "itemCostRaw": [
+      {
+        "Has item value": {
+          "label": "Has item value",
+          "key": "Has_item_value",
+          "typeid": "_txt",
+          "item": [
+            "10003"
+          ]
+        },
+        "Has item currency": {
+          "label": "Has item currency",
+          "key": "Has_item_currency",
+          "typeid": "_txt",
+          "item": [
+            "Karma"
+          ]
+        }
+      },
+      {
+        "Has item value": {
+          "label": "Has item value",
+          "key": "Has_item_value",
+          "typeid": "_txt",
+          "item": [
+            "5"
+          ]
+        },
+        "Has item currency": {
+          "label": "Has item currency",
+          "key": "Has_item_currency",
+          "typeid": "_txt",
+          "item": [
+            "Spirit Shard"
+          ]
+        }
+      }
+    ],
+    "vendor": "Grandmaster Craftsman Hobbs",
+    "historical": "f"
+  },
+  {
+    "vendorSubobject": "Grandmaster Craftsman Hobbs#vendor87",
+    "item": "Recipe: Neophyte's Beacon",
+    "itemQuantity": 1,
+    "itemCostRaw": [
+      {
+        "Has item value": {
+          "label": "Has item value",
+          "key": "Has_item_value",
+          "typeid": "_txt",
+          "item": [
+            "10003"
+          ]
+        },
+        "Has item currency": {
+          "label": "Has item currency",
+          "key": "Has_item_currency",
+          "typeid": "_txt",
+          "item": [
+            "Karma"
+          ]
+        }
+      },
+      {
+        "Has item value": {
+          "label": "Has item value",
+          "key": "Has_item_value",
+          "typeid": "_txt",
+          "item": [
+            "5"
+          ]
+        },
+        "Has item currency": {
+          "label": "Has item currency",
+          "key": "Has_item_currency",
+          "typeid": "_txt",
+          "item": [
+            "Spirit Shard"
+          ]
+        }
+      }
+    ],
+    "vendor": "Grandmaster Craftsman Hobbs",
+    "historical": "f"
+  },
+  {
+    "vendorSubobject": "Grandmaster Craftsman Hobbs#vendor88",
+    "item": "Recipe: Liturgy",
+    "itemQuantity": 1,
+    "itemCostRaw": [
+      {
+        "Has item value": {
+          "label": "Has item value",
+          "key": "Has_item_value",
+          "typeid": "_txt",
+          "item": [
+            "10003"
+          ]
+        },
+        "Has item currency": {
+          "label": "Has item currency",
+          "key": "Has_item_currency",
+          "typeid": "_txt",
+          "item": [
+            "Karma"
+          ]
+        }
+      },
+      {
+        "Has item value": {
+          "label": "Has item value",
+          "key": "Has_item_value",
+          "typeid": "_txt",
+          "item": [
+            "5"
+          ]
+        },
+        "Has item currency": {
+          "label": "Has item currency",
+          "key": "Has_item_currency",
+          "typeid": "_txt",
+          "item": [
+            "Spirit Shard"
+          ]
+        }
+      }
+    ],
+    "vendor": "Grandmaster Craftsman Hobbs",
+    "historical": "f"
+  },
+  {
+    "vendorSubobject": "Grandmaster Craftsman Hobbs#vendor90",
+    "item": "Recipe: Vengeance",
+    "itemQuantity": 1,
+    "itemCostRaw": [
+      {
+        "Has item value": {
+          "label": "Has item value",
+          "key": "Has_item_value",
+          "typeid": "_txt",
+          "item": [
+            "10003"
+          ]
+        },
+        "Has item currency": {
+          "label": "Has item currency",
+          "key": "Has_item_currency",
+          "typeid": "_txt",
+          "item": [
+            "Karma"
+          ]
+        }
+      },
+      {
+        "Has item value": {
+          "label": "Has item value",
+          "key": "Has_item_value",
+          "typeid": "_txt",
+          "item": [
+            "5"
+          ]
+        },
+        "Has item currency": {
+          "label": "Has item currency",
+          "key": "Has_item_currency",
+          "typeid": "_txt",
+          "item": [
+            "Spirit Shard"
+          ]
+        }
+      }
+    ],
+    "vendor": "Grandmaster Craftsman Hobbs",
+    "historical": "f"
+  },
+  {
+    "vendorSubobject": "Grandmaster Craftsman Hobbs#vendor91",
+    "item": "Recipe: Save the Queen",
+    "itemQuantity": 1,
+    "itemCostRaw": [
+      {
+        "Has item value": {
+          "label": "Has item value",
+          "key": "Has_item_value",
+          "typeid": "_txt",
+          "item": [
+            "10003"
+          ]
+        },
+        "Has item currency": {
+          "label": "Has item currency",
+          "key": "Has_item_currency",
+          "typeid": "_txt",
+          "item": [
+            "Karma"
+          ]
+        }
+      },
+      {
+        "Has item value": {
+          "label": "Has item value",
+          "key": "Has_item_value",
+          "typeid": "_txt",
+          "item": [
+            "5"
+          ]
+        },
+        "Has item currency": {
+          "label": "Has item currency",
+          "key": "Has_item_currency",
+          "typeid": "_txt",
+          "item": [
+            "Spirit Shard"
+          ]
+        }
+      }
+    ],
+    "vendor": "Grandmaster Craftsman Hobbs",
+    "historical": "f"
+  },
+  {
+    "vendorSubobject": "Grandmaster Craftsman Hobbs#vendor93",
+    "item": "Recipe: Reclamation",
+    "itemQuantity": 1,
+    "itemCostRaw": [
+      {
+        "Has item value": {
+          "label": "Has item value",
+          "key": "Has_item_value",
+          "typeid": "_txt",
+          "item": [
+            "10003"
+          ]
+        },
+        "Has item currency": {
+          "label": "Has item currency",
+          "key": "Has_item_currency",
+          "typeid": "_txt",
+          "item": [
+            "Karma"
+          ]
+        }
+      },
+      {
+        "Has item value": {
+          "label": "Has item value",
+          "key": "Has_item_value",
+          "typeid": "_txt",
+          "item": [
+            "5"
+          ]
+        },
+        "Has item currency": {
+          "label": "Has item currency",
+          "key": "Has_item_currency",
+          "typeid": "_txt",
+          "item": [
+            "Spirit Shard"
+          ]
+        }
+      }
+    ],
+    "vendor": "Grandmaster Craftsman Hobbs",
+    "historical": "f"
+  },
+  {
+    "vendorSubobject": "Grandmaster Craftsman Hobbs#vendor94",
+    "item": "Recipe: Might of Arah",
+    "itemQuantity": 1,
+    "itemCostRaw": [
+      {
+        "Has item value": {
+          "label": "Has item value",
+          "key": "Has_item_value",
+          "typeid": "_txt",
+          "item": [
+            "10003"
+          ]
+        },
+        "Has item currency": {
+          "label": "Has item currency",
+          "key": "Has_item_currency",
+          "typeid": "_txt",
+          "item": [
+            "Karma"
+          ]
+        }
+      },
+      {
+        "Has item value": {
+          "label": "Has item value",
+          "key": "Has_item_value",
+          "typeid": "_txt",
+          "item": [
+            "5"
+          ]
+        },
+        "Has item currency": {
+          "label": "Has item currency",
+          "key": "Has_item_currency",
+          "typeid": "_txt",
+          "item": [
+            "Spirit Shard"
+          ]
+        }
+      }
+    ],
+    "vendor": "Grandmaster Craftsman Hobbs",
+    "historical": "f"
+  },
+  {
+    "vendorSubobject": "Grandmaster Craftsman Hobbs#vendor96",
+    "item": "Recipe: The True Name",
+    "itemQuantity": 1,
+    "itemCostRaw": [
+      {
+        "Has item value": {
+          "label": "Has item value",
+          "key": "Has_item_value",
+          "typeid": "_txt",
+          "item": [
+            "10003"
+          ]
+        },
+        "Has item currency": {
+          "label": "Has item currency",
+          "key": "Has_item_currency",
+          "typeid": "_txt",
+          "item": [
+            "Karma"
+          ]
+        }
+      },
+      {
+        "Has item value": {
+          "label": "Has item value",
+          "key": "Has_item_value",
+          "typeid": "_txt",
+          "item": [
+            "5"
+          ]
+        },
+        "Has item currency": {
+          "label": "Has item currency",
+          "key": "Has_item_currency",
+          "typeid": "_txt",
+          "item": [
+            "Spirit Shard"
+          ]
+        }
+      }
+    ],
+    "vendor": "Grandmaster Craftsman Hobbs",
+    "historical": "f"
+  },
+  {
+    "vendorSubobject": "Grandmaster Craftsman Hobbs#vendor97",
+    "item": "Recipe: Ars Goetia",
+    "itemQuantity": 1,
+    "itemCostRaw": [
+      {
+        "Has item value": {
+          "label": "Has item value",
+          "key": "Has_item_value",
+          "typeid": "_txt",
+          "item": [
+            "10003"
+          ]
+        },
+        "Has item currency": {
+          "label": "Has item currency",
+          "key": "Has_item_currency",
+          "typeid": "_txt",
+          "item": [
+            "Karma"
+          ]
+        }
+      },
+      {
+        "Has item value": {
+          "label": "Has item value",
+          "key": "Has_item_value",
+          "typeid": "_txt",
+          "item": [
+            "5"
+          ]
+        },
+        "Has item currency": {
+          "label": "Has item currency",
+          "key": "Has_item_currency",
+          "typeid": "_txt",
+          "item": [
+            "Spirit Shard"
+          ]
+        }
+      }
+    ],
+    "vendor": "Grandmaster Craftsman Hobbs",
+    "historical": "f"
+  },
+  {
+    "vendorSubobject": "Grandmaster Craftsman Hobbs#vendor99",
+    "item": "Recipe: Claw of Retribution",
+    "itemQuantity": 1,
+    "itemCostRaw": [
+      {
+        "Has item value": {
+          "label": "Has item value",
+          "key": "Has_item_value",
+          "typeid": "_txt",
+          "item": [
+            "10003"
+          ]
+        },
+        "Has item currency": {
+          "label": "Has item currency",
+          "key": "Has_item_currency",
+          "typeid": "_txt",
+          "item": [
+            "Karma"
+          ]
+        }
+      },
+      {
+        "Has item value": {
+          "label": "Has item value",
+          "key": "Has_item_value",
+          "typeid": "_txt",
+          "item": [
+            "5"
+          ]
+        },
+        "Has item currency": {
+          "label": "Has item currency",
+          "key": "Has_item_currency",
+          "typeid": "_txt",
+          "item": [
+            "Spirit Shard"
+          ]
+        }
+      }
+    ],
+    "vendor": "Grandmaster Craftsman Hobbs",
+    "historical": "f"
+  },
+  {
+    "vendorSubobject": "Grandmaster Craftsman Hobbs#vendor100",
+    "item": "Recipe: Claw of Resolution",
+    "itemQuantity": 1,
+    "itemCostRaw": [
+      {
+        "Has item value": {
+          "label": "Has item value",
+          "key": "Has_item_value",
+          "typeid": "_txt",
+          "item": [
+            "10003"
+          ]
+        },
+        "Has item currency": {
+          "label": "Has item currency",
+          "key": "Has_item_currency",
+          "typeid": "_txt",
+          "item": [
+            "Karma"
+          ]
+        }
+      },
+      {
+        "Has item value": {
+          "label": "Has item value",
+          "key": "Has_item_value",
+          "typeid": "_txt",
+          "item": [
+            "5"
+          ]
+        },
+        "Has item currency": {
+          "label": "Has item currency",
+          "key": "Has_item_currency",
+          "typeid": "_txt",
+          "item": [
+            "Spirit Shard"
+          ]
+        }
+      }
+    ],
+    "vendor": "Grandmaster Craftsman Hobbs",
+    "historical": "f"
+  },
+  {
+    "vendorSubobject": "Grandmaster Craftsman Hobbs#vendor102",
+    "item": "Recipe: Lament",
+    "itemQuantity": 1,
+    "itemCostRaw": [
+      {
+        "Has item value": {
+          "label": "Has item value",
+          "key": "Has_item_value",
+          "typeid": "_txt",
+          "item": [
+            "10003"
+          ]
+        },
+        "Has item currency": {
+          "label": "Has item currency",
+          "key": "Has_item_currency",
+          "typeid": "_txt",
+          "item": [
+            "Karma"
+          ]
+        }
+      },
+      {
+        "Has item value": {
+          "label": "Has item value",
+          "key": "Has_item_value",
+          "typeid": "_txt",
+          "item": [
+            "5"
+          ]
+        },
+        "Has item currency": {
+          "label": "Has item currency",
+          "key": "Has_item_currency",
+          "typeid": "_txt",
+          "item": [
+            "Spirit Shard"
+          ]
+        }
+      }
+    ],
+    "vendor": "Grandmaster Craftsman Hobbs",
+    "historical": "f"
+  },
+  {
+    "vendorSubobject": "Grandmaster Craftsman Hobbs#vendor103",
+    "item": "Recipe: Call of the Void",
+    "itemQuantity": 1,
+    "itemCostRaw": [
+      {
+        "Has item value": {
+          "label": "Has item value",
+          "key": "Has_item_value",
+          "typeid": "_txt",
+          "item": [
+            "10003"
+          ]
+        },
+        "Has item currency": {
+          "label": "Has item currency",
+          "key": "Has_item_currency",
+          "typeid": "_txt",
+          "item": [
+            "Karma"
+          ]
+        }
+      },
+      {
+        "Has item value": {
+          "label": "Has item value",
+          "key": "Has_item_value",
+          "typeid": "_txt",
+          "item": [
+            "5"
+          ]
+        },
+        "Has item currency": {
+          "label": "Has item currency",
+          "key": "Has_item_currency",
+          "typeid": "_txt",
+          "item": [
+            "Spirit Shard"
+          ]
+        }
+      }
+    ],
+    "vendor": "Grandmaster Craftsman Hobbs",
+    "historical": "f"
+  },
+  {
+    "vendorSubobject": "Grandmaster Craftsman Hobbs#vendor105",
+    "item": "Recipe: Anima",
+    "itemQuantity": 1,
+    "itemCostRaw": [
+      {
+        "Has item value": {
+          "label": "Has item value",
+          "key": "Has_item_value",
+          "typeid": "_txt",
+          "item": [
+            "10003"
+          ]
+        },
+        "Has item currency": {
+          "label": "Has item currency",
+          "key": "Has_item_currency",
+          "typeid": "_txt",
+          "item": [
+            "Karma"
+          ]
+        }
+      },
+      {
+        "Has item value": {
+          "label": "Has item value",
+          "key": "Has_item_value",
+          "typeid": "_txt",
+          "item": [
+            "5"
+          ]
+        },
+        "Has item currency": {
+          "label": "Has item currency",
+          "key": "Has_item_currency",
+          "typeid": "_txt",
+          "item": [
+            "Spirit Shard"
+          ]
+        }
+      }
+    ],
+    "vendor": "Grandmaster Craftsman Hobbs",
+    "historical": "f"
+  },
+  {
+    "vendorSubobject": "Grandmaster Craftsman Hobbs#vendor106",
+    "item": "Recipe: Tlehco",
+    "itemQuantity": 1,
+    "itemCostRaw": [
+      {
+        "Has item value": {
+          "label": "Has item value",
+          "key": "Has_item_value",
+          "typeid": "_txt",
+          "item": [
+            "10003"
+          ]
+        },
+        "Has item currency": {
+          "label": "Has item currency",
+          "key": "Has_item_currency",
+          "typeid": "_txt",
+          "item": [
+            "Karma"
+          ]
+        }
+      },
+      {
+        "Has item value": {
+          "label": "Has item value",
+          "key": "Has_item_value",
+          "typeid": "_txt",
+          "item": [
+            "5"
+          ]
+        },
+        "Has item currency": {
+          "label": "Has item currency",
+          "key": "Has_item_currency",
+          "typeid": "_txt",
+          "item": [
+            "Spirit Shard"
+          ]
+        }
+      }
+    ],
+    "vendor": "Grandmaster Craftsman Hobbs",
+    "historical": "f"
+  },
+  {
+    "vendorSubobject": "Grandmaster Craftsman Hobbs#vendor108",
+    "item": "Recipe: Doctrina",
+    "itemQuantity": 1,
+    "itemCostRaw": [
+      {
+        "Has item value": {
+          "label": "Has item value",
+          "key": "Has_item_value",
+          "typeid": "_txt",
+          "item": [
+            "10003"
+          ]
+        },
+        "Has item currency": {
+          "label": "Has item currency",
+          "key": "Has_item_currency",
+          "typeid": "_txt",
+          "item": [
+            "Karma"
+          ]
+        }
+      },
+      {
+        "Has item value": {
+          "label": "Has item value",
+          "key": "Has_item_value",
+          "typeid": "_txt",
+          "item": [
+            "5"
+          ]
+        },
+        "Has item currency": {
+          "label": "Has item currency",
+          "key": "Has_item_currency",
+          "typeid": "_txt",
+          "item": [
+            "Spirit Shard"
+          ]
+        }
+      }
+    ],
+    "vendor": "Grandmaster Craftsman Hobbs",
+    "historical": "f"
+  },
+  {
+    "vendorSubobject": "Grandmaster Craftsman Hobbs#vendor109",
+    "item": "Recipe: Spero",
+    "itemQuantity": 1,
+    "itemCostRaw": [
+      {
+        "Has item value": {
+          "label": "Has item value",
+          "key": "Has_item_value",
+          "typeid": "_txt",
+          "item": [
+            "10003"
+          ]
+        },
+        "Has item currency": {
+          "label": "Has item currency",
+          "key": "Has_item_currency",
+          "typeid": "_txt",
+          "item": [
+            "Karma"
+          ]
+        }
+      },
+      {
+        "Has item value": {
+          "label": "Has item value",
+          "key": "Has_item_value",
+          "typeid": "_txt",
+          "item": [
+            "5"
+          ]
+        },
+        "Has item currency": {
+          "label": "Has item currency",
+          "key": "Has_item_currency",
+          "typeid": "_txt",
+          "item": [
+            "Spirit Shard"
+          ]
+        }
+      }
+    ],
+    "vendor": "Grandmaster Craftsman Hobbs",
+    "historical": "f"
+  },
+  {
+    "vendorSubobject": "Grandmaster Craftsman Hobbs#vendor111",
+    "item": "Recipe: Visiospei",
+    "itemQuantity": 1,
+    "itemCostRaw": [
+      {
+        "Has item value": {
+          "label": "Has item value",
+          "key": "Has_item_value",
+          "typeid": "_txt",
+          "item": [
+            "10003"
+          ]
+        },
+        "Has item currency": {
+          "label": "Has item currency",
+          "key": "Has_item_currency",
+          "typeid": "_txt",
+          "item": [
+            "Karma"
+          ]
+        }
+      },
+      {
+        "Has item value": {
+          "label": "Has item value",
+          "key": "Has_item_value",
+          "typeid": "_txt",
+          "item": [
+            "5"
+          ]
+        },
+        "Has item currency": {
+          "label": "Has item currency",
+          "key": "Has_item_currency",
+          "typeid": "_txt",
+          "item": [
+            "Spirit Shard"
+          ]
+        }
+      }
+    ],
+    "vendor": "Grandmaster Craftsman Hobbs",
+    "historical": "f"
+  },
+  {
+    "vendorSubobject": "Grandmaster Craftsman Hobbs#vendor112",
+    "item": "Recipe: Exitare",
+    "itemQuantity": 1,
+    "itemCostRaw": [
+      {
+        "Has item value": {
+          "label": "Has item value",
+          "key": "Has_item_value",
+          "typeid": "_txt",
+          "item": [
+            "10003"
+          ]
+        },
+        "Has item currency": {
+          "label": "Has item currency",
+          "key": "Has_item_currency",
+          "typeid": "_txt",
+          "item": [
+            "Karma"
+          ]
+        }
+      },
+      {
+        "Has item value": {
+          "label": "Has item value",
+          "key": "Has_item_value",
+          "typeid": "_txt",
+          "item": [
+            "5"
+          ]
+        },
+        "Has item currency": {
+          "label": "Has item currency",
+          "key": "Has_item_currency",
+          "typeid": "_txt",
+          "item": [
+            "Spirit Shard"
+          ]
+        }
+      }
+    ],
+    "vendor": "Grandmaster Craftsman Hobbs",
+    "historical": "f"
+  },
+  {
+    "vendorSubobject": "Kjep Corrson#vendor11",
+    "item": "Karmic Empowerment",
+    "itemQuantity": 1,
+    "itemCostRaw": [
+      {
+        "Has item value": {
+          "label": "Has item value",
+          "key": "Has_item_value",
+          "typeid": "_txt",
+          "item": [
+            "50000"
+          ]
+        },
+        "Has item currency": {
+          "label": "Has item currency",
+          "key": "Has_item_currency",
+          "typeid": "_txt",
+          "item": [
+            "Coin"
+          ]
+        }
+      },
+      {
+        "Has item value": {
+          "label": "Has item value",
+          "key": "Has_item_value",
+          "typeid": "_txt",
+          "item": [
+            "5"
+          ]
+        },
+        "Has item currency": {
+          "label": "Has item currency",
+          "key": "Has_item_currency",
+          "typeid": "_txt",
+          "item": [
+            "Spirit Shard"
+          ]
+        }
+      }
+    ],
+    "vendor": "Kjep Corrson",
+    "historical": "f"
+  },
+  {
+    "vendorSubobject": "Kjep Corrson#vendor12",
+    "item": "Karmic Empowerment",
+    "itemQuantity": 1,
+    "itemCostRaw": [
+      {
+        "Has item value": {
+          "label": "Has item value",
+          "key": "Has_item_value",
+          "typeid": "_txt",
+          "item": [
+            "100000"
+          ]
+        },
+        "Has item currency": {
+          "label": "Has item currency",
+          "key": "Has_item_currency",
+          "typeid": "_txt",
+          "item": [
+            "Coin"
+          ]
+        }
+      },
+      {
+        "Has item value": {
+          "label": "Has item value",
+          "key": "Has_item_value",
+          "typeid": "_txt",
+          "item": [
+            "10"
+          ]
+        },
+        "Has item currency": {
+          "label": "Has item currency",
+          "key": "Has_item_currency",
+          "typeid": "_txt",
+          "item": [
+            "Spirit Shard"
+          ]
+        }
+      }
+    ],
+    "vendor": "Kjep Corrson",
+    "historical": "f"
+  },
+  {
+    "vendorSubobject": "League Armor Vendor#vendor66",
+    "item": "Glob of Condensed Spirit Energy",
+    "itemQuantity": 1,
+    "itemCostRaw": [
+      {
+        "Has item value": {
+          "label": "Has item value",
+          "key": "Has_item_value",
+          "typeid": "_txt",
+          "item": [
+            "100"
+          ]
+        },
+        "Has item currency": {
+          "label": "Has item currency",
+          "key": "Has_item_currency",
+          "typeid": "_txt",
+          "item": [
+            "Spirit Shard"
+          ]
+        }
+      }
+    ],
+    "vendor": "League Armor Vendor",
+    "historical": "f"
+  },
+  {
+    "vendorSubobject": "League Vendor#vendor53",
+    "item": "Mystic Clover",
+    "itemQuantity": 1,
+    "itemCostRaw": [
+      {
+        "Has item value": {
+          "label": "Has item value",
+          "key": "Has_item_value",
+          "typeid": "_txt",
+          "item": [
+            "5"
+          ]
+        },
+        "Has item currency": {
+          "label": "Has item currency",
+          "key": "Has_item_currency",
+          "typeid": "_txt",
+          "item": [
+            "PvP League Ticket"
+          ]
+        }
+      },
+      {
+        "Has item value": {
+          "label": "Has item value",
+          "key": "Has_item_value",
+          "typeid": "_txt",
+          "item": [
+            "2"
+          ]
+        },
+        "Has item currency": {
+          "label": "Has item currency",
+          "key": "Has_item_currency",
+          "typeid": "_txt",
+          "item": [
+            "Ectoplasm"
+          ]
+        }
+      },
+      {
+        "Has item value": {
+          "label": "Has item value",
+          "key": "Has_item_value",
+          "typeid": "_txt",
+          "item": [
+            "2"
+          ]
+        },
+        "Has item currency": {
+          "label": "Has item currency",
+          "key": "Has_item_currency",
+          "typeid": "_txt",
+          "item": [
+            "Mystic Coin"
+          ]
+        }
+      },
+      {
+        "Has item value": {
+          "label": "Has item value",
+          "key": "Has_item_value",
+          "typeid": "_txt",
+          "item": [
+            "2"
+          ]
+        },
+        "Has item currency": {
+          "label": "Has item currency",
+          "key": "Has_item_currency",
+          "typeid": "_txt",
+          "item": [
+            "Spirit Shard"
+          ]
+        }
+      }
+    ],
+    "vendor": "League Vendor",
+    "historical": "f"
+  },
+  {
+    "vendorSubobject": "League Vendor#vendor55",
+    "item": "Mystic Clover",
+    "itemQuantity": 1,
+    "itemCostRaw": [
+      {
+        "Has item value": {
+          "label": "Has item value",
+          "key": "Has_item_value",
+          "typeid": "_txt",
+          "item": [
+            "1"
+          ]
+        },
+        "Has item currency": {
+          "label": "Has item currency",
+          "key": "Has_item_currency",
+          "typeid": "_txt",
+          "item": [
+            "Emblem of Tournament Victory"
+          ]
+        }
+      },
+      {
+        "Has item value": {
+          "label": "Has item value",
+          "key": "Has_item_value",
+          "typeid": "_txt",
+          "item": [
+            "2"
+          ]
+        },
+        "Has item currency": {
+          "label": "Has item currency",
+          "key": "Has_item_currency",
+          "typeid": "_txt",
+          "item": [
+            "Ectoplasm"
+          ]
+        }
+      },
+      {
+        "Has item value": {
+          "label": "Has item value",
+          "key": "Has_item_value",
+          "typeid": "_txt",
+          "item": [
+            "2"
+          ]
+        },
+        "Has item currency": {
+          "label": "Has item currency",
+          "key": "Has_item_currency",
+          "typeid": "_txt",
+          "item": [
+            "Mystic Coin"
+          ]
+        }
+      },
+      {
+        "Has item value": {
+          "label": "Has item value",
+          "key": "Has_item_value",
+          "typeid": "_txt",
+          "item": [
+            "2"
+          ]
+        },
+        "Has item currency": {
+          "label": "Has item currency",
+          "key": "Has_item_currency",
+          "typeid": "_txt",
+          "item": [
+            "Spirit Shard"
+          ]
+        }
+      }
+    ],
+    "vendor": "League Vendor",
+    "historical": "f"
+  },
+  {
+    "vendorSubobject": "Legendary Commander War Razor#vendor14",
+    "item": "Glob of Condensed Spirit Energy",
+    "itemQuantity": 1,
+    "itemCostRaw": [
+      {
+        "Has item value": {
+          "label": "Has item value",
+          "key": "Has_item_value",
+          "typeid": "_txt",
+          "item": [
+            "100"
+          ]
+        },
+        "Has item currency": {
+          "label": "Has item currency",
+          "key": "Has_item_currency",
+          "typeid": "_txt",
+          "item": [
+            "Spirit Shard"
+          ]
+        }
+      }
+    ],
+    "vendor": "Legendary Commander War Razor",
+    "historical": "f"
+  },
+  {
+    "vendorSubobject": "Legendary Retired Commander Burn Razor#vendor14",
+    "item": "Glob of Condensed Spirit Energy",
+    "itemQuantity": 1,
+    "itemCostRaw": [
+      {
+        "Has item value": {
+          "label": "Has item value",
+          "key": "Has_item_value",
+          "typeid": "_txt",
+          "item": [
+            "100"
+          ]
+        },
+        "Has item currency": {
+          "label": "Has item currency",
+          "key": "Has_item_currency",
+          "typeid": "_txt",
+          "item": [
+            "Spirit Shard"
+          ]
+        }
+      }
+    ],
+    "vendor": "Legendary Retired Commander Burn Razor",
+    "historical": "f"
+  },
+  {
+    "vendorSubobject": "Leivas#vendor26",
+    "item": "Scale Splinter of Zhaitan",
+    "itemQuantity": 1,
+    "itemCostRaw": [
+      {
+        "Has item value": {
+          "label": "Has item value",
+          "key": "Has_item_value",
+          "typeid": "_txt",
+          "item": [
+            "100"
+          ]
+        },
+        "Has item currency": {
+          "label": "Has item currency",
+          "key": "Has_item_currency",
+          "typeid": "_txt",
+          "item": [
+            "Spirit Shard"
+          ]
+        }
+      }
+    ],
+    "vendor": "Leivas",
+    "historical": "f"
+  },
+  {
+    "vendorSubobject": "Leivas#vendor30",
+    "item": "Scale Splinter of Mordremoth",
+    "itemQuantity": 1,
+    "itemCostRaw": [
+      {
+        "Has item value": {
+          "label": "Has item value",
+          "key": "Has_item_value",
+          "typeid": "_txt",
+          "item": [
+            "100"
+          ]
+        },
+        "Has item currency": {
+          "label": "Has item currency",
+          "key": "Has_item_currency",
+          "typeid": "_txt",
+          "item": [
+            "Spirit Shard"
+          ]
+        }
+      }
+    ],
+    "vendor": "Leivas",
+    "historical": "f"
+  },
+  {
+    "vendorSubobject": "Leivas#vendor34",
+    "item": "Scale Splinter of Kralkatorrik",
+    "itemQuantity": 1,
+    "itemCostRaw": [
+      {
+        "Has item value": {
+          "label": "Has item value",
+          "key": "Has_item_value",
+          "typeid": "_txt",
+          "item": [
+            "100"
+          ]
+        },
+        "Has item currency": {
+          "label": "Has item currency",
+          "key": "Has_item_currency",
+          "typeid": "_txt",
+          "item": [
+            "Spirit Shard"
+          ]
+        }
+      }
+    ],
+    "vendor": "Leivas",
+    "historical": "f"
+  },
+  {
+    "vendorSubobject": "Leivas#vendor38",
+    "item": "Scale Splinter of Jormag",
+    "itemQuantity": 1,
+    "itemCostRaw": [
+      {
+        "Has item value": {
+          "label": "Has item value",
+          "key": "Has_item_value",
+          "typeid": "_txt",
+          "item": [
+            "100"
+          ]
+        },
+        "Has item currency": {
+          "label": "Has item currency",
+          "key": "Has_item_currency",
+          "typeid": "_txt",
+          "item": [
+            "Spirit Shard"
+          ]
+        }
+      }
+    ],
+    "vendor": "Leivas",
+    "historical": "f"
+  },
+  {
+    "vendorSubobject": "Leivas#vendor42",
+    "item": "Scale Splinter of Primordus",
+    "itemQuantity": 1,
+    "itemCostRaw": [
+      {
+        "Has item value": {
+          "label": "Has item value",
+          "key": "Has_item_value",
+          "typeid": "_txt",
+          "item": [
+            "100"
+          ]
+        },
+        "Has item currency": {
+          "label": "Has item currency",
+          "key": "Has_item_currency",
+          "typeid": "_txt",
+          "item": [
+            "Spirit Shard"
+          ]
+        }
+      }
+    ],
+    "vendor": "Leivas",
+    "historical": "f"
+  },
+  {
+    "vendorSubobject": "Leivas#vendor46",
+    "item": "Scale Splinter of Soo-Won",
+    "itemQuantity": 1,
+    "itemCostRaw": [
+      {
+        "Has item value": {
+          "label": "Has item value",
+          "key": "Has_item_value",
+          "typeid": "_txt",
+          "item": [
+            "100"
+          ]
+        },
+        "Has item currency": {
+          "label": "Has item currency",
+          "key": "Has_item_currency",
+          "typeid": "_txt",
+          "item": [
+            "Spirit Shard"
+          ]
+        }
+      }
+    ],
+    "vendor": "Leivas",
+    "historical": "f"
+  },
+  {
+    "vendorSubobject": "Lyhr#vendor11",
+    "item": "Augur's Stone",
+    "itemQuantity": 1,
+    "itemCostRaw": [
+      {
+        "Has item value": {
+          "label": "Has item value",
+          "key": "Has_item_value",
+          "typeid": "_txt",
+          "item": [
+            "20"
+          ]
+        },
+        "Has item currency": {
+          "label": "Has item currency",
+          "key": "Has_item_currency",
+          "typeid": "_txt",
+          "item": [
+            "Spirit Shard"
+          ]
+        }
+      }
+    ],
+    "vendor": "Lyhr",
+    "historical": "f"
+  },
+  {
+    "vendorSubobject": "Lyhr#vendor12",
+    "item": "Mystic Clover",
+    "itemQuantity": 1,
+    "itemCostRaw": [
+      {
+        "Has item value": {
+          "label": "Has item value",
+          "key": "Has_item_value",
+          "typeid": "_txt",
+          "item": [
+            "3"
+          ]
+        },
+        "Has item currency": {
+          "label": "Has item currency",
+          "key": "Has_item_currency",
+          "typeid": "_txt",
+          "item": [
+            "Mystic Coin"
+          ]
+        }
+      },
+      {
+        "Has item value": {
+          "label": "Has item value",
+          "key": "Has_item_value",
+          "typeid": "_txt",
+          "item": [
+            "3"
+          ]
+        },
+        "Has item currency": {
+          "label": "Has item currency",
+          "key": "Has_item_currency",
+          "typeid": "_txt",
+          "item": [
+            "Obsidian Shard"
+          ]
+        }
+      },
+      {
+        "Has item value": {
+          "label": "Has item value",
+          "key": "Has_item_value",
+          "typeid": "_txt",
+          "item": [
+            "5"
+          ]
+        },
+        "Has item currency": {
+          "label": "Has item currency",
+          "key": "Has_item_currency",
+          "typeid": "_txt",
+          "item": [
+            "Glob of Ectoplasm"
+          ]
+        }
+      },
+      {
+        "Has item value": {
+          "label": "Has item value",
+          "key": "Has_item_value",
+          "typeid": "_txt",
+          "item": [
+            "3"
+          ]
+        },
+        "Has item currency": {
+          "label": "Has item currency",
+          "key": "Has_item_currency",
+          "typeid": "_txt",
+          "item": [
+            "Spirit Shard"
+          ]
+        }
+      }
+    ],
+    "vendor": "Lyhr",
+    "historical": "f"
+  },
+  {
+    "vendorSubobject": "Manfred Njallson#vendor10",
+    "item": "Mystic Clover",
+    "itemQuantity": 1,
+    "itemCostRaw": [
+      {
+        "Has item value": {
+          "label": "Has item value",
+          "key": "Has_item_value",
+          "typeid": "_txt",
+          "item": [
+            "30"
+          ]
+        },
+        "Has item currency": {
+          "label": "Has item currency",
+          "key": "Has_item_currency",
+          "typeid": "_txt",
+          "item": [
+            "Magnetite Shard"
+          ]
+        }
+      },
+      {
+        "Has item value": {
+          "label": "Has item value",
+          "key": "Has_item_value",
+          "typeid": "_txt",
+          "item": [
+            "2"
+          ]
+        },
+        "Has item currency": {
+          "label": "Has item currency",
+          "key": "Has_item_currency",
+          "typeid": "_txt",
+          "item": [
+            "Mystic Coin"
+          ]
+        }
+      },
+      {
+        "Has item value": {
+          "label": "Has item value",
+          "key": "Has_item_value",
+          "typeid": "_txt",
+          "item": [
+            "2"
+          ]
+        },
+        "Has item currency": {
+          "label": "Has item currency",
+          "key": "Has_item_currency",
+          "typeid": "_txt",
+          "item": [
+            "Glob of Ectoplasm"
+          ]
+        }
+      },
+      {
+        "Has item value": {
+          "label": "Has item value",
+          "key": "Has_item_value",
+          "typeid": "_txt",
+          "item": [
+            "2"
+          ]
+        },
+        "Has item currency": {
+          "label": "Has item currency",
+          "key": "Has_item_currency",
+          "typeid": "_txt",
+          "item": [
+            "Spirit Shard"
+          ]
+        }
+      }
+    ],
+    "vendor": "Manfred Njallson",
+    "historical": "f"
+  },
+  {
+    "vendorSubobject": "Manfred Njallson#vendor11",
+    "item": "Mystic Coin",
+    "itemQuantity": 1,
+    "itemCostRaw": [
+      {
+        "Has item value": {
+          "label": "Has item value",
+          "key": "Has_item_value",
+          "typeid": "_txt",
+          "item": [
+            "10"
+          ]
+        },
+        "Has item currency": {
+          "label": "Has item currency",
+          "key": "Has_item_currency",
+          "typeid": "_txt",
+          "item": [
+            "Magnetite Shard"
+          ]
+        }
+      },
+      {
+        "Has item value": {
+          "label": "Has item value",
+          "key": "Has_item_value",
+          "typeid": "_txt",
+          "item": [
+            "1"
+          ]
+        },
+        "Has item currency": {
+          "label": "Has item currency",
+          "key": "Has_item_currency",
+          "typeid": "_txt",
+          "item": [
+            "Spirit Shard"
+          ]
+        }
+      }
+    ],
+    "vendor": "Manfred Njallson",
+    "historical": "f"
+  },
+  {
+    "vendorSubobject": "Miyani#vendor1",
+    "item": "Mystic Crystal",
+    "itemQuantity": 5,
+    "itemCostRaw": [
+      {
+        "Has item value": {
+          "label": "Has item value",
+          "key": "Has_item_value",
+          "typeid": "_txt",
+          "item": [
+            "3"
+          ]
+        },
+        "Has item currency": {
+          "label": "Has item currency",
+          "key": "Has_item_currency",
+          "typeid": "_txt",
+          "item": [
+            "Spirit Shard"
+          ]
+        }
+      }
+    ],
+    "vendor": "Miyani",
+    "historical": "f"
+  },
+  {
+    "vendorSubobject": "Miyani#vendor2",
+    "item": "Philosopher's Stone",
+    "itemQuantity": 10,
+    "itemCostRaw": [
+      {
+        "Has item value": {
+          "label": "Has item value",
+          "key": "Has_item_value",
+          "typeid": "_txt",
+          "item": [
+            "1"
+          ]
+        },
+        "Has item currency": {
+          "label": "Has item currency",
+          "key": "Has_item_currency",
+          "typeid": "_txt",
+          "item": [
+            "Spirit Shard"
+          ]
+        }
+      }
+    ],
+    "vendor": "Miyani",
+    "historical": "f"
+  },
+  {
+    "vendorSubobject": "Miyani#vendor3",
+    "item": "Anthology of Heroes",
+    "itemQuantity": 1,
+    "itemCostRaw": [
+      {
+        "Has item value": {
+          "label": "Has item value",
+          "key": "Has_item_value",
+          "typeid": "_txt",
+          "item": [
+            "10"
+          ]
+        },
+        "Has item currency": {
+          "label": "Has item currency",
+          "key": "Has_item_currency",
+          "typeid": "_txt",
+          "item": [
+            "Spirit Shard"
+          ]
+        }
+      }
+    ],
+    "vendor": "Miyani",
+    "historical": "f"
+  },
+  {
+    "vendorSubobject": "Miyani#vendor4",
+    "item": "Augur's Stone",
+    "itemQuantity": 1,
+    "itemCostRaw": [
+      {
+        "Has item value": {
+          "label": "Has item value",
+          "key": "Has_item_value",
+          "typeid": "_txt",
+          "item": [
+            "20"
+          ]
+        },
+        "Has item currency": {
+          "label": "Has item currency",
+          "key": "Has_item_currency",
+          "typeid": "_txt",
+          "item": [
+            "Spirit Shard"
+          ]
+        }
+      }
+    ],
+    "vendor": "Miyani",
+    "historical": "f"
+  },
+  {
+    "vendorSubobject": "Miyani#vendor5",
+    "item": "Spirit Banner",
+    "itemQuantity": 1,
+    "itemCostRaw": [
+      {
+        "Has item value": {
+          "label": "Has item value",
+          "key": "Has_item_value",
+          "typeid": "_txt",
+          "item": [
+            "25"
+          ]
+        },
+        "Has item currency": {
+          "label": "Has item currency",
+          "key": "Has_item_currency",
+          "typeid": "_txt",
+          "item": [
+            "Spirit Shard"
+          ]
+        }
+      }
+    ],
+    "vendor": "Miyani",
+    "historical": "f"
+  },
+  {
+    "vendorSubobject": "Miyani#vendor6",
+    "item": "Eldritch Scroll",
+    "itemQuantity": 1,
+    "itemCostRaw": [
+      {
+        "Has item value": {
+          "label": "Has item value",
+          "key": "Has_item_value",
+          "typeid": "_txt",
+          "item": [
+            "50"
+          ]
+        },
+        "Has item currency": {
+          "label": "Has item currency",
+          "key": "Has_item_currency",
+          "typeid": "_txt",
+          "item": [
+            "Spirit Shard"
+          ]
+        }
+      }
+    ],
+    "vendor": "Miyani",
+    "historical": "f"
+  },
+  {
+    "vendorSubobject": "Miyani#vendor7",
+    "item": "Bloodstone Shard",
+    "itemQuantity": 1,
+    "itemCostRaw": [
+      {
+        "Has item value": {
+          "label": "Has item value",
+          "key": "Has_item_value",
+          "typeid": "_txt",
+          "item": [
+            "200"
+          ]
+        },
+        "Has item currency": {
+          "label": "Has item currency",
+          "key": "Has_item_currency",
+          "typeid": "_txt",
+          "item": [
+            "Spirit Shard"
+          ]
+        }
+      }
+    ],
+    "vendor": "Miyani",
+    "historical": "f"
+  },
+  {
+    "vendorSubobject": "Miyani#vendor9",
+    "item": "Siege Novice's Guide",
+    "itemQuantity": 1,
+    "itemCostRaw": [
+      {
+        "Has item value": {
+          "label": "Has item value",
+          "key": "Has_item_value",
+          "typeid": "_txt",
+          "item": [
+            "1"
+          ]
+        },
+        "Has item currency": {
+          "label": "Has item currency",
+          "key": "Has_item_currency",
+          "typeid": "_txt",
+          "item": [
+            "Spirit Shard"
+          ]
+        }
+      }
+    ],
+    "vendor": "Miyani",
+    "historical": "f"
+  },
+  {
+    "vendorSubobject": "Miyani#vendor16",
+    "item": "Mystic Clover",
+    "itemQuantity": 1,
+    "itemCostRaw": [
+      {
+        "Has item value": {
+          "label": "Has item value",
+          "key": "Has_item_value",
+          "typeid": "_txt",
+          "item": [
+            "3"
+          ]
+        },
+        "Has item currency": {
+          "label": "Has item currency",
+          "key": "Has_item_currency",
+          "typeid": "_txt",
+          "item": [
+            "Spirit Shard"
+          ]
+        }
+      },
+      {
+        "Has item value": {
+          "label": "Has item value",
+          "key": "Has_item_value",
+          "typeid": "_txt",
+          "item": [
+            "3"
+          ]
+        },
+        "Has item currency": {
+          "label": "Has item currency",
+          "key": "Has_item_currency",
+          "typeid": "_txt",
+          "item": [
+            "Mystic Coin"
+          ]
+        }
+      },
+      {
+        "Has item value": {
+          "label": "Has item value",
+          "key": "Has_item_value",
+          "typeid": "_txt",
+          "item": [
+            "3"
+          ]
+        },
+        "Has item currency": {
+          "label": "Has item currency",
+          "key": "Has_item_currency",
+          "typeid": "_txt",
+          "item": [
+            "Obsidian Shard"
+          ]
+        }
+      },
+      {
+        "Has item value": {
+          "label": "Has item value",
+          "key": "Has_item_value",
+          "typeid": "_txt",
+          "item": [
+            "5"
+          ]
+        },
+        "Has item currency": {
+          "label": "Has item currency",
+          "key": "Has_item_currency",
+          "typeid": "_txt",
+          "item": [
+            "Glob of Ectoplasm"
+          ]
+        }
+      }
+    ],
+    "vendor": "Miyani",
+    "historical": "f"
+  },
+  {
+    "vendorSubobject": "Mystic Forge Attendant#vendor1",
+    "item": "Mystic Crystal",
+    "itemQuantity": 5,
+    "itemCostRaw": [
+      {
+        "Has item value": {
+          "label": "Has item value",
+          "key": "Has_item_value",
+          "typeid": "_txt",
+          "item": [
+            "3"
+          ]
+        },
+        "Has item currency": {
+          "label": "Has item currency",
+          "key": "Has_item_currency",
+          "typeid": "_txt",
+          "item": [
+            "Spirit Shard"
+          ]
+        }
+      }
+    ],
+    "vendor": "Mystic Forge Attendant",
+    "historical": "f"
+  },
+  {
+    "vendorSubobject": "Mystic Forge Attendant#vendor2",
+    "item": "Philosopher's Stone",
+    "itemQuantity": 10,
+    "itemCostRaw": [
+      {
+        "Has item value": {
+          "label": "Has item value",
+          "key": "Has_item_value",
+          "typeid": "_txt",
+          "item": [
+            "1"
+          ]
+        },
+        "Has item currency": {
+          "label": "Has item currency",
+          "key": "Has_item_currency",
+          "typeid": "_txt",
+          "item": [
+            "Spirit Shard"
+          ]
+        }
+      }
+    ],
+    "vendor": "Mystic Forge Attendant",
+    "historical": "f"
+  },
+  {
+    "vendorSubobject": "Mystic Forge Attendant#vendor3",
+    "item": "Anthology of Heroes",
+    "itemQuantity": 1,
+    "itemCostRaw": [
+      {
+        "Has item value": {
+          "label": "Has item value",
+          "key": "Has_item_value",
+          "typeid": "_txt",
+          "item": [
+            "10"
+          ]
+        },
+        "Has item currency": {
+          "label": "Has item currency",
+          "key": "Has_item_currency",
+          "typeid": "_txt",
+          "item": [
+            "Spirit Shard"
+          ]
+        }
+      }
+    ],
+    "vendor": "Mystic Forge Attendant",
+    "historical": "f"
+  },
+  {
+    "vendorSubobject": "Mystic Forge Attendant#vendor4",
+    "item": "Augur's Stone",
+    "itemQuantity": 1,
+    "itemCostRaw": [
+      {
+        "Has item value": {
+          "label": "Has item value",
+          "key": "Has_item_value",
+          "typeid": "_txt",
+          "item": [
+            "20"
+          ]
+        },
+        "Has item currency": {
+          "label": "Has item currency",
+          "key": "Has_item_currency",
+          "typeid": "_txt",
+          "item": [
+            "Spirit Shard"
+          ]
+        }
+      }
+    ],
+    "vendor": "Mystic Forge Attendant",
+    "historical": "f"
+  },
+  {
+    "vendorSubobject": "Mystic Forge Attendant#vendor5",
+    "item": "Spirit Banner",
+    "itemQuantity": 1,
+    "itemCostRaw": [
+      {
+        "Has item value": {
+          "label": "Has item value",
+          "key": "Has_item_value",
+          "typeid": "_txt",
+          "item": [
+            "25"
+          ]
+        },
+        "Has item currency": {
+          "label": "Has item currency",
+          "key": "Has_item_currency",
+          "typeid": "_txt",
+          "item": [
+            "Spirit Shard"
+          ]
+        }
+      }
+    ],
+    "vendor": "Mystic Forge Attendant",
+    "historical": "f"
+  },
+  {
+    "vendorSubobject": "Mystic Forge Attendant#vendor6",
+    "item": "Eldritch Scroll",
+    "itemQuantity": 1,
+    "itemCostRaw": [
+      {
+        "Has item value": {
+          "label": "Has item value",
+          "key": "Has_item_value",
+          "typeid": "_txt",
+          "item": [
+            "50"
+          ]
+        },
+        "Has item currency": {
+          "label": "Has item currency",
+          "key": "Has_item_currency",
+          "typeid": "_txt",
+          "item": [
+            "Spirit Shard"
+          ]
+        }
+      }
+    ],
+    "vendor": "Mystic Forge Attendant",
+    "historical": "f"
+  },
+  {
+    "vendorSubobject": "Mystic Forge Attendant#vendor7",
+    "item": "Bloodstone Shard",
+    "itemQuantity": 1,
+    "itemCostRaw": [
+      {
+        "Has item value": {
+          "label": "Has item value",
+          "key": "Has_item_value",
+          "typeid": "_txt",
+          "item": [
+            "200"
+          ]
+        },
+        "Has item currency": {
+          "label": "Has item currency",
+          "key": "Has_item_currency",
+          "typeid": "_txt",
+          "item": [
+            "Spirit Shard"
+          ]
+        }
+      }
+    ],
+    "vendor": "Mystic Forge Attendant",
+    "historical": "f"
+  },
+  {
+    "vendorSubobject": "Mystic Forge Attendant#vendor9",
+    "item": "Siege Novice's Guide",
+    "itemQuantity": 1,
+    "itemCostRaw": [
+      {
+        "Has item value": {
+          "label": "Has item value",
+          "key": "Has_item_value",
+          "typeid": "_txt",
+          "item": [
+            "1"
+          ]
+        },
+        "Has item currency": {
+          "label": "Has item currency",
+          "key": "Has_item_currency",
+          "typeid": "_txt",
+          "item": [
+            "Spirit Shard"
+          ]
+        }
+      }
+    ],
+    "vendor": "Mystic Forge Attendant",
+    "historical": "f"
+  },
+  {
+    "vendorSubobject": "Mystic Forge Attendant#vendor16",
+    "item": "Mystic Clover",
+    "itemQuantity": 1,
+    "itemCostRaw": [
+      {
+        "Has item value": {
+          "label": "Has item value",
+          "key": "Has_item_value",
+          "typeid": "_txt",
+          "item": [
+            "3"
+          ]
+        },
+        "Has item currency": {
+          "label": "Has item currency",
+          "key": "Has_item_currency",
+          "typeid": "_txt",
+          "item": [
+            "Spirit Shard"
+          ]
+        }
+      },
+      {
+        "Has item value": {
+          "label": "Has item value",
+          "key": "Has_item_value",
+          "typeid": "_txt",
+          "item": [
+            "3"
+          ]
+        },
+        "Has item currency": {
+          "label": "Has item currency",
+          "key": "Has_item_currency",
+          "typeid": "_txt",
+          "item": [
+            "Mystic Coin"
+          ]
+        }
+      },
+      {
+        "Has item value": {
+          "label": "Has item value",
+          "key": "Has_item_value",
+          "typeid": "_txt",
+          "item": [
+            "3"
+          ]
+        },
+        "Has item currency": {
+          "label": "Has item currency",
+          "key": "Has_item_currency",
+          "typeid": "_txt",
+          "item": [
+            "Obsidian Shard"
+          ]
+        }
+      },
+      {
+        "Has item value": {
+          "label": "Has item value",
+          "key": "Has_item_value",
+          "typeid": "_txt",
+          "item": [
+            "5"
+          ]
+        },
+        "Has item currency": {
+          "label": "Has item currency",
+          "key": "Has_item_currency",
+          "typeid": "_txt",
+          "item": [
+            "Glob of Ectoplasm"
+          ]
+        }
+      }
+    ],
+    "vendor": "Mystic Forge Attendant",
+    "historical": "f"
+  },
+  {
+    "vendorSubobject": "Mystic Forge Keeper#vendor1",
+    "item": "Mystic Crystal",
+    "itemQuantity": 5,
+    "itemCostRaw": [
+      {
+        "Has item value": {
+          "label": "Has item value",
+          "key": "Has_item_value",
+          "typeid": "_txt",
+          "item": [
+            "3"
+          ]
+        },
+        "Has item currency": {
+          "label": "Has item currency",
+          "key": "Has_item_currency",
+          "typeid": "_txt",
+          "item": [
+            "Spirit Shard"
+          ]
+        }
+      }
+    ],
+    "vendor": "Mystic Forge Keeper",
+    "historical": "f"
+  },
+  {
+    "vendorSubobject": "Mystic Forge Keeper#vendor2",
+    "item": "Philosopher's Stone",
+    "itemQuantity": 10,
+    "itemCostRaw": [
+      {
+        "Has item value": {
+          "label": "Has item value",
+          "key": "Has_item_value",
+          "typeid": "_txt",
+          "item": [
+            "1"
+          ]
+        },
+        "Has item currency": {
+          "label": "Has item currency",
+          "key": "Has_item_currency",
+          "typeid": "_txt",
+          "item": [
+            "Spirit Shard"
+          ]
+        }
+      }
+    ],
+    "vendor": "Mystic Forge Keeper",
+    "historical": "f"
+  },
+  {
+    "vendorSubobject": "Mystic Forge Keeper#vendor3",
+    "item": "Anthology of Heroes",
+    "itemQuantity": 1,
+    "itemCostRaw": [
+      {
+        "Has item value": {
+          "label": "Has item value",
+          "key": "Has_item_value",
+          "typeid": "_txt",
+          "item": [
+            "10"
+          ]
+        },
+        "Has item currency": {
+          "label": "Has item currency",
+          "key": "Has_item_currency",
+          "typeid": "_txt",
+          "item": [
+            "Spirit Shard"
+          ]
+        }
+      }
+    ],
+    "vendor": "Mystic Forge Keeper",
+    "historical": "f"
+  },
+  {
+    "vendorSubobject": "Mystic Forge Keeper#vendor4",
+    "item": "Augur's Stone",
+    "itemQuantity": 1,
+    "itemCostRaw": [
+      {
+        "Has item value": {
+          "label": "Has item value",
+          "key": "Has_item_value",
+          "typeid": "_txt",
+          "item": [
+            "20"
+          ]
+        },
+        "Has item currency": {
+          "label": "Has item currency",
+          "key": "Has_item_currency",
+          "typeid": "_txt",
+          "item": [
+            "Spirit Shard"
+          ]
+        }
+      }
+    ],
+    "vendor": "Mystic Forge Keeper",
+    "historical": "f"
+  },
+  {
+    "vendorSubobject": "Mystic Forge Keeper#vendor5",
+    "item": "Spirit Banner",
+    "itemQuantity": 1,
+    "itemCostRaw": [
+      {
+        "Has item value": {
+          "label": "Has item value",
+          "key": "Has_item_value",
+          "typeid": "_txt",
+          "item": [
+            "25"
+          ]
+        },
+        "Has item currency": {
+          "label": "Has item currency",
+          "key": "Has_item_currency",
+          "typeid": "_txt",
+          "item": [
+            "Spirit Shard"
+          ]
+        }
+      }
+    ],
+    "vendor": "Mystic Forge Keeper",
+    "historical": "f"
+  },
+  {
+    "vendorSubobject": "Mystic Forge Keeper#vendor6",
+    "item": "Eldritch Scroll",
+    "itemQuantity": 1,
+    "itemCostRaw": [
+      {
+        "Has item value": {
+          "label": "Has item value",
+          "key": "Has_item_value",
+          "typeid": "_txt",
+          "item": [
+            "50"
+          ]
+        },
+        "Has item currency": {
+          "label": "Has item currency",
+          "key": "Has_item_currency",
+          "typeid": "_txt",
+          "item": [
+            "Spirit Shard"
+          ]
+        }
+      }
+    ],
+    "vendor": "Mystic Forge Keeper",
+    "historical": "f"
+  },
+  {
+    "vendorSubobject": "Mystic Forge Keeper#vendor7",
+    "item": "Bloodstone Shard",
+    "itemQuantity": 1,
+    "itemCostRaw": [
+      {
+        "Has item value": {
+          "label": "Has item value",
+          "key": "Has_item_value",
+          "typeid": "_txt",
+          "item": [
+            "200"
+          ]
+        },
+        "Has item currency": {
+          "label": "Has item currency",
+          "key": "Has_item_currency",
+          "typeid": "_txt",
+          "item": [
+            "Spirit Shard"
+          ]
+        }
+      }
+    ],
+    "vendor": "Mystic Forge Keeper",
+    "historical": "f"
+  },
+  {
+    "vendorSubobject": "Mystic Forge Keeper#vendor9",
+    "item": "Siege Novice's Guide",
+    "itemQuantity": 1,
+    "itemCostRaw": [
+      {
+        "Has item value": {
+          "label": "Has item value",
+          "key": "Has_item_value",
+          "typeid": "_txt",
+          "item": [
+            "1"
+          ]
+        },
+        "Has item currency": {
+          "label": "Has item currency",
+          "key": "Has_item_currency",
+          "typeid": "_txt",
+          "item": [
+            "Spirit Shard"
+          ]
+        }
+      }
+    ],
+    "vendor": "Mystic Forge Keeper",
+    "historical": "f"
+  },
+  {
+    "vendorSubobject": "Mystic Forge Keeper#vendor16",
+    "item": "Mystic Clover",
+    "itemQuantity": 1,
+    "itemCostRaw": [
+      {
+        "Has item value": {
+          "label": "Has item value",
+          "key": "Has_item_value",
+          "typeid": "_txt",
+          "item": [
+            "3"
+          ]
+        },
+        "Has item currency": {
+          "label": "Has item currency",
+          "key": "Has_item_currency",
+          "typeid": "_txt",
+          "item": [
+            "Spirit Shard"
+          ]
+        }
+      },
+      {
+        "Has item value": {
+          "label": "Has item value",
+          "key": "Has_item_value",
+          "typeid": "_txt",
+          "item": [
+            "3"
+          ]
+        },
+        "Has item currency": {
+          "label": "Has item currency",
+          "key": "Has_item_currency",
+          "typeid": "_txt",
+          "item": [
+            "Mystic Coin"
+          ]
+        }
+      },
+      {
+        "Has item value": {
+          "label": "Has item value",
+          "key": "Has_item_value",
+          "typeid": "_txt",
+          "item": [
+            "3"
+          ]
+        },
+        "Has item currency": {
+          "label": "Has item currency",
+          "key": "Has_item_currency",
+          "typeid": "_txt",
+          "item": [
+            "Obsidian Shard"
+          ]
+        }
+      },
+      {
+        "Has item value": {
+          "label": "Has item value",
+          "key": "Has_item_value",
+          "typeid": "_txt",
+          "item": [
+            "5"
+          ]
+        },
+        "Has item currency": {
+          "label": "Has item currency",
+          "key": "Has_item_currency",
+          "typeid": "_txt",
+          "item": [
+            "Glob of Ectoplasm"
+          ]
+        }
+      }
+    ],
+    "vendor": "Mystic Forge Keeper",
+    "historical": "f"
+  },
+  {
+    "vendorSubobject": "Quartermaster (Drizzlewood Coast)#vendor4",
+    "item": "Salvage Empowerment",
+    "itemQuantity": 1,
+    "itemCostRaw": [
+      {
+        "Has item value": {
+          "label": "Has item value",
+          "key": "Has_item_value",
+          "typeid": "_txt",
+          "item": [
+            "50000"
+          ]
+        },
+        "Has item currency": {
+          "label": "Has item currency",
+          "key": "Has_item_currency",
+          "typeid": "_txt",
+          "item": [
+            "Coin"
+          ]
+        }
+      },
+      {
+        "Has item value": {
+          "label": "Has item value",
+          "key": "Has_item_value",
+          "typeid": "_txt",
+          "item": [
+            "5"
+          ]
+        },
+        "Has item currency": {
+          "label": "Has item currency",
+          "key": "Has_item_currency",
+          "typeid": "_txt",
+          "item": [
+            "Spirit Shard"
+          ]
+        }
+      }
+    ],
+    "vendor": "Quartermaster (Drizzlewood Coast)",
+    "historical": "f"
+  },
+  {
+    "vendorSubobject": "Quartermaster (Drizzlewood Coast)#vendor5",
+    "item": "Salvage Empowerment",
+    "itemQuantity": 1,
+    "itemCostRaw": [
+      {
+        "Has item value": {
+          "label": "Has item value",
+          "key": "Has_item_value",
+          "typeid": "_txt",
+          "item": [
+            "100000"
+          ]
+        },
+        "Has item currency": {
+          "label": "Has item currency",
+          "key": "Has_item_currency",
+          "typeid": "_txt",
+          "item": [
+            "Coin"
+          ]
+        }
+      },
+      {
+        "Has item value": {
+          "label": "Has item value",
+          "key": "Has_item_value",
+          "typeid": "_txt",
+          "item": [
+            "10"
+          ]
+        },
+        "Has item currency": {
+          "label": "Has item currency",
+          "key": "Has_item_currency",
+          "typeid": "_txt",
+          "item": [
+            "Spirit Shard"
+          ]
+        }
+      }
+    ],
+    "vendor": "Quartermaster (Drizzlewood Coast)",
+    "historical": "f"
+  },
+  {
+    "vendorSubobject": "Quartermaster (Drizzlewood Coast)#vendor6",
+    "item": "Salvage Empowerment",
+    "itemQuantity": 1,
+    "itemCostRaw": [
+      {
+        "Has item value": {
+          "label": "Has item value",
+          "key": "Has_item_value",
+          "typeid": "_txt",
+          "item": [
+            "150000"
+          ]
+        },
+        "Has item currency": {
+          "label": "Has item currency",
+          "key": "Has_item_currency",
+          "typeid": "_txt",
+          "item": [
+            "Coin"
+          ]
+        }
+      },
+      {
+        "Has item value": {
+          "label": "Has item value",
+          "key": "Has_item_value",
+          "typeid": "_txt",
+          "item": [
+            "20"
+          ]
+        },
+        "Has item currency": {
+          "label": "Has item currency",
+          "key": "Has_item_currency",
+          "typeid": "_txt",
+          "item": [
+            "Spirit Shard"
+          ]
+        }
+      }
+    ],
+    "vendor": "Quartermaster (Drizzlewood Coast)",
+    "historical": "f"
+  },
+  {
+    "vendorSubobject": "Rift Researcher Adam#vendor9",
+    "item": "Philosopher's Stone",
+    "itemQuantity": 10,
+    "itemCostRaw": [
+      {
+        "Has item value": {
+          "label": "Has item value",
+          "key": "Has_item_value",
+          "typeid": "_txt",
+          "item": [
+            "1"
+          ]
+        },
+        "Has item currency": {
+          "label": "Has item currency",
+          "key": "Has_item_currency",
+          "typeid": "_txt",
+          "item": [
+            "Spirit Shard"
+          ]
+        }
+      }
+    ],
+    "vendor": "Rift Researcher Adam",
+    "historical": "f"
+  },
+  {
+    "vendorSubobject": "Skyscale Trainer Dyanne#vendor6",
+    "item": "Skyscale of Life (Secrets of the Obscure)",
+    "itemQuantity": 1,
+    "itemCostRaw": [
+      {
+        "Has item value": {
+          "label": "Has item value",
+          "key": "Has_item_value",
+          "typeid": "_txt",
+          "item": [
+            "100"
+          ]
+        },
+        "Has item currency": {
+          "label": "Has item currency",
+          "key": "Has_item_currency",
+          "typeid": "_txt",
+          "item": [
+            "Glob of Ectoplasm"
+          ]
+        }
+      },
+      {
+        "Has item value": {
+          "label": "Has item value",
+          "key": "Has_item_value",
+          "typeid": "_txt",
+          "item": [
+            "2"
+          ]
+        },
+        "Has item currency": {
+          "label": "Has item currency",
+          "key": "Has_item_currency",
+          "typeid": "_txt",
+          "item": [
+            "Spirit Shard"
+          ]
+        }
+      },
+      {
+        "Has item value": {
+          "label": "Has item value",
+          "key": "Has_item_value",
+          "typeid": "_txt",
+          "item": [
+            "100"
+          ]
+        },
+        "Has item currency": {
+          "label": "Has item currency",
+          "key": "Has_item_currency",
+          "typeid": "_txt",
+          "item": [
+            "Pile of Crystalline Dust"
+          ]
+        }
+      }
+    ],
+    "vendor": "Skyscale Trainer Dyanne",
+    "historical": "f"
+  },
+  {
+    "vendorSubobject": "Skyscale Trainer Dyanne#vendor10",
+    "item": "Skyscale of Spirit (Secrets of the Obscure)",
+    "itemQuantity": 1,
+    "itemCostRaw": [
+      {
+        "Has item value": {
+          "label": "Has item value",
+          "key": "Has_item_value",
+          "typeid": "_txt",
+          "item": [
+            "100"
+          ]
+        },
+        "Has item currency": {
+          "label": "Has item currency",
+          "key": "Has_item_currency",
+          "typeid": "_txt",
+          "item": [
+            "Glob of Ectoplasm"
+          ]
+        }
+      },
+      {
+        "Has item value": {
+          "label": "Has item value",
+          "key": "Has_item_value",
+          "typeid": "_txt",
+          "item": [
+            "2"
+          ]
+        },
+        "Has item currency": {
+          "label": "Has item currency",
+          "key": "Has_item_currency",
+          "typeid": "_txt",
+          "item": [
+            "Spirit Shard"
+          ]
+        }
+      },
+      {
+        "Has item value": {
+          "label": "Has item value",
+          "key": "Has_item_value",
+          "typeid": "_txt",
+          "item": [
+            "100"
+          ]
+        },
+        "Has item currency": {
+          "label": "Has item currency",
+          "key": "Has_item_currency",
+          "typeid": "_txt",
+          "item": [
+            "Elaborate Totem"
+          ]
+        }
+      }
+    ],
+    "vendor": "Skyscale Trainer Dyanne",
+    "historical": "f"
+  },
+  {
+    "vendorSubobject": "Traveling Elonian Trader#vendor2",
+    "item": "Blossoming Mist Shard Greaves Skin",
+    "itemQuantity": 1,
+    "itemCostRaw": [
+      {
+        "Has item value": {
+          "label": "Has item value",
+          "key": "Has_item_value",
+          "typeid": "_txt",
+          "item": [
+            "5"
+          ]
+        },
+        "Has item currency": {
+          "label": "Has item currency",
+          "key": "Has_item_currency",
+          "typeid": "_txt",
+          "item": [
+            "Spirit Shard"
+          ]
+        }
+      },
+      {
+        "Has item value": {
+          "label": "Has item value",
+          "key": "Has_item_value",
+          "typeid": "_txt",
+          "item": [
+            "50"
+          ]
+        },
+        "Has item currency": {
+          "label": "Has item currency",
+          "key": "Has_item_currency",
+          "typeid": "_txt",
+          "item": [
+            "Mistborn Mote"
+          ]
+        }
+      },
+      {
+        "Has item value": {
+          "label": "Has item value",
+          "key": "Has_item_value",
+          "typeid": "_txt",
+          "item": [
+            "10"
+          ]
+        },
+        "Has item currency": {
+          "label": "Has item currency",
+          "key": "Has_item_currency",
+          "typeid": "_txt",
+          "item": [
+            "Glob of Ectoplasm"
+          ]
+        }
+      }
+    ],
+    "vendor": "Traveling Elonian Trader",
+    "historical": "f"
+  },
+  {
+    "vendorSubobject": "Traveling Elonian Trader#vendor3",
+    "item": "Blossoming Mist Shard Plate Skin",
+    "itemQuantity": 1,
+    "itemCostRaw": [
+      {
+        "Has item value": {
+          "label": "Has item value",
+          "key": "Has_item_value",
+          "typeid": "_txt",
+          "item": [
+            "10"
+          ]
+        },
+        "Has item currency": {
+          "label": "Has item currency",
+          "key": "Has_item_currency",
+          "typeid": "_txt",
+          "item": [
+            "Spirit Shard"
+          ]
+        }
+      },
+      {
+        "Has item value": {
+          "label": "Has item value",
+          "key": "Has_item_value",
+          "typeid": "_txt",
+          "item": [
+            "100"
+          ]
+        },
+        "Has item currency": {
+          "label": "Has item currency",
+          "key": "Has_item_currency",
+          "typeid": "_txt",
+          "item": [
+            "Mistborn Mote"
+          ]
+        }
+      },
+      {
+        "Has item value": {
+          "label": "Has item value",
+          "key": "Has_item_value",
+          "typeid": "_txt",
+          "item": [
+            "20"
+          ]
+        },
+        "Has item currency": {
+          "label": "Has item currency",
+          "key": "Has_item_currency",
+          "typeid": "_txt",
+          "item": [
+            "Glob of Ectoplasm"
+          ]
+        }
+      }
+    ],
+    "vendor": "Traveling Elonian Trader",
+    "historical": "f"
+  },
+  {
+    "vendorSubobject": "Traveling Elonian Trader#vendor4",
+    "item": "Blossoming Mist Shard Gauntlets Skin",
+    "itemQuantity": 1,
+    "itemCostRaw": [
+      {
+        "Has item value": {
+          "label": "Has item value",
+          "key": "Has_item_value",
+          "typeid": "_txt",
+          "item": [
+            "5"
+          ]
+        },
+        "Has item currency": {
+          "label": "Has item currency",
+          "key": "Has_item_currency",
+          "typeid": "_txt",
+          "item": [
+            "Spirit Shard"
+          ]
+        }
+      },
+      {
+        "Has item value": {
+          "label": "Has item value",
+          "key": "Has_item_value",
+          "typeid": "_txt",
+          "item": [
+            "50"
+          ]
+        },
+        "Has item currency": {
+          "label": "Has item currency",
+          "key": "Has_item_currency",
+          "typeid": "_txt",
+          "item": [
+            "Mistborn Mote"
+          ]
+        }
+      },
+      {
+        "Has item value": {
+          "label": "Has item value",
+          "key": "Has_item_value",
+          "typeid": "_txt",
+          "item": [
+            "10"
+          ]
+        },
+        "Has item currency": {
+          "label": "Has item currency",
+          "key": "Has_item_currency",
+          "typeid": "_txt",
+          "item": [
+            "Glob of Ectoplasm"
+          ]
+        }
+      }
+    ],
+    "vendor": "Traveling Elonian Trader",
+    "historical": "f"
+  },
+  {
+    "vendorSubobject": "Traveling Elonian Trader#vendor5",
+    "item": "Blossoming Mist Shard Helm Skin",
+    "itemQuantity": 1,
+    "itemCostRaw": [
+      {
+        "Has item value": {
+          "label": "Has item value",
+          "key": "Has_item_value",
+          "typeid": "_txt",
+          "item": [
+            "5"
+          ]
+        },
+        "Has item currency": {
+          "label": "Has item currency",
+          "key": "Has_item_currency",
+          "typeid": "_txt",
+          "item": [
+            "Spirit Shard"
+          ]
+        }
+      },
+      {
+        "Has item value": {
+          "label": "Has item value",
+          "key": "Has_item_value",
+          "typeid": "_txt",
+          "item": [
+            "50"
+          ]
+        },
+        "Has item currency": {
+          "label": "Has item currency",
+          "key": "Has_item_currency",
+          "typeid": "_txt",
+          "item": [
+            "Mistborn Mote"
+          ]
+        }
+      },
+      {
+        "Has item value": {
+          "label": "Has item value",
+          "key": "Has_item_value",
+          "typeid": "_txt",
+          "item": [
+            "10"
+          ]
+        },
+        "Has item currency": {
+          "label": "Has item currency",
+          "key": "Has_item_currency",
+          "typeid": "_txt",
+          "item": [
+            "Glob of Ectoplasm"
+          ]
+        }
+      }
+    ],
+    "vendor": "Traveling Elonian Trader",
+    "historical": "f"
+  },
+  {
+    "vendorSubobject": "Traveling Elonian Trader#vendor6",
+    "item": "Blossoming Mist Shard Tassets Skin",
+    "itemQuantity": 1,
+    "itemCostRaw": [
+      {
+        "Has item value": {
+          "label": "Has item value",
+          "key": "Has_item_value",
+          "typeid": "_txt",
+          "item": [
+            "8"
+          ]
+        },
+        "Has item currency": {
+          "label": "Has item currency",
+          "key": "Has_item_currency",
+          "typeid": "_txt",
+          "item": [
+            "Spirit Shard"
+          ]
+        }
+      },
+      {
+        "Has item value": {
+          "label": "Has item value",
+          "key": "Has_item_value",
+          "typeid": "_txt",
+          "item": [
+            "75"
+          ]
+        },
+        "Has item currency": {
+          "label": "Has item currency",
+          "key": "Has_item_currency",
+          "typeid": "_txt",
+          "item": [
+            "Mistborn Mote"
+          ]
+        }
+      },
+      {
+        "Has item value": {
+          "label": "Has item value",
+          "key": "Has_item_value",
+          "typeid": "_txt",
+          "item": [
+            "15"
+          ]
+        },
+        "Has item currency": {
+          "label": "Has item currency",
+          "key": "Has_item_currency",
+          "typeid": "_txt",
+          "item": [
+            "Glob of Ectoplasm"
+          ]
+        }
+      }
+    ],
+    "vendor": "Traveling Elonian Trader",
+    "historical": "f"
+  },
+  {
+    "vendorSubobject": "Traveling Elonian Trader#vendor7",
+    "item": "Blossoming Mist Shard Pauldrons Skin",
+    "itemQuantity": 1,
+    "itemCostRaw": [
+      {
+        "Has item value": {
+          "label": "Has item value",
+          "key": "Has_item_value",
+          "typeid": "_txt",
+          "item": [
+            "5"
+          ]
+        },
+        "Has item currency": {
+          "label": "Has item currency",
+          "key": "Has_item_currency",
+          "typeid": "_txt",
+          "item": [
+            "Spirit Shard"
+          ]
+        }
+      },
+      {
+        "Has item value": {
+          "label": "Has item value",
+          "key": "Has_item_value",
+          "typeid": "_txt",
+          "item": [
+            "50"
+          ]
+        },
+        "Has item currency": {
+          "label": "Has item currency",
+          "key": "Has_item_currency",
+          "typeid": "_txt",
+          "item": [
+            "Mistborn Mote"
+          ]
+        }
+      },
+      {
+        "Has item value": {
+          "label": "Has item value",
+          "key": "Has_item_value",
+          "typeid": "_txt",
+          "item": [
+            "10"
+          ]
+        },
+        "Has item currency": {
+          "label": "Has item currency",
+          "key": "Has_item_currency",
+          "typeid": "_txt",
+          "item": [
+            "Glob of Ectoplasm"
+          ]
+        }
+      }
+    ],
+    "vendor": "Traveling Elonian Trader",
+    "historical": "f"
+  },
+  {
+    "vendorSubobject": "Traveling Elonian Trader#vendor8",
+    "item": "Blossoming Mist Shard Walkers Skin",
+    "itemQuantity": 1,
+    "itemCostRaw": [
+      {
+        "Has item value": {
+          "label": "Has item value",
+          "key": "Has_item_value",
+          "typeid": "_txt",
+          "item": [
+            "5"
+          ]
+        },
+        "Has item currency": {
+          "label": "Has item currency",
+          "key": "Has_item_currency",
+          "typeid": "_txt",
+          "item": [
+            "Spirit Shard"
+          ]
+        }
+      },
+      {
+        "Has item value": {
+          "label": "Has item value",
+          "key": "Has_item_value",
+          "typeid": "_txt",
+          "item": [
+            "50"
+          ]
+        },
+        "Has item currency": {
+          "label": "Has item currency",
+          "key": "Has_item_currency",
+          "typeid": "_txt",
+          "item": [
+            "Mistborn Mote"
+          ]
+        }
+      },
+      {
+        "Has item value": {
+          "label": "Has item value",
+          "key": "Has_item_value",
+          "typeid": "_txt",
+          "item": [
+            "10"
+          ]
+        },
+        "Has item currency": {
+          "label": "Has item currency",
+          "key": "Has_item_currency",
+          "typeid": "_txt",
+          "item": [
+            "Glob of Ectoplasm"
+          ]
+        }
+      }
+    ],
+    "vendor": "Traveling Elonian Trader",
+    "historical": "f"
+  },
+  {
+    "vendorSubobject": "Traveling Elonian Trader#vendor9",
+    "item": "Blossoming Mist Shard Gambeson Skin",
+    "itemQuantity": 1,
+    "itemCostRaw": [
+      {
+        "Has item value": {
+          "label": "Has item value",
+          "key": "Has_item_value",
+          "typeid": "_txt",
+          "item": [
+            "10"
+          ]
+        },
+        "Has item currency": {
+          "label": "Has item currency",
+          "key": "Has_item_currency",
+          "typeid": "_txt",
+          "item": [
+            "Spirit Shard"
+          ]
+        }
+      },
+      {
+        "Has item value": {
+          "label": "Has item value",
+          "key": "Has_item_value",
+          "typeid": "_txt",
+          "item": [
+            "100"
+          ]
+        },
+        "Has item currency": {
+          "label": "Has item currency",
+          "key": "Has_item_currency",
+          "typeid": "_txt",
+          "item": [
+            "Mistborn Mote"
+          ]
+        }
+      },
+      {
+        "Has item value": {
+          "label": "Has item value",
+          "key": "Has_item_value",
+          "typeid": "_txt",
+          "item": [
+            "20"
+          ]
+        },
+        "Has item currency": {
+          "label": "Has item currency",
+          "key": "Has_item_currency",
+          "typeid": "_txt",
+          "item": [
+            "Glob of Ectoplasm"
+          ]
+        }
+      }
+    ],
+    "vendor": "Traveling Elonian Trader",
+    "historical": "f"
+  },
+  {
+    "vendorSubobject": "Traveling Elonian Trader#vendor10",
+    "item": "Blossoming Mist Shard Gloves Skin",
+    "itemQuantity": 1,
+    "itemCostRaw": [
+      {
+        "Has item value": {
+          "label": "Has item value",
+          "key": "Has_item_value",
+          "typeid": "_txt",
+          "item": [
+            "5"
+          ]
+        },
+        "Has item currency": {
+          "label": "Has item currency",
+          "key": "Has_item_currency",
+          "typeid": "_txt",
+          "item": [
+            "Spirit Shard"
+          ]
+        }
+      },
+      {
+        "Has item value": {
+          "label": "Has item value",
+          "key": "Has_item_value",
+          "typeid": "_txt",
+          "item": [
+            "50"
+          ]
+        },
+        "Has item currency": {
+          "label": "Has item currency",
+          "key": "Has_item_currency",
+          "typeid": "_txt",
+          "item": [
+            "Mistborn Mote"
+          ]
+        }
+      },
+      {
+        "Has item value": {
+          "label": "Has item value",
+          "key": "Has_item_value",
+          "typeid": "_txt",
+          "item": [
+            "10"
+          ]
+        },
+        "Has item currency": {
+          "label": "Has item currency",
+          "key": "Has_item_currency",
+          "typeid": "_txt",
+          "item": [
+            "Glob of Ectoplasm"
+          ]
+        }
+      }
+    ],
+    "vendor": "Traveling Elonian Trader",
+    "historical": "f"
+  },
+  {
+    "vendorSubobject": "Traveling Elonian Trader#vendor11",
+    "item": "Blossoming Mist Shard Coronet Skin",
+    "itemQuantity": 1,
+    "itemCostRaw": [
+      {
+        "Has item value": {
+          "label": "Has item value",
+          "key": "Has_item_value",
+          "typeid": "_txt",
+          "item": [
+            "5"
+          ]
+        },
+        "Has item currency": {
+          "label": "Has item currency",
+          "key": "Has_item_currency",
+          "typeid": "_txt",
+          "item": [
+            "Spirit Shard"
+          ]
+        }
+      },
+      {
+        "Has item value": {
+          "label": "Has item value",
+          "key": "Has_item_value",
+          "typeid": "_txt",
+          "item": [
+            "50"
+          ]
+        },
+        "Has item currency": {
+          "label": "Has item currency",
+          "key": "Has_item_currency",
+          "typeid": "_txt",
+          "item": [
+            "Mistborn Mote"
+          ]
+        }
+      },
+      {
+        "Has item value": {
+          "label": "Has item value",
+          "key": "Has_item_value",
+          "typeid": "_txt",
+          "item": [
+            "10"
+          ]
+        },
+        "Has item currency": {
+          "label": "Has item currency",
+          "key": "Has_item_currency",
+          "typeid": "_txt",
+          "item": [
+            "Glob of Ectoplasm"
+          ]
+        }
+      }
+    ],
+    "vendor": "Traveling Elonian Trader",
+    "historical": "f"
+  },
+  {
+    "vendorSubobject": "Traveling Elonian Trader#vendor12",
+    "item": "Blossoming Mist Shard Breeches Skin",
+    "itemQuantity": 1,
+    "itemCostRaw": [
+      {
+        "Has item value": {
+          "label": "Has item value",
+          "key": "Has_item_value",
+          "typeid": "_txt",
+          "item": [
+            "8"
+          ]
+        },
+        "Has item currency": {
+          "label": "Has item currency",
+          "key": "Has_item_currency",
+          "typeid": "_txt",
+          "item": [
+            "Spirit Shard"
+          ]
+        }
+      },
+      {
+        "Has item value": {
+          "label": "Has item value",
+          "key": "Has_item_value",
+          "typeid": "_txt",
+          "item": [
+            "75"
+          ]
+        },
+        "Has item currency": {
+          "label": "Has item currency",
+          "key": "Has_item_currency",
+          "typeid": "_txt",
+          "item": [
+            "Mistborn Mote"
+          ]
+        }
+      },
+      {
+        "Has item value": {
+          "label": "Has item value",
+          "key": "Has_item_value",
+          "typeid": "_txt",
+          "item": [
+            "15"
+          ]
+        },
+        "Has item currency": {
+          "label": "Has item currency",
+          "key": "Has_item_currency",
+          "typeid": "_txt",
+          "item": [
+            "Glob of Ectoplasm"
+          ]
+        }
+      }
+    ],
+    "vendor": "Traveling Elonian Trader",
+    "historical": "f"
+  },
+  {
+    "vendorSubobject": "Traveling Elonian Trader#vendor13",
+    "item": "Blossoming Mist Shard Epaulets Skin",
+    "itemQuantity": 1,
+    "itemCostRaw": [
+      {
+        "Has item value": {
+          "label": "Has item value",
+          "key": "Has_item_value",
+          "typeid": "_txt",
+          "item": [
+            "5"
+          ]
+        },
+        "Has item currency": {
+          "label": "Has item currency",
+          "key": "Has_item_currency",
+          "typeid": "_txt",
+          "item": [
+            "Spirit Shard"
+          ]
+        }
+      },
+      {
+        "Has item value": {
+          "label": "Has item value",
+          "key": "Has_item_value",
+          "typeid": "_txt",
+          "item": [
+            "50"
+          ]
+        },
+        "Has item currency": {
+          "label": "Has item currency",
+          "key": "Has_item_currency",
+          "typeid": "_txt",
+          "item": [
+            "Mistborn Mote"
+          ]
+        }
+      },
+      {
+        "Has item value": {
+          "label": "Has item value",
+          "key": "Has_item_value",
+          "typeid": "_txt",
+          "item": [
+            "10"
+          ]
+        },
+        "Has item currency": {
+          "label": "Has item currency",
+          "key": "Has_item_currency",
+          "typeid": "_txt",
+          "item": [
+            "Glob of Ectoplasm"
+          ]
+        }
+      }
+    ],
+    "vendor": "Traveling Elonian Trader",
+    "historical": "f"
+  },
+  {
+    "vendorSubobject": "Traveling Elonian Trader#vendor14",
+    "item": "Blossoming Mist Shard Boots Skin",
+    "itemQuantity": 1,
+    "itemCostRaw": [
+      {
+        "Has item value": {
+          "label": "Has item value",
+          "key": "Has_item_value",
+          "typeid": "_txt",
+          "item": [
+            "5"
+          ]
+        },
+        "Has item currency": {
+          "label": "Has item currency",
+          "key": "Has_item_currency",
+          "typeid": "_txt",
+          "item": [
+            "Spirit Shard"
+          ]
+        }
+      },
+      {
+        "Has item value": {
+          "label": "Has item value",
+          "key": "Has_item_value",
+          "typeid": "_txt",
+          "item": [
+            "50"
+          ]
+        },
+        "Has item currency": {
+          "label": "Has item currency",
+          "key": "Has_item_currency",
+          "typeid": "_txt",
+          "item": [
+            "Mistborn Mote"
+          ]
+        }
+      },
+      {
+        "Has item value": {
+          "label": "Has item value",
+          "key": "Has_item_value",
+          "typeid": "_txt",
+          "item": [
+            "10"
+          ]
+        },
+        "Has item currency": {
+          "label": "Has item currency",
+          "key": "Has_item_currency",
+          "typeid": "_txt",
+          "item": [
+            "Glob of Ectoplasm"
+          ]
+        }
+      }
+    ],
+    "vendor": "Traveling Elonian Trader",
+    "historical": "f"
+  },
+  {
+    "vendorSubobject": "Traveling Elonian Trader#vendor15",
+    "item": "Blossoming Mist Shard Chestguard Skin",
+    "itemQuantity": 1,
+    "itemCostRaw": [
+      {
+        "Has item value": {
+          "label": "Has item value",
+          "key": "Has_item_value",
+          "typeid": "_txt",
+          "item": [
+            "10"
+          ]
+        },
+        "Has item currency": {
+          "label": "Has item currency",
+          "key": "Has_item_currency",
+          "typeid": "_txt",
+          "item": [
+            "Spirit Shard"
+          ]
+        }
+      },
+      {
+        "Has item value": {
+          "label": "Has item value",
+          "key": "Has_item_value",
+          "typeid": "_txt",
+          "item": [
+            "100"
+          ]
+        },
+        "Has item currency": {
+          "label": "Has item currency",
+          "key": "Has_item_currency",
+          "typeid": "_txt",
+          "item": [
+            "Mistborn Mote"
+          ]
+        }
+      },
+      {
+        "Has item value": {
+          "label": "Has item value",
+          "key": "Has_item_value",
+          "typeid": "_txt",
+          "item": [
+            "20"
+          ]
+        },
+        "Has item currency": {
+          "label": "Has item currency",
+          "key": "Has_item_currency",
+          "typeid": "_txt",
+          "item": [
+            "Glob of Ectoplasm"
+          ]
+        }
+      }
+    ],
+    "vendor": "Traveling Elonian Trader",
+    "historical": "f"
+  },
+  {
+    "vendorSubobject": "Traveling Elonian Trader#vendor16",
+    "item": "Blossoming Mist Shard Bracers Skin",
+    "itemQuantity": 1,
+    "itemCostRaw": [
+      {
+        "Has item value": {
+          "label": "Has item value",
+          "key": "Has_item_value",
+          "typeid": "_txt",
+          "item": [
+            "5"
+          ]
+        },
+        "Has item currency": {
+          "label": "Has item currency",
+          "key": "Has_item_currency",
+          "typeid": "_txt",
+          "item": [
+            "Spirit Shard"
+          ]
+        }
+      },
+      {
+        "Has item value": {
+          "label": "Has item value",
+          "key": "Has_item_value",
+          "typeid": "_txt",
+          "item": [
+            "50"
+          ]
+        },
+        "Has item currency": {
+          "label": "Has item currency",
+          "key": "Has_item_currency",
+          "typeid": "_txt",
+          "item": [
+            "Mistborn Mote"
+          ]
+        }
+      },
+      {
+        "Has item value": {
+          "label": "Has item value",
+          "key": "Has_item_value",
+          "typeid": "_txt",
+          "item": [
+            "10"
+          ]
+        },
+        "Has item currency": {
+          "label": "Has item currency",
+          "key": "Has_item_currency",
+          "typeid": "_txt",
+          "item": [
+            "Glob of Ectoplasm"
+          ]
+        }
+      }
+    ],
+    "vendor": "Traveling Elonian Trader",
+    "historical": "f"
+  },
+  {
+    "vendorSubobject": "Traveling Elonian Trader#vendor17",
+    "item": "Blossoming Mist Shard Visage Skin",
+    "itemQuantity": 1,
+    "itemCostRaw": [
+      {
+        "Has item value": {
+          "label": "Has item value",
+          "key": "Has_item_value",
+          "typeid": "_txt",
+          "item": [
+            "5"
+          ]
+        },
+        "Has item currency": {
+          "label": "Has item currency",
+          "key": "Has_item_currency",
+          "typeid": "_txt",
+          "item": [
+            "Spirit Shard"
+          ]
+        }
+      },
+      {
+        "Has item value": {
+          "label": "Has item value",
+          "key": "Has_item_value",
+          "typeid": "_txt",
+          "item": [
+            "50"
+          ]
+        },
+        "Has item currency": {
+          "label": "Has item currency",
+          "key": "Has_item_currency",
+          "typeid": "_txt",
+          "item": [
+            "Mistborn Mote"
+          ]
+        }
+      },
+      {
+        "Has item value": {
+          "label": "Has item value",
+          "key": "Has_item_value",
+          "typeid": "_txt",
+          "item": [
+            "10"
+          ]
+        },
+        "Has item currency": {
+          "label": "Has item currency",
+          "key": "Has_item_currency",
+          "typeid": "_txt",
+          "item": [
+            "Glob of Ectoplasm"
+          ]
+        }
+      }
+    ],
+    "vendor": "Traveling Elonian Trader",
+    "historical": "f"
+  },
+  {
+    "vendorSubobject": "Traveling Elonian Trader#vendor18",
+    "item": "Blossoming Mist Shard Leggings Skin",
+    "itemQuantity": 1,
+    "itemCostRaw": [
+      {
+        "Has item value": {
+          "label": "Has item value",
+          "key": "Has_item_value",
+          "typeid": "_txt",
+          "item": [
+            "8"
+          ]
+        },
+        "Has item currency": {
+          "label": "Has item currency",
+          "key": "Has_item_currency",
+          "typeid": "_txt",
+          "item": [
+            "Spirit Shard"
+          ]
+        }
+      },
+      {
+        "Has item value": {
+          "label": "Has item value",
+          "key": "Has_item_value",
+          "typeid": "_txt",
+          "item": [
+            "75"
+          ]
+        },
+        "Has item currency": {
+          "label": "Has item currency",
+          "key": "Has_item_currency",
+          "typeid": "_txt",
+          "item": [
+            "Mistborn Mote"
+          ]
+        }
+      },
+      {
+        "Has item value": {
+          "label": "Has item value",
+          "key": "Has_item_value",
+          "typeid": "_txt",
+          "item": [
+            "15"
+          ]
+        },
+        "Has item currency": {
+          "label": "Has item currency",
+          "key": "Has_item_currency",
+          "typeid": "_txt",
+          "item": [
+            "Glob of Ectoplasm"
+          ]
+        }
+      }
+    ],
+    "vendor": "Traveling Elonian Trader",
+    "historical": "f"
+  },
+  {
+    "vendorSubobject": "Traveling Elonian Trader#vendor19",
+    "item": "Blossoming Mist Shard Shoulders Skin",
+    "itemQuantity": 1,
+    "itemCostRaw": [
+      {
+        "Has item value": {
+          "label": "Has item value",
+          "key": "Has_item_value",
+          "typeid": "_txt",
+          "item": [
+            "5"
+          ]
+        },
+        "Has item currency": {
+          "label": "Has item currency",
+          "key": "Has_item_currency",
+          "typeid": "_txt",
+          "item": [
+            "Spirit Shard"
+          ]
+        }
+      },
+      {
+        "Has item value": {
+          "label": "Has item value",
+          "key": "Has_item_value",
+          "typeid": "_txt",
+          "item": [
+            "50"
+          ]
+        },
+        "Has item currency": {
+          "label": "Has item currency",
+          "key": "Has_item_currency",
+          "typeid": "_txt",
+          "item": [
+            "Mistborn Mote"
+          ]
+        }
+      },
+      {
+        "Has item value": {
+          "label": "Has item value",
+          "key": "Has_item_value",
+          "typeid": "_txt",
+          "item": [
+            "10"
+          ]
+        },
+        "Has item currency": {
+          "label": "Has item currency",
+          "key": "Has_item_currency",
+          "typeid": "_txt",
+          "item": [
+            "Glob of Ectoplasm"
+          ]
+        }
+      }
+    ],
+    "vendor": "Traveling Elonian Trader",
+    "historical": "f"
+  },
+  {
+    "vendorSubobject": "United Legions Quaestor#vendor4",
+    "item": "Salvage Empowerment",
+    "itemQuantity": 1,
+    "itemCostRaw": [
+      {
+        "Has item value": {
+          "label": "Has item value",
+          "key": "Has_item_value",
+          "typeid": "_txt",
+          "item": [
+            "50000"
+          ]
+        },
+        "Has item currency": {
+          "label": "Has item currency",
+          "key": "Has_item_currency",
+          "typeid": "_txt",
+          "item": [
+            "Coin"
+          ]
+        }
+      },
+      {
+        "Has item value": {
+          "label": "Has item value",
+          "key": "Has_item_value",
+          "typeid": "_txt",
+          "item": [
+            "5"
+          ]
+        },
+        "Has item currency": {
+          "label": "Has item currency",
+          "key": "Has_item_currency",
+          "typeid": "_txt",
+          "item": [
+            "Spirit Shard"
+          ]
+        }
+      }
+    ],
+    "vendor": "United Legions Quaestor",
+    "historical": "f"
+  },
+  {
+    "vendorSubobject": "United Legions Quaestor#vendor5",
+    "item": "Salvage Empowerment",
+    "itemQuantity": 1,
+    "itemCostRaw": [
+      {
+        "Has item value": {
+          "label": "Has item value",
+          "key": "Has_item_value",
+          "typeid": "_txt",
+          "item": [
+            "100000"
+          ]
+        },
+        "Has item currency": {
+          "label": "Has item currency",
+          "key": "Has_item_currency",
+          "typeid": "_txt",
+          "item": [
+            "Coin"
+          ]
+        }
+      },
+      {
+        "Has item value": {
+          "label": "Has item value",
+          "key": "Has_item_value",
+          "typeid": "_txt",
+          "item": [
+            "10"
+          ]
+        },
+        "Has item currency": {
+          "label": "Has item currency",
+          "key": "Has_item_currency",
+          "typeid": "_txt",
+          "item": [
+            "Spirit Shard"
+          ]
+        }
+      }
+    ],
+    "vendor": "United Legions Quaestor",
+    "historical": "f"
+  },
+  {
+    "vendorSubobject": "United Legions Quaestor#vendor6",
+    "item": "Salvage Empowerment",
+    "itemQuantity": 1,
+    "itemCostRaw": [
+      {
+        "Has item value": {
+          "label": "Has item value",
+          "key": "Has_item_value",
+          "typeid": "_txt",
+          "item": [
+            "150000"
+          ]
+        },
+        "Has item currency": {
+          "label": "Has item currency",
+          "key": "Has_item_currency",
+          "typeid": "_txt",
+          "item": [
+            "Coin"
+          ]
+        }
+      },
+      {
+        "Has item value": {
+          "label": "Has item value",
+          "key": "Has_item_value",
+          "typeid": "_txt",
+          "item": [
+            "20"
+          ]
+        },
+        "Has item currency": {
+          "label": "Has item currency",
+          "key": "Has_item_currency",
+          "typeid": "_txt",
+          "item": [
+            "Spirit Shard"
+          ]
+        }
+      }
+    ],
+    "vendor": "United Legions Quaestor",
+    "historical": "f"
+  },
+  {
+    "vendorSubobject": "Veteran United Legions Quaestor#vendor4",
+    "item": "Salvage Empowerment",
+    "itemQuantity": 1,
+    "itemCostRaw": [
+      {
+        "Has item value": {
+          "label": "Has item value",
+          "key": "Has_item_value",
+          "typeid": "_txt",
+          "item": [
+            "50000"
+          ]
+        },
+        "Has item currency": {
+          "label": "Has item currency",
+          "key": "Has_item_currency",
+          "typeid": "_txt",
+          "item": [
+            "Coin"
+          ]
+        }
+      },
+      {
+        "Has item value": {
+          "label": "Has item value",
+          "key": "Has_item_value",
+          "typeid": "_txt",
+          "item": [
+            "5"
+          ]
+        },
+        "Has item currency": {
+          "label": "Has item currency",
+          "key": "Has_item_currency",
+          "typeid": "_txt",
+          "item": [
+            "Spirit Shard"
+          ]
+        }
+      }
+    ],
+    "vendor": "Veteran United Legions Quaestor",
+    "historical": "f"
+  },
+  {
+    "vendorSubobject": "Veteran United Legions Quaestor#vendor5",
+    "item": "Salvage Empowerment",
+    "itemQuantity": 1,
+    "itemCostRaw": [
+      {
+        "Has item value": {
+          "label": "Has item value",
+          "key": "Has_item_value",
+          "typeid": "_txt",
+          "item": [
+            "100000"
+          ]
+        },
+        "Has item currency": {
+          "label": "Has item currency",
+          "key": "Has_item_currency",
+          "typeid": "_txt",
+          "item": [
+            "Coin"
+          ]
+        }
+      },
+      {
+        "Has item value": {
+          "label": "Has item value",
+          "key": "Has_item_value",
+          "typeid": "_txt",
+          "item": [
+            "10"
+          ]
+        },
+        "Has item currency": {
+          "label": "Has item currency",
+          "key": "Has_item_currency",
+          "typeid": "_txt",
+          "item": [
+            "Spirit Shard"
+          ]
+        }
+      }
+    ],
+    "vendor": "Veteran United Legions Quaestor",
+    "historical": "f"
+  },
+  {
+    "vendorSubobject": "Veteran United Legions Quaestor#vendor6",
+    "item": "Salvage Empowerment",
+    "itemQuantity": 1,
+    "itemCostRaw": [
+      {
+        "Has item value": {
+          "label": "Has item value",
+          "key": "Has_item_value",
+          "typeid": "_txt",
+          "item": [
+            "150000"
+          ]
+        },
+        "Has item currency": {
+          "label": "Has item currency",
+          "key": "Has_item_currency",
+          "typeid": "_txt",
+          "item": [
+            "Coin"
+          ]
+        }
+      },
+      {
+        "Has item value": {
+          "label": "Has item value",
+          "key": "Has_item_value",
+          "typeid": "_txt",
+          "item": [
+            "20"
+          ]
+        },
+        "Has item currency": {
+          "label": "Has item currency",
+          "key": "Has_item_currency",
+          "typeid": "_txt",
+          "item": [
+            "Spirit Shard"
+          ]
+        }
+      }
+    ],
+    "vendor": "Veteran United Legions Quaestor",
+    "historical": "f"
+  },
+  {
+    "vendorSubobject": "Ward Crafter Lucirae#vendor5",
+    "item": "Eldritch Scroll",
+    "itemQuantity": 1,
+    "itemCostRaw": [
+      {
+        "Has item value": {
+          "label": "Has item value",
+          "key": "Has_item_value",
+          "typeid": "_txt",
+          "item": [
+            "50"
+          ]
+        },
+        "Has item currency": {
+          "label": "Has item currency",
+          "key": "Has_item_currency",
+          "typeid": "_txt",
+          "item": [
+            "Spirit Shard"
+          ]
+        }
+      }
+    ],
+    "vendor": "Ward Crafter Lucirae",
+    "historical": "f"
+  },
+  {
+    "vendorSubobject": "Ward Crafter Lucirae#vendor7",
+    "item": "Bloodstone Shard",
+    "itemQuantity": 1,
+    "itemCostRaw": [
+      {
+        "Has item value": {
+          "label": "Has item value",
+          "key": "Has_item_value",
+          "typeid": "_txt",
+          "item": [
+            "200"
+          ]
+        },
+        "Has item currency": {
+          "label": "Has item currency",
+          "key": "Has_item_currency",
+          "typeid": "_txt",
+          "item": [
+            "Spirit Shard"
+          ]
+        }
+      }
+    ],
+    "vendor": "Ward Crafter Lucirae",
+    "historical": "f"
+  },
+  {
+    "vendorSubobject": "Ward Crafter Lucirae#vendor21",
+    "item": "Mystic Clover",
+    "itemQuantity": 1,
+    "itemCostRaw": [
+      {
+        "Has item value": {
+          "label": "Has item value",
+          "key": "Has_item_value",
+          "typeid": "_txt",
+          "item": [
+            "5"
+          ]
+        },
+        "Has item currency": {
+          "label": "Has item currency",
+          "key": "Has_item_currency",
+          "typeid": "_txt",
+          "item": [
+            "Glob of Ectoplasm"
+          ]
+        }
+      },
+      {
+        "Has item value": {
+          "label": "Has item value",
+          "key": "Has_item_value",
+          "typeid": "_txt",
+          "item": [
+            "3"
+          ]
+        },
+        "Has item currency": {
+          "label": "Has item currency",
+          "key": "Has_item_currency",
+          "typeid": "_txt",
+          "item": [
+            "Mystic Coin"
+          ]
+        }
+      },
+      {
+        "Has item value": {
+          "label": "Has item value",
+          "key": "Has_item_value",
+          "typeid": "_txt",
+          "item": [
+            "3"
+          ]
+        },
+        "Has item currency": {
+          "label": "Has item currency",
+          "key": "Has_item_currency",
+          "typeid": "_txt",
+          "item": [
+            "Obsidian Shard"
+          ]
+        }
+      },
+      {
+        "Has item value": {
+          "label": "Has item value",
+          "key": "Has_item_value",
+          "typeid": "_txt",
+          "item": [
+            "3"
+          ]
+        },
+        "Has item currency": {
+          "label": "Has item currency",
+          "key": "Has_item_currency",
+          "typeid": "_txt",
+          "item": [
+            "Spirit Shard"
+          ]
+        }
+      }
+    ],
+    "vendor": "Ward Crafter Lucirae",
+    "historical": "f"
+  },
+  {
+    "vendorSubobject": "Ward Crafter Lucirae#vendor40",
+    "item": "Augur's Stone",
+    "itemQuantity": 1,
+    "itemCostRaw": [
+      {
+        "Has item value": {
+          "label": "Has item value",
+          "key": "Has_item_value",
+          "typeid": "_txt",
+          "item": [
+            "20"
+          ]
+        },
+        "Has item currency": {
+          "label": "Has item currency",
+          "key": "Has_item_currency",
+          "typeid": "_txt",
+          "item": [
+            "Spirit Shard"
+          ]
+        }
+      }
+    ],
+    "vendor": "Ward Crafter Lucirae",
+    "historical": "f"
+  },
+  {
+    "vendorSubobject": "World Ability Master#vendor1",
+    "item": "Sample Ability Reset Guide",
+    "itemQuantity": 1,
+    "itemCostRaw": [
+      {
+        "Has item value": {
+          "label": "Has item value",
+          "key": "Has_item_value",
+          "typeid": "_txt",
+          "item": [
+            "0"
+          ]
+        },
+        "Has item currency": {
+          "label": "Has item currency",
+          "key": "Has_item_currency",
+          "typeid": "_txt",
+          "item": [
+            "Spirit Shard"
+          ]
+        }
+      }
+    ],
+    "vendor": "World Ability Master",
+    "historical": "f"
+  },
+  {
+    "vendorSubobject": "World Ability Master#vendor2",
+    "item": "Sample Ability Reset Guide",
+    "itemQuantity": 1,
+    "itemCostRaw": [
+      {
+        "Has item value": {
+          "label": "Has item value",
+          "key": "Has_item_value",
+          "typeid": "_txt",
+          "item": [
+            "0"
+          ]
+        },
+        "Has item currency": {
+          "label": "Has item currency",
+          "key": "Has_item_currency",
+          "typeid": "_txt",
+          "item": [
+            "Spirit Shard"
+          ]
+        }
+      }
+    ],
+    "vendor": "World Ability Master",
+    "historical": "f"
+  },
+  {
+    "vendorSubobject": "World Ability Master#vendor3",
+    "item": "Ability Reset Guide",
+    "itemQuantity": 1,
+    "itemCostRaw": [
+      {
+        "Has item value": {
+          "label": "Has item value",
+          "key": "Has_item_value",
+          "typeid": "_txt",
+          "item": [
+            "25"
+          ]
+        },
+        "Has item currency": {
+          "label": "Has item currency",
+          "key": "Has_item_currency",
+          "typeid": "_txt",
+          "item": [
+            "Spirit Shard"
+          ]
+        }
+      }
+    ],
+    "vendor": "World Ability Master",
+    "historical": "f"
+  }
+]
