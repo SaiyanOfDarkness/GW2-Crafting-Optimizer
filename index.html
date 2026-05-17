@@ -1254,31 +1254,7 @@ td { padding-left: 6px; padding-right: 6px; }
   position: relative;
 }
 
-.craft-replacement-source:hover::after {
-  content: attr(data-tooltip);
-  white-space: pre;
-  position: absolute;
-  right: 0;
-  top: 1.65em;
-  z-index: 10000;
-  min-width: 260px;
-  max-width: 520px;
-  padding: 8px 10px;
-  color: #f2e9fb;
-  background:
-    linear-gradient(180deg, rgba(45,226,230,0.08), rgba(246,1,157,0.06)),
-    rgba(7,1,19,0.98);
-  border: 1px solid rgba(45,226,230,0.68);
-  box-shadow:
-    0 0 8px rgba(45,226,230,0.22),
-    0 0 18px rgba(246,1,157,0.14),
-    inset 0 0 16px rgba(0,0,0,0.55);
-  font-size: 12px;
-  line-height: 1.45;
-  text-align: left;
-  pointer-events: none;
-  text-shadow: 0 0 5px rgba(45,226,230,0.22);
-}
+
 
 
 
@@ -1327,6 +1303,25 @@ td { padding-left: 6px; padding-right: 6px; }
 .craft-replacement-tooltip .barter-icon {
   width: 14px;
   height: 14px;
+}
+
+
+
+/* Real HTML tooltip is used so currency icons can render.
+   Disable old data-tooltip pseudo box to prevent double-tooltip borders. */
+.craft-replacement-source::after,
+.craft-replacement-source:hover::after {
+  content: none !important;
+  display: none !important;
+}
+
+
+.craft-replacement-source {
+  display: inline-block;
+}
+
+.craft-replacement-source .craft-replacement-tooltip {
+  box-sizing: border-box;
 }
 
 </style>
@@ -2573,7 +2568,8 @@ const EXTERNAL_DATA_PATHS = {
   vendorBulkRawRows: './data/gw2_vendor_bulk_raw_rows.json',
   vendorBulkItems: './data/gw2_vendor_bulk_items.json',
   accountBoundMaterialRows: './data/gw2_account_bound_material_rows.json',
-  nonTradableOutputIds: './data/gw2_non_tradable_output_ids.json'
+  nonTradableOutputIds: './data/gw2_non_tradable_output_ids.json',
+  spiritShardVendorItems: './data/gw2_spirit_shard_vendor_items.json'
 };
 
 let externalMysticForgeRecipeRows = {};
@@ -2592,7 +2588,10 @@ let externalDatasetStatus = {
   accountBoundMaterialRows: false,
   accountBoundMaterialCount: 0,
   vendorRowsApplied: 0,
-  vendorBulkRowsApplied: 0
+  vendorBulkRowsApplied: 0,
+  spiritShardVendorRows: 0,
+  spiritShardVendorItems: 0,
+  spiritShardVendorAlternatives: 0
 };
 
 
@@ -3172,6 +3171,119 @@ function normalizeExternalVendorRowsToWikiCache(rawRows) {
   return applied;
 }
 
+
+function semanticVendorCostValue(part) {
+  return part?.["Has item value"]?.item?.[0] ?? null;
+}
+
+function semanticVendorCostCurrency(part) {
+  return part?.["Has item currency"]?.item?.[0] ?? null;
+}
+
+function normalizeSemanticVendorCostRows(rows, wantedCurrency = "Spirit Shard") {
+  const grouped = new Map();
+
+  for (const row of rows || []) {
+    const item = String(row?.item || '').trim();
+    if (!item) continue;
+
+    const historical = row?.historical;
+    if (!(historical === 'f' || historical === false || historical == null)) continue;
+
+    const rawParts = Array.isArray(row?.itemCostRaw) ? row.itemCostRaw : [];
+    const costs = [];
+
+    for (const raw of rawParts) {
+      const rawValue = semanticVendorCostValue(raw);
+      const rawCurrency = semanticVendorCostCurrency(raw);
+      if (rawValue == null || !rawCurrency) continue;
+
+      const count = Number(rawValue);
+      if (!Number.isFinite(count) || count <= 0) continue;
+
+      const currencyName = String(rawCurrency).trim();
+      costs.push({
+        currency: /^coin$/i.test(currencyName) ? 'coin' : currencyName,
+        count,
+        vendorName: row.vendor || null,
+        vendorPage: row.vendorSubobject || row.vendor || null
+      });
+    }
+
+    if (!costs.length) continue;
+    if (!costs.some(c => String(c.currency).toLowerCase() === String(wantedCurrency).toLowerCase())) continue;
+
+    if (!grouped.has(item)) grouped.set(item, []);
+    grouped.get(item).push({
+      vendorSubobject: row.vendorSubobject || null,
+      vendor: row.vendor || null,
+      itemQuantity: Number(row.itemQuantity || 1) || 1,
+      costs
+    });
+  }
+
+  const byName = {};
+  const alternatives = {};
+
+  function wantedCost(pkg) {
+    const values = (pkg.costs || [])
+      .filter(c => String(c.currency).toLowerCase() === String(wantedCurrency).toLowerCase())
+      .map(c => Number(c.count));
+    return values.length ? Math.min(...values) : Infinity;
+  }
+
+  function comparePackages(a, b) {
+    const ak = [wantedCost(a), (a.costs || []).length, String(a.vendorSubobject || '')];
+    const bk = [wantedCost(b), (b.costs || []).length, String(b.vendorSubobject || '')];
+    for (let i = 0; i < ak.length; i++) {
+      if (ak[i] < bk[i]) return -1;
+      if (ak[i] > bk[i]) return 1;
+    }
+    return 0;
+  }
+
+  for (const [item, packages] of grouped.entries()) {
+    const sorted = [...packages].sort(comparePackages);
+    const chosen = sorted[0];
+
+    byName[item] = (chosen.costs || []).map(part => ({
+      currency: part.currency,
+      count: part.count,
+      vendorName: chosen.vendor || part.vendorName || null,
+      vendorPage: chosen.vendorSubobject || part.vendorPage || null
+    }));
+
+    if (sorted.length > 1) alternatives[item] = sorted;
+  }
+
+  return { byName, alternatives };
+}
+
+async function loadSemanticSpiritShardVendorCosts() {
+  const rows = await fetchOptionalRepoJson(
+    EXTERNAL_DATA_PATHS.spiritShardVendorItems,
+    'Spirit Shard vendor item costs'
+  );
+
+  if (!Array.isArray(rows)) {
+    SEMANTIC_SPIRIT_SHARD_VENDOR_BARTER_BY_NAME = {};
+    SEMANTIC_SPIRIT_SHARD_VENDOR_ALTERNATIVES_BY_NAME = {};
+    return { rows: 0, items: 0, alternatives: 0, loaded: false };
+  }
+
+  const normalized = normalizeSemanticVendorCostRows(rows, 'Spirit Shard');
+  SEMANTIC_SPIRIT_SHARD_VENDOR_BARTER_BY_NAME = normalized.byName || {};
+  SEMANTIC_SPIRIT_SHARD_VENDOR_ALTERNATIVES_BY_NAME = normalized.alternatives || {};
+
+  const items = Object.keys(SEMANTIC_SPIRIT_SHARD_VENDOR_BARTER_BY_NAME).length;
+  const alternatives = Object.keys(SEMANTIC_SPIRIT_SHARD_VENDOR_ALTERNATIVES_BY_NAME).length;
+
+  log(`[Data] Spirit Shard vendor costs loaded: ${rows.length.toLocaleString()} row(s), ${items.toLocaleString()} item(s), ${alternatives.toLocaleString()} item(s) with alternatives.`);
+
+  return { rows: rows.length, items, alternatives, loaded: true };
+}
+
+
 async function loadExternalRepoDatasets() {
   const mysticRows = await fetchOptionalRepoJson(EXTERNAL_DATA_PATHS.mysticForgeRows, 'Mystic Forge recipe rows');
   if (mysticRows && typeof mysticRows === 'object') {
@@ -3250,11 +3362,18 @@ async function loadExternalRepoDatasets() {
     );
   }
 
+  const spiritShardVendorStatus = await loadSemanticSpiritShardVendorCosts();
+  externalDatasetStatus.spiritShardVendorRows = spiritShardVendorStatus.rows || 0;
+  externalDatasetStatus.spiritShardVendorItems = spiritShardVendorStatus.items || 0;
+  externalDatasetStatus.spiritShardVendorAlternatives = spiritShardVendorStatus.alternatives || 0;
+
   if (totalVendorApplied > 0) {
     await saveDataCache();
   }
 
   window.GW2_EXTERNAL_DATASETS = {
+    semanticSpiritShardVendorCosts: SEMANTIC_SPIRIT_SHARD_VENDOR_BARTER_BY_NAME,
+    semanticSpiritShardVendorAlternatives: SEMANTIC_SPIRIT_SHARD_VENDOR_ALTERNATIVES_BY_NAME,
     mysticForgeRecipeRows: externalMysticForgeRecipeRows,
     vendorCraftingMaterialRows: externalVendorCraftingMaterialRows,
     vendorBulkRawRows: externalVendorBulkRawRows,
@@ -4381,7 +4500,7 @@ const VENDOR_BARTER_BY_NAME = {
   ],
 
   "Augur's Stone": [
-    { currency: "Spirit Shard", count: 1, vendorName: "Miyani", vendorPage: "Miyani" }
+    { currency: "Spirit Shard", count: 20, vendorName: "Miyani", vendorPage: "Miyani" }
   ],
 
   "Ambrite Fossilized Axe": [{ name: "Unidentified Fossilized Insect", count: 1 }],
@@ -4418,6 +4537,14 @@ const VENDOR_BARTER_BY_NAME = {
   ]
 };
 
+
+// Current non-historical Spirit Shard vendor costs loaded from repo JSON.
+// Expected repo path: ./data/gw2_spirit_shard_vendor_items.json
+let SEMANTIC_SPIRIT_SHARD_VENDOR_BARTER_BY_NAME = {};
+let SEMANTIC_SPIRIT_SHARD_VENDOR_ALTERNATIVES_BY_NAME = {};
+
+
+
 function findItemIdByExactName(name) {
   name = String(name || "").trim().toLowerCase();
   if (!name) return null;
@@ -4429,7 +4556,7 @@ function findItemIdByExactName(name) {
 
 function getVendorBarterSourceForItem(itemId) {
   const name = itemName(itemId);
-  let entries = VENDOR_BARTER_BY_NAME[name] || wikiVendorBarterByName[name];
+  let entries = VENDOR_BARTER_BY_NAME[name] || wikiVendorBarterByName[name] || SEMANTIC_SPIRIT_SHARD_VENDOR_BARTER_BY_NAME[name];
 
   // Safety fallback for the Ambrite fossilized insect materials.
   // These often appear in partial research rows as missing materials, but the
@@ -5090,12 +5217,14 @@ function getCraftReplacementTooltipLines(itemId, count = 1, mode = null, recipeI
     if (!ingId || !ingCount) continue;
 
     const vendorBarterCost = getVendorBarterCost(ingId, 1);
-    const currencyPart = vendorBarterCost && Array.isArray(vendorBarterCost.parts)
-      ? vendorBarterCost.parts.find(p => p.currency && p.currency !== 'coin')
-      : null;
+    const currencyParts = vendorBarterCost && Array.isArray(vendorBarterCost.parts)
+      ? vendorBarterCost.parts.filter(p => p.currency)
+      : [];
 
-    if (currencyPart) {
-      const unitHtml = renderCurrencyCostFromApi(currencyPart.currency || currencyPart.name, currencyPart.count);
+    if (currencyParts.length) {
+      const unitHtml = currencyParts
+        .map(p => p.currency === 'coin' ? renderCoinCost(p.count) : renderCurrencyCostFromApi(p.currency || p.name, p.count))
+        .join(`<span class="barter-sep">+</span>`);
       lines.push(formatCraftReplacementTooltipLine(ingId, ingCount, null, unitHtml));
       continue;
     }
