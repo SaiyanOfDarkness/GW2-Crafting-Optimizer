@@ -1419,6 +1419,12 @@ let researchMaterialValueMode = 'sell';
 const RENDER_STEP = 500;
 const NESTED_INITIAL_RENDER_STEP = 100;
 const NESTED_BUILD_YIELD_EVERY = 100;
+const RESEARCH_INITIAL_RENDER_STEP = 100;
+const RESEARCH_BUILD_YIELD_EVERY = 100;
+
+function researchInitialRenderLimit() {
+  return Math.min(RESEARCH_INITIAL_RENDER_STEP, RENDER_STEP);
+}
 
 function waitForUiFrame() {
   return new Promise(resolve => {
@@ -5441,7 +5447,7 @@ async function runResearchNoteScan() {
   await refreshMarketPrices();
   await loadCurrencyInfo();
   if (!researchSalvageableItemIds.size) await loadResearchSalvageableItemIds();
-  buildResearchNoteMode();
+  await buildResearchNoteMode();
 }
 
 
@@ -6789,9 +6795,19 @@ async function buildResearchNoteMode() {
     : (typeof RESEARCH_NOTE_YIELDS !== "undefined" ? Object.keys(RESEARCH_NOTE_YIELDS || {}).length : 0);
 
   log('[Research] Using cached vendor/barter datasets only (live wiki lookup skipped).');
+  setStatus(`Building Research Note table: 0 / ${recipeCache.length.toLocaleString()} recipes checked...`);
+  await waitForUiFrame();
 
   for (const recipe of recipeCache) {
     considered++;
+
+    if (considered % RESEARCH_BUILD_YIELD_EVERY === 0) {
+      setStatus(`Building Research Note table: ${considered.toLocaleString()} / ${recipeCache.length.toLocaleString()} recipes checked; ${researchNoteOpportunities.length.toLocaleString()} rows found...`);
+      if (considered % 500 === 0) {
+        log(`[Research] Progress: ${considered.toLocaleString()} / ${recipeCache.length.toLocaleString()} recipes checked; ${researchNoteOpportunities.length.toLocaleString()} rows found.`);
+      }
+      await waitForUiFrame();
+    }
 
     const outputId = Number(recipe.outputItemId);
     const noteItem = getResearchNoteYield(outputId);
@@ -6876,7 +6892,7 @@ async function buildResearchNoteMode() {
 
   tableMode = 'researchNotes';
   lastResearchTableMode = 'researchNotes';
-  renderLimit = RENDER_STEP;
+  renderLimit = researchInitialRenderLimit();
   sortState = { key: 'totalExpectedNotes', dir: -1 };
 
   if (document.getElementById('profitModeTab')) document.getElementById('profitModeTab').classList.remove('active');
@@ -6888,6 +6904,8 @@ async function buildResearchNoteMode() {
 
   ensureResearchNoteHeaders();
   updatePartialResearchToggleButton();
+  setStatus(`Research Note table built. Rendering first ${Math.min(renderLimit, researchNoteOpportunities.length).toLocaleString()} of ${researchNoteOpportunities.length.toLocaleString()} rows...`);
+  await waitForUiFrame();
   render();
 
   const unknownYieldRows = researchNoteOpportunities.filter(o => o.noteItem == null).length;
