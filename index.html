@@ -2603,6 +2603,19 @@ const VENDOR_BULK_SOURCES_BY_NAME = new Map([
 // actually used, the tool runs Vendor_query on the exact bulk container page,
 // reads the current package cost, and normalizes it by 25. This avoids plural
 // guessing while keeping runtime lookup narrow.
+
+const STATIC_VENDOR_SOURCE_FALLBACK_BY_NAME = new Map([
+  // Known cooking vendor/bulk ingredients. These are display/valuation fallbacks
+  // used only when the live vendor/bulk lookup has not populated VENDOR_BULK_SOURCES_BY_NAME.
+  ["cherry", { ingredientName: "Cherry", sourceName: "Cherries in Bulk", sourcePage: "Cherry", currency: "karma", cost: 77, outputCount: 25 }],
+  ["almond", { ingredientName: "Almond", sourceName: "Almonds in Bulk", sourcePage: "Almond", currency: "karma", cost: 77, outputCount: 25 }],
+  ["rice", { ingredientName: "Rice", sourceName: "Rice in Bulk", sourcePage: "Rice", currency: "karma", cost: 49, outputCount: 25 }],
+
+  // Direct vendor ingredient.
+  ["rice ball", { ingredientName: "Rice Ball", sourceName: "Rice Ball", sourcePage: "Rice_Ball", currency: "coin", cost: 32, outputCount: 1 }]
+]);
+
+
 const BULK_FOOD_CONTAINER_BY_INGREDIENT = new Map([
   ["almond", { ingredientName: "Almond", bulkName: "Almonds in Bulk", outputCount: 25 }],
   ["apple", { ingredientName: "Apple", bulkName: "Apples in Bulk", outputCount: 25 }],
@@ -4844,6 +4857,45 @@ function setResearchMaterialValueMode(mode) {
   log(`Research material valuation set to: ${label}. Re-rendering cached Research rows only.`);
   render();
 }
+
+
+const DEBUG_RESEARCH_ZERO_VALUE_INGREDIENTS = true;
+const DEBUG_RESEARCH_ZERO_VALUE_NAMES = new Set(['cherry', 'almond', 'rice', 'rice ball']);
+
+function debugResearchZeroValueIngredient(itemId, materialUnit, context = '') {
+  if (!DEBUG_RESEARCH_ZERO_VALUE_INGREDIENTS) return;
+
+  const name = itemName(itemId);
+  const key = String(name || '').toLowerCase().trim();
+
+  const value = materialUnit && materialUnit.value;
+  const shouldLog =
+    DEBUG_RESEARCH_ZERO_VALUE_NAMES.has(key)
+    || value === 0
+    || value === '0'
+    || value == null;
+
+  if (!shouldLog) return;
+
+  const vendorSource = getVendorBulkSourceForIngredient(itemId);
+  const bulkInfo = BULK_FOOD_CONTAINER_BY_INGREDIENT.get(key) || null;
+  const staticFallback = typeof STATIC_VENDOR_SOURCE_FALLBACK_BY_NAME !== 'undefined'
+    ? STATIC_VENDOR_SOURCE_FALLBACK_BY_NAME.get(key) || null
+    : null;
+  const p = prices.get(Number(itemId));
+
+  log(
+    `[Research Debug] ${context ? context + ' | ' : ''}${name} (${itemId}) -> ` +
+    `value=${materialUnit && materialUnit.value != null ? formatCoinPrecise(materialUnit.value) : 'null'}; ` +
+    `source=${materialUnit?.source || ''}; ` +
+    `isBoundNoTP=${isAccountBoundOrNoTpIngredient(itemId)}; ` +
+    `vendorSource=${vendorSource ? JSON.stringify(vendorSource) : 'none'}; ` +
+    `bulkInfo=${bulkInfo ? JSON.stringify(bulkInfo) : 'none'}; ` +
+    `staticFallback=${staticFallback ? JSON.stringify(staticFallback) : 'none'}; ` +
+    `tpBuy=${p?.buy ?? 'null'}; tpSell=${p?.sell ?? 'null'}`
+  );
+}
+
 
 function getResearchMaterialUnitValue(itemId) {
   itemId = Number(itemId);
@@ -7699,7 +7751,9 @@ function isAccountBoundOrNoTpIngredient(itemId) {
 
 function getVendorBulkSourceForIngredient(ingId) {
   const name = String(itemName(ingId) || "").toLowerCase().trim();
-  return VENDOR_BULK_SOURCES_BY_NAME.get(name) || null;
+  return VENDOR_BULK_SOURCES_BY_NAME.get(name)
+    || STATIC_VENDOR_SOURCE_FALLBACK_BY_NAME.get(name)
+    || null;
 }
 
 function getVendorSourceUnitCoinValue(source) {
@@ -7987,6 +8041,7 @@ function getResearchDisplayIngredientsForCurrentMode(ingredients) {
     if (!itemId || !count) return ing;
 
     const materialUnit = getResearchMaterialUnitValue(itemId);
+    debugResearchZeroValueIngredient(itemId, materialUnit, 'display ingredient');
     if (materialUnit && materialUnit.value != null && Number.isFinite(Number(materialUnit.value))) {
       ing.unitValue = Number(materialUnit.value);
       ing.unitSell = Number(materialUnit.value);
@@ -8019,6 +8074,7 @@ function getResearchMaterialValueFromIngredients(ingredients) {
     if (!itemId || !count) continue;
 
     const materialUnit = getResearchMaterialUnitValue(itemId);
+    debugResearchZeroValueIngredient(itemId, materialUnit, 'material total');
     if (!materialUnit || materialUnit.value == null || !Number.isFinite(Number(materialUnit.value))) {
       missing = true;
       continue;
