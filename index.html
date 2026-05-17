@@ -1245,6 +1245,41 @@ td { padding-left: 6px; padding-right: 6px; }
   }
 }
 
+
+
+.craft-replacement-source {
+  cursor: help;
+  color: #2DE2E6;
+  border-bottom: 1px dotted rgba(45,226,230,0.75);
+  position: relative;
+}
+
+.craft-replacement-source:hover::after {
+  content: attr(data-tooltip);
+  white-space: pre;
+  position: absolute;
+  left: 0;
+  top: 1.65em;
+  z-index: 10000;
+  min-width: 260px;
+  max-width: 520px;
+  padding: 8px 10px;
+  color: #f2e9fb;
+  background:
+    linear-gradient(180deg, rgba(45,226,230,0.08), rgba(246,1,157,0.06)),
+    rgba(7,1,19,0.98);
+  border: 1px solid rgba(45,226,230,0.68);
+  box-shadow:
+    0 0 8px rgba(45,226,230,0.22),
+    0 0 18px rgba(246,1,157,0.14),
+    inset 0 0 16px rgba(0,0,0,0.55);
+  font-size: 12px;
+  line-height: 1.45;
+  text-align: left;
+  pointer-events: none;
+  text-shadow: 0 0 5px rgba(45,226,230,0.22);
+}
+
 </style>
 </head>
 <body>
@@ -4929,6 +4964,55 @@ function getCraftReplacementCostForMode(itemId, count = 1, mode = null, recipeIn
   return total;
 }
 
+
+function formatCraftReplacementTooltipLine(itemId, count, unitValue) {
+  const qty = Number(count || 0).toLocaleString();
+  const unitText = unitValue == null || !Number.isFinite(unitValue) ? '?' : formatCoin(unitValue);
+  return `${itemName(itemId)} x ${qty} (${unitText} per)`;
+}
+
+function getCraftReplacementTooltipLines(itemId, count = 1, mode = null, recipeIndex = null, path = new Set()) {
+  itemId = Number(itemId);
+  count = Number(count || 0);
+  const selectedMode = mode || getProfitValuationMode();
+  const index = recipeIndex || activeProfitRecipeIndexForValuation || buildRecipeIndexByOutput();
+  const recipe = index?.get(itemId);
+
+  if (!recipe || !Array.isArray(recipe.ingredients) || !recipe.ingredients.length || path.has(itemId)) {
+    return [];
+  }
+
+  const outCount = Math.max(1, Number(recipe.outputCount || 1));
+  const batches = Math.ceil(count / outCount);
+  const lines = [];
+
+  for (const ing of recipe.ingredients || []) {
+    const ingId = Number(ing.itemId);
+    const ingCount = Number(ing.count || 0) * batches;
+    if (!ingId || !ingCount) continue;
+
+    const vendorUnit = getVendorOpportunityUnitValue(ingId);
+    const replacementUnit = getCraftReplacementUnitForAccountBoundIngredient(ingId, selectedMode, index);
+    const tpUnit = getTpOpportunityUnitForProfitMode(ingId, selectedMode);
+
+    let unitValue = null;
+    if (vendorUnit != null) unitValue = vendorUnit;
+    else if (replacementUnit != null) unitValue = replacementUnit;
+    else if (tpUnit != null) unitValue = tpUnit;
+
+    lines.push(formatCraftReplacementTooltipLine(ingId, ingCount, unitValue));
+  }
+
+  return lines;
+}
+
+function craftReplacementTooltipHtml(itemId, count, mode = null, recipeIndex = null) {
+  const lines = getCraftReplacementTooltipLines(itemId, count, mode, recipeIndex);
+  if (!lines.length) return 'Craft replacement';
+  return `<span class="craft-replacement-source" data-tooltip="${escapeHtml(lines.join('\n'))}">Craft replacement</span>`;
+}
+
+
 function getCraftReplacementUnitForAccountBoundIngredient(itemId, mode = null, recipeIndex = null) {
   itemId = Number(itemId);
   if (!itemId || !isAccountBoundOrNoTpIngredient(itemId)) return null;
@@ -5479,6 +5563,7 @@ function getProfitDisplayIngredientsForMode(o, mode) {
       ing.unitValue = replacementUnit;
       ing.unitSell = replacementUnit;
       ing.valueSource = 'Craft replacement';
+      ing.valueSourceHtml = craftReplacementTooltipHtml(itemId, Number(ing.count || 1), mode, activeProfitRecipeIndexForValuation);
       ing.accountBoundValueIgnored = false;
       return ing;
     }
@@ -7794,7 +7879,7 @@ function renderIngredients(ingredients) {
     }
 
     const priceText = unitValue == null ? '?' : formatCoin(unitValue);
-    const sourceText = finalSource && !isOwnedBoundNoTpText(finalSource) ? ` ${escapeHtml(finalSource)}` : '';
+    const sourceText = ing.valueSourceHtml ? ` ${ing.valueSourceHtml}` : (finalSource && !isOwnedBoundNoTpText(finalSource) ? ` ${escapeHtml(finalSource)}` : '');
     return `<span class="ingredient-chip">${renderItemLink(ing.itemId)} <span class="muted">x ${count} / ${ownedText} @ ${priceText}${sourceText}</span></span>`;
   }).join('') + '</div>';
 }
