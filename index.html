@@ -1417,6 +1417,7 @@ let tableMode = 'profit';
 let lastResearchTableMode = 'researchNotes';
 let researchMaterialValueMode = 'sell';
 const RENDER_STEP = 500;
+const NESTED_RENDER_INITIAL_LIMIT = 100;
 let renderLimit = RENDER_STEP;
 
 // Embedded Id -> average Research Notes per item salvaged.
@@ -5111,7 +5112,7 @@ function expandRequirementsUsingOwnedCrafting(flat, recipeIndex) {
     // Only replace a fully-expanded requirement with an owned/crafted plan when
     // that plan can satisfy the entire requested quantity. Partial plans caused
     // deep chains like +16 Agony Infusion to appear craftable with only the
-    // currently-owned +1 infusions instead of the full 32,768 base requirement.
+    // currently-owned +1 infusions instead of the full expanded requirement.
     if (plan.canSatisfy && plan.requirements && plan.requirements.size) {
       mergeRequirementMap(expanded, plan.requirements, 1);
       for (const s of plan.steps || []) {
@@ -5362,9 +5363,15 @@ function setNestedProfitToggleBusy(isBusy) {
   btn.disabled = !!isBusy;
 }
 
+async function getInitialRenderLimitForCurrentMode() {
+  return (tableMode === 'profit' && profitViewMode === 'nested')
+    ? NESTED_RENDER_INITIAL_LIMIT
+    : RENDER_STEP;
+}
+
 async function toggleNestedProfitRecipes() {
   tableMode = 'profit';
-  renderLimit = RENDER_STEP;
+  renderLimit = getInitialRenderLimitForCurrentMode();
   ensureProfitHeaders();
   setProfitTableHeaders();
 
@@ -5378,6 +5385,7 @@ async function toggleNestedProfitRecipes() {
 
   if (profitViewMode === 'nested') {
     profitViewMode = 'normal';
+    renderLimit = RENDER_STEP;
 
     if (normalProfitOpportunities && normalProfitOpportunities.length) {
       opportunities = normalProfitOpportunities.slice();
@@ -5397,6 +5405,7 @@ async function toggleNestedProfitRecipes() {
   profitViewMode = 'nested';
 
   if (nestedProfitOpportunities && nestedProfitOpportunities.length) {
+    renderLimit = NESTED_RENDER_INITIAL_LIMIT;
     opportunities = nestedProfitOpportunities.slice();
     if (desc) desc.textContent = 'Profit Mode: showing cost-aware nested/sub-crafting opportunities.';
     updateNestedProfitToggleButton();
@@ -6857,7 +6866,7 @@ async function buildNestedOpportunities() {
   log('[Nested] Build started.');
   tableMode = 'profit';
   profitViewMode = 'nested';
-  renderLimit = RENDER_STEP;
+  renderLimit = NESTED_RENDER_INITIAL_LIMIT;
   ensureProfitHeaders();
   if (document.getElementById('profitModeTab')) document.getElementById('profitModeTab').classList.add('active');
   if (document.getElementById('researchModeTab')) document.getElementById('researchModeTab').classList.remove('active');
@@ -6892,7 +6901,7 @@ async function buildNestedOpportunities() {
     const evald = evaluateNestedRequirements(expandedFlat, recipe.outputCount || 1);
     if (evald.missingOwned || evald.missingMaterialPrice) continue;
 
-    if (NON_TRADABLE_OUTPUT_IDS.has(recipe.outputItemId)) {
+    if (NON_TRADABLE_OUTPUT_IDS.has(Number(recipe.outputItemId))) {
       continue;
     }
 
@@ -6995,7 +7004,7 @@ async function buildOpportunities() {
     if (missingOwned || !Number.isFinite(canCraftQty) || canCraftQty <= 0) continue;
     if (missingMaterialPrice) continue;
 
-    if (NON_TRADABLE_OUTPUT_IDS.has(recipe.outputItemId)) {
+    if (NON_TRADABLE_OUTPUT_IDS.has(Number(recipe.outputItemId))) {
       continue;
     }
 
