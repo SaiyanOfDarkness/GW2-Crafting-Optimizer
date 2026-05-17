@@ -7838,6 +7838,26 @@ function isOwnedBoundNoTpText(value) {
   return /owned\s*bound\s*\/\s*no\s*tp|account\s*bound/i.test(String(value || ''));
 }
 
+
+function renderWikiTextLink(label, pageName = null, className = 'item-link vendor-link') {
+  const text = String(label || pageName || 'Vendor');
+  const page = String(pageName || label || '').trim();
+  if (!page) return escapeHtml(text);
+  return `<a class="${escapeHtml(className)}" href="https://wiki.guildwars2.com/wiki/${encodeURIComponent(page.replace(/ /g, '_'))}" target="_blank" rel="noopener noreferrer">${escapeHtml(text)}</a>`;
+}
+
+function renderVendorCostLabelForIngredient(ing, wikiVendorCost = null) {
+  const vendorPage = wikiVendorCost?.parts?.find(p => p.vendorPage)?.vendorPage || null;
+  const vendorName = wikiVendorCost?.parts?.find(p => p.vendorName)?.vendorName || null;
+
+  // Prefer the actual vendor if known. If the dataset only has a coin/vendor
+  // cost and no vendor page, link "Vendor" to the item's own wiki page so the
+  // user can still click through to where acquisition details are documented.
+  if (vendorPage || vendorName) return renderWikiTextLink('Vendor', vendorPage || vendorName);
+  return renderWikiTextLink('Vendor', itemName(ing.itemId));
+}
+
+
 function renderIngredients(ingredients) {
   return '<div class="ingredient-list">' + ingredients.map(rawIng => {
     const ing = getDisplayIngredientWithVendorPriority(rawIng);
@@ -7852,9 +7872,7 @@ function renderIngredients(ingredients) {
     const wikiVendorCostRaw = ing.vendorBarterCost || getVendorBarterCost(ing.itemId, 1);
     const wikiVendorCost = wikiVendorCostRaw && !isLikelyIndirectContainerCostPackage(wikiVendorCostRaw.parts || []) ? wikiVendorCostRaw : null;
     if (shouldRenderVendorBarterIngredientLine(ing, wikiVendorCost)) {
-      const vendorName = wikiVendorCost.parts?.find(p => p.vendorName)?.vendorName || 'Vendor';
-      const vendorPage = wikiVendorCost.parts?.find(p => p.vendorPage)?.vendorPage || vendorName;
-      const vendorLabel = `<a class="item-link vendor-link" href="https://wiki.guildwars2.com/wiki/${encodeURIComponent(String(vendorPage).replace(/ /g, '_'))}" target="_blank" rel="noopener noreferrer">Vendor</a>`;
+      const vendorLabel = renderVendorCostLabelForIngredient(ing, wikiVendorCost);
       const costHtml = renderBulkAwareVendorIngredientCostHtml(wikiVendorCost, Number(ing.count || 1), unitValue);
       if (costHtml) {
         return `<span class="ingredient-chip">${renderItemLink(ing.itemId)} <span class="muted">x ${count} / ${ownedText} | ${vendorLabel}: ${costHtml}</span></span>`;
