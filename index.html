@@ -4509,8 +4509,9 @@ const VENDOR_BARTER_BY_NAME = {
       count: 25,
       compactIconOnly: true,
       sourceLabel: "Charge",
+      sourcePage: "Place_of_power",
       vendorName: "Place of Power",
-      vendorPage: "Place_of_Power"
+      vendorPage: "Place_of_power"
     }
   ],
 
@@ -4960,8 +4961,15 @@ function shouldRenderVendorBarterIngredientLine(ing, barterCost) {
   // vendor/barter source as though it is the chosen source.
   if (/^TP\b/i.test(source) || /TP\s+(?:Sell|Buy)\s+cheaper/i.test(source)) return false;
 
-  // Render vendor/barter when it is the chosen valuation source or when it is a
-  // non-coin/currency acquisition that has no better display source.
+  const hasNonCoinCurrency = barterCost.parts.some(p => p.currency && p.currency !== 'coin');
+  const hasSpecialDisplayPart = barterCost.parts.some(p => p.compactIconOnly || p.sourceLabel);
+
+  // Non-coin vendor/bulk/barter costs intentionally count as 0c for copper math,
+  // but they should still render as their actual acquisition cost. This prevents
+  // bulk foods like Bowl of Sour Cream from falling through to generic "@ 0c".
+  if (hasNonCoinCurrency || hasSpecialDisplayPart) return true;
+
+  // Render vendor/barter when it is the chosen valuation source.
   return !source || /^Vendor(?:\b|\/barter| karma)/i.test(source);
 }
 
@@ -5049,7 +5057,8 @@ function getVendorBarterCost(itemId, count = 1) {
       sourceVendorQty: req.sourceVendorQty || null,
       sourceVendorTotal: req.sourceVendorTotal || null,
       compactIconOnly: !!req.compactIconOnly,
-      sourceLabel: req.sourceLabel || null
+      sourceLabel: req.sourceLabel || null,
+      sourcePage: req.sourcePage || null
     });
   }
 
@@ -8254,9 +8263,10 @@ function renderWikiTextLink(label, pageName = null, className = 'item-link vendo
 }
 
 function renderVendorCostLabelForIngredient(ing, wikiVendorCost = null) {
-  const specialLabel = wikiVendorCost?.parts?.find(p => p.sourceLabel)?.sourceLabel || null;
-  const label = specialLabel || 'Vendor';
-  return renderWikiTextLink(label, `${itemName(ing.itemId)}#Acquisition`);
+  const specialPart = wikiVendorCost?.parts?.find(p => p.sourceLabel) || null;
+  const label = specialPart?.sourceLabel || 'Vendor';
+  const target = specialPart?.sourcePage || `${itemName(ing.itemId)}#Acquisition`;
+  return renderWikiTextLink(label, target);
 }
 
 
