@@ -6484,6 +6484,7 @@ async function loadWikiVendorBarterSourcesForMissingItems(missingItems) {
 
   setStatus('Wiki vendor/barter lookup: applying cache updates...');
   await waitForUiFrame();
+  await waitForUiFrame();
 
   const noVendorCount = Object.keys(wikiVendorNoVendorByName || {}).length;
   const ambiguousCount = Object.keys(wikiVendorAmbiguousByName || {}).length;
