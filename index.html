@@ -4508,6 +4508,7 @@ const VENDOR_BARTER_BY_NAME = {
       name: "Quartz Crystal",
       count: 25,
       compactIconOnly: true,
+      sourceLabel: "Charge",
       vendorName: "Place of Power",
       vendorPage: "Place_of_Power"
     }
@@ -4965,6 +4966,16 @@ function shouldRenderVendorBarterIngredientLine(ing, barterCost) {
 
 
 function renderBulkAwareVendorIngredientCostHtml(baseCost, requiredCount = 1, unitValue = null) {
+  const compactPart = barterCost?.parts?.find(p => p.compactIconOnly && p.name);
+  if (compactPart) {
+    const compactItemId = compactPart.itemId || findItemIdByExactName(compactPart.name);
+    const compactIcon = compactItemId ? itemIcon(compactItemId) : null;
+    const qty = Number(compactPart.count || 0).toLocaleString();
+    return compactIcon
+      ? `<span class="barter-cost"><img class="barter-icon" src="${escapeHtml(compactIcon)}" loading="lazy" alt="${escapeHtml(compactPart.name)}"> <span class="barter-qty">${escapeHtml(qty)}</span></span>`
+      : `<span class="barter-cost"><span class="barter-qty">${escapeHtml(qty)}</span></span>`;
+  }
+
   const parts = dedupeBarterCostPartsForDisplay(baseCost?.parts || []);
   if (!parts.length) return "";
 
@@ -5035,7 +5046,9 @@ function getVendorBarterCost(itemId, count = 1) {
       sourceBulkItem: req.sourceBulkItem || null,
       sourceBulkQty: req.sourceBulkQty || null,
       sourceVendorQty: req.sourceVendorQty || null,
-      sourceVendorTotal: req.sourceVendorTotal || null
+      sourceVendorTotal: req.sourceVendorTotal || null,
+      compactIconOnly: !!req.compactIconOnly,
+      sourceLabel: req.sourceLabel || null
     });
   }
 
@@ -5228,26 +5241,27 @@ function getCraftReplacementTooltipLines(itemId, count = 1, mode = null, recipeI
     if (!ingId || !ingCount) continue;
 
     const vendorBarterCost = getVendorBarterCost(ingId, 1);
-    const currencyParts = vendorBarterCost && Array.isArray(vendorBarterCost.parts)
-      ? vendorBarterCost.parts.filter(p => p.currency)
+    const displayParts = vendorBarterCost && Array.isArray(vendorBarterCost.parts)
+      ? vendorBarterCost.parts.filter(p => p.currency || p.compactIconOnly)
       : [];
 
-    if (currencyParts.length) {
-      const compactItemPart = currencyParts.find(p => p.name && p.compactIconOnly);
+    if (displayParts.length) {
+      const compactItemPart = displayParts.find(p => p.name && p.compactIconOnly);
 
       if (compactItemPart) {
-        const compactItemId = findItemIdByExactName(compactItemPart.name);
+        const compactItemId = compactItemPart.itemId || findItemIdByExactName(compactItemPart.name);
         const compactIcon = compactItemId ? itemIcon(compactItemId) : null;
 
         const unitHtml = compactIcon
-          ? `<span class="barter-cost"><img class="barter-icon" src="${escapeHtml(compactIcon)}" loading="lazy" alt=""> ${escapeHtml(Number(compactItemPart.count).toLocaleString())}</span>`
+          ? `<span class="barter-cost"><img class="barter-icon" src="${escapeHtml(compactIcon)}" loading="lazy" alt=""> <span class="barter-qty">${escapeHtml(Number(compactItemPart.count).toLocaleString())}</span></span>`
           : escapeHtml(Number(compactItemPart.count).toLocaleString());
 
         lines.push(formatCraftReplacementTooltipLine(ingId, ingCount, null, unitHtml));
         continue;
       }
 
-      const unitHtml = currencyParts
+      const unitHtml = displayParts
+        .filter(p => p.currency)
         .map(p => p.currency === 'coin' ? renderCoinCost(p.count) : renderCurrencyCostFromApi(p.currency || p.name, p.count))
         .join(`<span class="barter-sep">+</span>`);
       lines.push(formatCraftReplacementTooltipLine(ingId, ingCount, null, unitHtml));
@@ -8242,7 +8256,9 @@ function renderWikiTextLink(label, pageName = null, className = 'item-link vendo
 }
 
 function renderVendorCostLabelForIngredient(ing, wikiVendorCost = null) {
-  return renderWikiTextLink('Vendor', `${itemName(ing.itemId)}#Acquisition`);
+  const specialLabel = wikiVendorCost?.parts?.find(p => p.sourceLabel)?.sourceLabel || null;
+  const label = specialLabel || 'Vendor';
+  return renderWikiTextLink(label, `${itemName(ing.itemId)}#Acquisition`);
 }
 
 
