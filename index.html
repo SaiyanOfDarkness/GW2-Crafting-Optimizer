@@ -4892,13 +4892,12 @@ function getResearchMaterialUnitValue(itemId) {
     return { value: 0, source: "Account Bound" };
   }
 
-  const p = prices.get(itemId);
-  const value = researchMaterialValueMode === 'buy' ? p?.buy : p?.sell;
+  const tpInfo = getSelectedTpUnitValueInfoForMode(itemId);
 
-  if (value != null) {
+  if (tpInfo.value != null) {
     return {
-      value: Number(value),
-      source: researchMaterialValueMode === 'buy' ? "TP Buy" : "TP Sell"
+      value: Number(tpInfo.value),
+      source: tpInfo.source
     };
   }
 
@@ -7722,17 +7721,33 @@ function getVendorSourceUnitCoinValue(source) {
   return Number(source.cost || 0) / Math.max(1, Number(source.outputCount || 1));
 }
 
-function getSelectedTpUnitValueForMode(itemId) {
+function getSelectedTpUnitValueInfoForMode(itemId) {
   const p = prices.get(Number(itemId));
-  if (!p) return null;
-  const value = researchMaterialValueMode === 'buy' ? p.buy : p.sell;
-  return value == null ? null : Number(value);
+  if (!p) return { value: null, source: researchMaterialValueMode === 'buy' ? 'TP Buy' : 'TP Sell' };
+
+  const buy = p.buy == null ? null : Number(p.buy);
+  const sell = p.sell == null ? null : Number(p.sell);
+
+  if (researchMaterialValueMode === 'buy') {
+    if (Number.isFinite(buy) && buy > 0) return { value: buy, source: 'TP Buy' };
+    if (Number.isFinite(sell) && sell > 0) return { value: sell, source: 'TP Sell' };
+    return { value: null, source: 'TP Buy' };
+  }
+
+  if (Number.isFinite(sell) && sell > 0) return { value: sell, source: 'TP Sell' };
+  if (Number.isFinite(buy) && buy > 0) return { value: buy, source: 'TP Buy' };
+  return { value: null, source: 'TP Sell' };
+}
+
+function getSelectedTpUnitValueForMode(itemId) {
+  return getSelectedTpUnitValueInfoForMode(itemId).value;
 }
 
 function getCheapestVendorOrTpUnitValue(itemId, vendorSource, modeSourceText) {
   const vendorCoinEach = getVendorSourceUnitCoinValue(vendorSource);
-  const tpUnit = getSelectedTpUnitValueForMode(itemId);
-  const tpSource = modeSourceText || (researchMaterialValueMode === 'buy' ? 'TP Buy' : 'TP Sell');
+  const tpInfo = getSelectedTpUnitValueInfoForMode(itemId);
+  const tpUnit = tpInfo.value;
+  const tpSource = tpInfo.source || modeSourceText || (researchMaterialValueMode === 'buy' ? 'TP Buy' : 'TP Sell');
 
   if (vendorCoinEach != null) {
     if (!vendorSource.forceVendor && tpUnit != null && tpUnit < vendorCoinEach) {
@@ -7746,8 +7761,9 @@ function getCheapestVendorOrTpUnitValue(itemId, vendorSource, modeSourceText) {
 
 function getCheapestVendorBarterOrTpUnitValue(itemId, vendorCost, modeSourceText) {
   const vendorUnit = vendorCost && !vendorCost.missingPrice ? Number(vendorCost.total || 0) / Math.max(1, Number(vendorCost.count || 1)) : null;
-  const tpUnit = getSelectedTpUnitValueForMode(itemId);
-  const tpSource = modeSourceText || (researchMaterialValueMode === 'buy' ? 'TP Buy' : 'TP Sell');
+  const tpInfo = getSelectedTpUnitValueInfoForMode(itemId);
+  const tpUnit = tpInfo.value;
+  const tpSource = tpInfo.source || modeSourceText || (researchMaterialValueMode === 'buy' ? 'TP Buy' : 'TP Sell');
   if (vendorUnit != null && Number.isFinite(vendorUnit)) {
     if (tpUnit != null && tpUnit < vendorUnit) return { value: tpUnit, source: `${tpSource} cheaper`, vendorBarterCost: vendorCost };
     return { value: vendorUnit, source: 'Vendor', vendorBarterCost: vendorCost };
