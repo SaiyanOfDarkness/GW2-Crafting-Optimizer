@@ -5107,13 +5107,21 @@ function expandRequirementsUsingOwnedCrafting(flat, recipeIndex) {
     }
 
     const plan = buildCheapestOwnedPlan(itemId, count, recipeIndex);
-    if (plan.requirements && plan.requirements.size) {
+
+    // Only replace a fully-expanded requirement with an owned/crafted plan when
+    // that plan can satisfy the entire requested quantity. Partial plans caused
+    // deep chains like +16 Agony Infusion to appear craftable with only the
+    // currently-owned +1 infusions instead of the full 32,768 base requirement.
+    if (plan.canSatisfy && plan.requirements && plan.requirements.size) {
       mergeRequirementMap(expanded, plan.requirements, 1);
       for (const s of plan.steps || []) {
         if (s && steps.length < 40) steps.push(s);
       }
     } else {
       addNestedRequirement(expanded, itemId, count);
+      if (plan && plan.steps && plan.steps.length && steps.length < 40) {
+        steps.push(`not enough owned/craftable ${itemName(itemId)}; keeping full requirement ${count}`);
+      }
     }
   }
 
