@@ -4860,10 +4860,14 @@ function getTpOpportunityUnitForProfitMode(itemId, mode = null) {
   const p = prices.get(Number(itemId));
   if (!p) return null;
   const selectedMode = mode || getProfitValuationMode();
+
+  // Ingredient/material costs are costs, not sale revenue.
+  // They should use the full 100% TP price. Only finished output revenue
+  // gets reduced by the 15% TP fee.
   if (selectedMode === 'listing') {
-    return p.sell == null ? null : Math.floor(Number(p.sell) * 0.85);
+    return p.sell == null ? null : Number(p.sell);
   }
-  return p.buy == null ? null : Math.floor(Number(p.buy) * 0.85);
+  return p.buy == null ? null : Number(p.buy);
 }
 
 function getVendorOpportunityUnitValue(itemId) {
@@ -5443,10 +5447,10 @@ function getProfitIngredientUnitValueForMode(itemId, ing, mode) {
   if (!p) return isAccountBoundOrNoTpIngredient(itemId) ? 0 : null;
 
   if (mode === 'listing') {
-    return p.sell == null ? null : Math.floor(Number(p.sell) * 0.85);
+    return p.sell == null ? null : Number(p.sell);
   }
 
-  return p.buy == null ? null : Math.floor(Number(p.buy) * 0.85);
+  return p.buy == null ? null : Number(p.buy);
 }
 
 function getProfitMaterialValueForMode(o, mode) {
@@ -5493,14 +5497,14 @@ function getProfitDisplayIngredientsForMode(o, mode) {
     const p = prices.get(itemId);
     if (p) {
       if (mode === 'listing' && p.sell != null) {
-        ing.unitValue = Math.floor(Number(p.sell) * 0.85);
+        ing.unitValue = Number(p.sell);
         ing.unitSell = ing.unitValue;
-        ing.valueSource = 'TP Sell net';
+        ing.valueSource = 'TP Sell';
         ing.accountBoundValueIgnored = false;
       } else if (mode !== 'listing' && p.buy != null) {
-        ing.unitValue = Math.floor(Number(p.buy) * 0.85);
+        ing.unitValue = Number(p.buy);
         ing.unitSell = ing.unitValue;
-        ing.valueSource = 'TP Buy net';
+        ing.valueSource = 'TP Buy';
         ing.accountBoundValueIgnored = false;
       }
     }
