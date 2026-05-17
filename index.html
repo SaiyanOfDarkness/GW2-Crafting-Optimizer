@@ -1417,6 +1417,13 @@ let tableMode = 'profit';
 let lastResearchTableMode = 'researchNotes';
 let researchMaterialValueMode = 'sell';
 const RENDER_STEP = 500;
+const RESEARCH_INITIAL_RENDER_STEP = 100;
+const RESEARCH_BUILD_YIELD_EVERY = 100;
+
+function researchInitialRenderLimit() {
+  return Math.min(RESEARCH_INITIAL_RENDER_STEP, RENDER_STEP);
+}
+
 const NESTED_INITIAL_RENDER_STEP = 100;
 const NESTED_BUILD_YIELD_EVERY = 100;
 
@@ -5434,7 +5441,7 @@ async function toggleNestedProfitRecipes() {
   await buildNestedOpportunities();
 }
 
-async function runResearchNoteScan() {
+async async function runResearchNoteScan() {
   await saveAccounts();
   await loadOwnedMaterials();
   if (!recipeCache.length) await loadRecipeCache();
@@ -6578,11 +6585,11 @@ function updatePartialResearchToggleButton() {
   btn.innerHTML = `SHOW PARTIAL RESEARCH RECIPES: <span style="color:${isOn ? '#FF6C11' : '#F6019D'}">${isOn ? 'ON' : 'OFF'}</span>`;
 }
 
-async function togglePartialResearchRecipes() {
+async async function togglePartialResearchRecipes() {
   if (tableMode === 'researchPartial') {
     tableMode = 'researchNotes';
     lastResearchTableMode = 'researchNotes';
-    renderLimit = RENDER_STEP;
+    renderLimit = researchInitialRenderLimit();
     sortState = { key: 'totalExpectedNotes', dir: -1 };
 
     const modeDesc = document.getElementById('modeDescription');
@@ -6590,7 +6597,9 @@ async function togglePartialResearchRecipes() {
 
     ensureResearchNoteHeaders();
     updatePartialResearchToggleButton();
-    render();
+    setStatus(`Building partial Research Note recipes complete. Rendering first ${Math.min(renderLimit, opportunities.length).toLocaleString()} of ${opportunities.length.toLocaleString()} rows...`);
+  await waitForUiFrame();
+  render();
     return;
   }
 
@@ -6616,7 +6625,7 @@ async function togglePartialResearchRecipes() {
   await buildPartialResearchRecipes();
 }
 
-async function buildPartialResearchRecipes() {
+async async function buildPartialResearchRecipes() {
   await loadCurrencyInfo();
   if (!ownedMaterials.size || !recipeCache.length) {
     setStatus('Load owned materials and recipe cache first.');
@@ -6732,7 +6741,7 @@ async function buildPartialResearchRecipes() {
 
   tableMode = 'researchPartial';
   lastResearchTableMode = 'researchPartial';
-  renderLimit = RENDER_STEP;
+  renderLimit = researchInitialRenderLimit();
   sortState = { key: 'coveragePct', dir: -1 };
 
   if (document.getElementById('profitModeTab')) document.getElementById('profitModeTab').classList.remove('active');
@@ -6744,6 +6753,8 @@ async function buildPartialResearchRecipes() {
 
   ensurePartialResearchHeaders();
   updatePartialResearchToggleButton();
+  setStatus(`Building partial Research Note recipes complete. Rendering first ${Math.min(renderLimit, opportunities.length).toLocaleString()} of ${opportunities.length.toLocaleString()} rows...`);
+  await waitForUiFrame();
   render();
 
   const renderedNow = Math.min(renderLimit, partialResearchOpportunities.length);
@@ -6758,7 +6769,7 @@ async function buildPartialResearchRecipes() {
   log(`[Done] Partial Research Recipes built: ${partialResearchOpportunities.length.toLocaleString()} partial rows matched, ${renderedNow.toLocaleString()} rendered.`);
 }
 
-async function buildResearchNoteMode() {
+async async function buildResearchNoteMode() {
   if (!ownedMaterials.size || !recipeCache.length) {
     setStatus('Load owned materials and recipe cache first.');
     return;
@@ -6789,9 +6800,20 @@ async function buildResearchNoteMode() {
     : (typeof RESEARCH_NOTE_YIELDS !== "undefined" ? Object.keys(RESEARCH_NOTE_YIELDS || {}).length : 0);
 
   log('[Research] Using cached vendor/barter datasets only (live wiki lookup skipped).');
+  setStatus('Building Research Note table');
+  await waitForUiFrame();
 
+  let __buildResearchNoteModeChecked = 0;
   for (const recipe of recipeCache) {
-    considered++;
+    __buildResearchNoteModeChecked++;
+    if (__buildResearchNoteModeChecked % RESEARCH_BUILD_YIELD_EVERY === 0) {
+      setStatus(`Building Research Note table: ${__buildResearchNoteModeChecked.toLocaleString()} / ${recipeCache.length.toLocaleString()} recipes checked; ${opportunities.length.toLocaleString()} rows found...`);
+      if (__buildResearchNoteModeChecked % 500 === 0) {
+        log(`[Research] Progress: ${__buildResearchNoteModeChecked.toLocaleString()} / ${recipeCache.length.toLocaleString()} recipes checked; ${opportunities.length.toLocaleString()} rows found.`);
+      }
+      await waitForUiFrame();
+    }
+  considered++;
 
     const outputId = Number(recipe.outputItemId);
     const noteItem = getResearchNoteYield(outputId);
@@ -6876,7 +6898,7 @@ async function buildResearchNoteMode() {
 
   tableMode = 'researchNotes';
   lastResearchTableMode = 'researchNotes';
-  renderLimit = RENDER_STEP;
+  renderLimit = researchInitialRenderLimit();
   sortState = { key: 'totalExpectedNotes', dir: -1 };
 
   if (document.getElementById('profitModeTab')) document.getElementById('profitModeTab').classList.remove('active');
@@ -6888,6 +6910,8 @@ async function buildResearchNoteMode() {
 
   ensureResearchNoteHeaders();
   updatePartialResearchToggleButton();
+  setStatus(`Building Research Note table complete. Rendering first ${Math.min(renderLimit, opportunities.length).toLocaleString()} of ${opportunities.length.toLocaleString()} rows...`);
+  await waitForUiFrame();
   render();
 
   const unknownYieldRows = researchNoteOpportunities.filter(o => o.noteItem == null).length;
