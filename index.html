@@ -6638,14 +6638,26 @@ async function buildPartialResearchRecipes() {
     : new Map(recipeCache.map(r => [Number(r.outputItemId), r]));
 
   partialResearchOpportunities = [];
+  log('[Research Partial] Using cached vendor/barter datasets only (live wiki lookup skipped).');
+  setStatus('Building partial Research Note recipes...');
+  await waitForUiFrame();
 
   let considered = 0;
   let candidates = 0;
   let noMaterialsAtAll = 0;
   let alreadyCraftable = 0;
 
+  let __partialResearchChecked = 0;
   for (const recipe of recipeCache) {
-    considered++;
+    __partialResearchChecked++;
+    if (__partialResearchChecked % RESEARCH_BUILD_YIELD_EVERY === 0) {
+      setStatus(`Building partial Research Note recipes: ${__partialResearchChecked.toLocaleString()} / ${recipeCache.length.toLocaleString()} recipes checked; ${partialResearchOpportunities.length.toLocaleString()} rows found...`);
+      if (__partialResearchChecked % 500 === 0) {
+        log(`[Research Partial] Progress: ${__partialResearchChecked.toLocaleString()} / ${recipeCache.length.toLocaleString()} recipes checked; ${partialResearchOpportunities.length.toLocaleString()} rows found.`);
+      }
+      await waitForUiFrame();
+    }
+  considered++;
 
     const outputId = Number(recipe.outputItemId);
     const noteItem = getResearchNoteYield(outputId);
@@ -6738,7 +6750,7 @@ async function buildPartialResearchRecipes() {
 
   tableMode = 'researchPartial';
   lastResearchTableMode = 'researchPartial';
-  renderLimit = RENDER_STEP;
+  renderLimit = researchInitialRenderLimit();
   sortState = { key: 'coveragePct', dir: -1 };
 
   if (document.getElementById('profitModeTab')) document.getElementById('profitModeTab').classList.remove('active');
@@ -6750,6 +6762,8 @@ async function buildPartialResearchRecipes() {
 
   ensurePartialResearchHeaders();
   updatePartialResearchToggleButton();
+  setStatus(`Partial Research Recipes built. Rendering first ${Math.min(renderLimit, partialResearchOpportunities.length).toLocaleString()} of ${partialResearchOpportunities.length.toLocaleString()} rows...`);
+  await waitForUiFrame();
   render();
 
   const renderedNow = Math.min(renderLimit, partialResearchOpportunities.length);
