@@ -6339,6 +6339,17 @@ async function fetchWikiVendorQueryEntriesForNames(names) {
   return out;
 }
 
+
+function waitForUiFrame() {
+  return new Promise(resolve => {
+    if (typeof requestAnimationFrame === 'function') {
+      requestAnimationFrame(() => setTimeout(resolve, 0));
+    } else {
+      setTimeout(resolve, 0);
+    }
+  });
+}
+
 async function loadWikiVendorBarterSourcesForMissingItems(missingItems) {
   const uniqueNames = [...new Set(
     (missingItems || [])
@@ -6370,7 +6381,15 @@ async function loadWikiVendorBarterSourcesForMissingItems(missingItems) {
   // Mode crawl thousands of wiki pages.
   const directVendorNames = uniqueNames.filter(name => shouldTryDirectWikiVendorLookupForName(name));
   const vendorQueryEntries = await fetchWikiVendorQueryEntriesForNames(directVendorNames);
+  let appliedVendorQueryEntries = 0;
+  const totalVendorQueryEntries = vendorQueryEntries.size || 0;
   for (const [name, entries] of vendorQueryEntries.entries()) {
+    appliedVendorQueryEntries++;
+    if (appliedVendorQueryEntries % 25 === 0) {
+      setStatus(`Applying Wiki Vendor_query results: ${appliedVendorQueryEntries.toLocaleString()}/${totalVendorQueryEntries.toLocaleString()} items`);
+      await waitForUiFrame();
+    }
+
     if (entries && entries.length) {
       wikiVendorBarterByName[name] = entries;
       found++;
@@ -6393,7 +6412,15 @@ async function loadWikiVendorBarterSourcesForMissingItems(missingItems) {
   );
   if (bulkCandidateNames.length) {
     const bulkEntries = await fetchWikiBulkVendorEntriesForNames(bulkCandidateNames);
+    let appliedBulkEntries = 0;
+    const totalBulkEntries = bulkEntries.size || 0;
     for (const [name, entries] of bulkEntries.entries()) {
+      appliedBulkEntries++;
+      if (appliedBulkEntries % 25 === 0) {
+        setStatus(`Applying Wiki bulk-container results: ${appliedBulkEntries.toLocaleString()}/${totalBulkEntries.toLocaleString()} items`);
+        await waitForUiFrame();
+      }
+
       if (entries && entries.length) {
         wikiVendorBarterByName[name] = entries;
         delete wikiVendorNoVendorByName[name];
@@ -6408,7 +6435,15 @@ async function loadWikiVendorBarterSourcesForMissingItems(missingItems) {
   if (unresolvedNames.length) {
     const extracts = await fetchWikiExtractForTitles(unresolvedNames);
 
+    let appliedExtractEntries = 0;
+    const totalExtractEntries = unresolvedNames.length || 0;
     for (const name of unresolvedNames) {
+      appliedExtractEntries++;
+      if (appliedExtractEntries % 10 === 0) {
+        setStatus(`Applying Wiki extract vendor fallback: ${appliedExtractEntries.toLocaleString()}/${totalExtractEntries.toLocaleString()} items`);
+        await waitForUiFrame();
+      }
+
       const text = extracts.get(name) || "";
       const acquisitionIndex = text.search(/\bAcquisition\b/i);
       const vendorIndex = text.search(/\bVendor\b/i);
@@ -6431,6 +6466,9 @@ async function loadWikiVendorBarterSourcesForMissingItems(missingItems) {
       }
     }
   }
+
+  setStatus('Wiki vendor/barter lookup: applying cache updates...');
+  await waitForUiFrame();
 
   const noVendorCount = Object.keys(wikiVendorNoVendorByName || {}).length;
   const ambiguousCount = Object.keys(wikiVendorAmbiguousByName || {}).length;
