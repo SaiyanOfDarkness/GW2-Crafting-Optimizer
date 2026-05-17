@@ -4503,6 +4503,16 @@ const VENDOR_BARTER_BY_NAME = {
     { currency: "Spirit Shard", count: 20, vendorName: "Miyani", vendorPage: "Miyani" }
   ],
 
+  "Charged Quartz Crystal": [
+    {
+      name: "Quartz Crystal",
+      count: 25,
+      compactIconOnly: true,
+      vendorName: "Place of Power",
+      vendorPage: "Place_of_Power"
+    }
+  ],
+
   "Ambrite Fossilized Axe": [{ name: "Unidentified Fossilized Insect", count: 1 }],
   "Ambrite Fossilized Dagger": [{ name: "Unidentified Fossilized Insect", count: 1 }],
   "Ambrite Fossilized Focus": [{ name: "Unidentified Fossilized Insect", count: 1 }],
@@ -5193,6 +5203,7 @@ function getCraftReplacementCostForMode(itemId, count = 1, mode = null, recipeIn
 function formatCraftReplacementTooltipLine(itemId, count, unitValue, unitHtml = null) {
   const qty = Number(count || 0).toLocaleString();
   const unitText = unitHtml || escapeHtml(unitValue == null || !Number.isFinite(unitValue) ? '?' : formatCoinPrecise(unitValue));
+
   return `<span class="craft-replacement-tooltip-line">${escapeHtml(itemName(itemId))} x ${qty} (${unitText} per)</span>`;
 }
 
@@ -5222,6 +5233,20 @@ function getCraftReplacementTooltipLines(itemId, count = 1, mode = null, recipeI
       : [];
 
     if (currencyParts.length) {
+      const compactItemPart = currencyParts.find(p => p.name && p.compactIconOnly);
+
+      if (compactItemPart) {
+        const compactItemId = findItemIdByExactName(compactItemPart.name);
+        const compactIcon = compactItemId ? itemIcon(compactItemId) : null;
+
+        const unitHtml = compactIcon
+          ? `<span class="barter-cost"><img class="barter-icon" src="${escapeHtml(compactIcon)}" loading="lazy" alt=""> ${escapeHtml(Number(compactItemPart.count).toLocaleString())}</span>`
+          : escapeHtml(Number(compactItemPart.count).toLocaleString());
+
+        lines.push(formatCraftReplacementTooltipLine(ingId, ingCount, null, unitHtml));
+        continue;
+      }
+
       const unitHtml = currencyParts
         .map(p => p.currency === 'coin' ? renderCoinCost(p.count) : renderCurrencyCostFromApi(p.currency || p.name, p.count))
         .join(`<span class="barter-sep">+</span>`);
