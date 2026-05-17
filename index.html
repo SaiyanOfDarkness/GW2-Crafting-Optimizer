@@ -1417,6 +1417,19 @@ let tableMode = 'profit';
 let lastResearchTableMode = 'researchNotes';
 let researchMaterialValueMode = 'sell';
 const RENDER_STEP = 500;
+const NESTED_INITIAL_RENDER_STEP = 100;
+const NESTED_BUILD_YIELD_EVERY = 100;
+
+function waitForUiFrame() {
+  return new Promise(resolve => {
+    requestAnimationFrame(() => setTimeout(resolve, 0));
+  });
+}
+
+function nestedInitialRenderLimit() {
+  return Math.min(NESTED_INITIAL_RENDER_STEP, RENDER_STEP);
+}
+
 const NESTED_RENDER_INITIAL_LIMIT = 100;
 let renderLimit = RENDER_STEP;
 
@@ -5410,6 +5423,8 @@ async function toggleNestedProfitRecipes() {
     if (desc) desc.textContent = 'Profit Mode: showing cost-aware nested/sub-crafting opportunities.';
     updateNestedProfitToggleButton();
     log(`[Nested] Toggle ON: using cached nested rows (${opportunities.length.toLocaleString()} total; rendering first ${Math.min(renderLimit, opportunities.length).toLocaleString()}).`);
+    setStatus(`Nested recipes ON: rendering first ${Math.min(renderLimit, opportunities.length).toLocaleString()} of ${opportunities.length.toLocaleString()} cached rows.`);
+    await waitForUiFrame();
     render();
     return;
   }
@@ -6929,9 +6944,19 @@ log('[Nested] Using cached vendor/barter datasets only (live wiki lookup skipped
   let nestedUsed = 0;
 
   log(`[Nested] Inputs ready: ${recipeCache.length.toLocaleString()} recipes, ${ownedMaterials.size.toLocaleString()} owned item stacks, ${prices.size.toLocaleString()} priced items.`);
+  setStatus(`Building nested opportunities: 0 / ${recipeCache.length.toLocaleString()} recipes checked...`);
+  await waitForUiFrame();
 
   for (const recipe of recipeCache) {
     considered++;
+
+    if (considered % NESTED_BUILD_YIELD_EVERY === 0) {
+      setStatus(`Building nested opportunities: ${considered.toLocaleString()} / ${recipeCache.length.toLocaleString()} recipes checked; ${opportunities.length.toLocaleString()} candidates found...`);
+      if (considered % 500 === 0) {
+        log(`[Nested] Progress: ${considered.toLocaleString()} / ${recipeCache.length.toLocaleString()} recipes checked; ${opportunities.length.toLocaleString()} candidates found.`);
+      }
+      await waitForUiFrame();
+    }
 
     const flat = flattenRecipeIngredients(recipe, recipeIndex);
     if (!flat.ok || !flat.requirements.size) continue;
