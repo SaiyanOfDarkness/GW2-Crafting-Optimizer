@@ -6484,7 +6484,6 @@ async function loadWikiVendorBarterSourcesForMissingItems(missingItems) {
 
   setStatus('Wiki vendor/barter lookup: applying cache updates...');
   await waitForUiFrame();
-  await waitForUiFrame();
 
   const noVendorCount = Object.keys(wikiVendorNoVendorByName || {}).length;
   const ambiguousCount = Object.keys(wikiVendorAmbiguousByName || {}).length;
@@ -6789,7 +6788,7 @@ async function buildResearchNoteMode() {
     ? RESEARCH_NOTE_YIELDS.size
     : (typeof RESEARCH_NOTE_YIELDS !== "undefined" ? Object.keys(RESEARCH_NOTE_YIELDS || {}).length : 0);
 
-  await ensureWikiVendorSourcesForIngredientIds(collectOwnedRecipeIngredientIds(), 'Research Note ingredient');
+  log('[Research] Using cached vendor/barter datasets only (live wiki lookup skipped).');
 
   for (const recipe of recipeCache) {
     considered++;
