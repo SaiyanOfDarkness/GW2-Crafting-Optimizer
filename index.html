@@ -7017,6 +7017,8 @@ async function buildPartialResearchRecipes() {
     : new Map(recipeCache.map(r => [Number(r.outputItemId), r]));
   activeProfitRecipeIndexForValuation = recipeIndex;
 
+  await ensureOwnedBulkFoodVendorSourcesLoaded('Research Partial');
+
   partialResearchOpportunities = [];
   log('[Research Partial] Using cached vendor/barter datasets only (live wiki lookup skipped).');
   setStatus('Building partial Research Note recipes...');
@@ -7158,6 +7160,27 @@ async function buildPartialResearchRecipes() {
   log(`[Done] Partial Research Recipes built: ${partialResearchOpportunities.length.toLocaleString()} partial rows matched, ${renderedNow.toLocaleString()} rendered.`);
 }
 
+
+async function ensureOwnedBulkFoodVendorSourcesLoaded(contextLabel = 'Research') {
+  const names = [...ownedMaterials.keys()]
+    .map(id => itemName(id))
+    .filter(Boolean)
+    .filter(name => {
+      const key = String(name || '').toLowerCase().trim();
+      return BULK_FOOD_CONTAINER_BY_INGREDIENT.has(key) && !VENDOR_BULK_SOURCES_BY_NAME.has(key);
+    });
+
+  const uniqueNames = [...new Set(names)];
+  if (!uniqueNames.length) return 0;
+
+  log(`[${contextLabel}] Loading bulk-food vendor prices for ${uniqueNames.length.toLocaleString()} owned ingredient(s)...`);
+  const sources = await fetchCategoryBulkFoodVendorSourcesForNames(uniqueNames);
+  const count = sources?.size || 0;
+  log(`[${contextLabel}] Bulk-food vendor prices loaded: ${count.toLocaleString()} source(s).`);
+  return count;
+}
+
+
 async function buildResearchNoteMode() {
   if (!ownedMaterials.size || !recipeCache.length) {
     setStatus('Load owned materials and recipe cache first.');
@@ -7168,6 +7191,8 @@ async function buildResearchNoteMode() {
     ? buildRecipeIndexByOutput()
     : new Map(recipeCache.map(r => [Number(r.outputItemId), r]));
   activeProfitRecipeIndexForValuation = recipeIndex;
+
+  await ensureOwnedBulkFoodVendorSourcesLoaded('Research');
 
   researchNoteOpportunities = [];
 
