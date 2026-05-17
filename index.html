@@ -6922,7 +6922,9 @@ async function buildNestedOpportunities() {
 
   const recipeIndex = buildRecipeIndexByOutput();
   opportunities = [];
-  await ensureWikiVendorSourcesForIngredientIds(collectOwnedRecipeIngredientIds(), 'nested Profit Mode ingredient');
+  // Disabled live wiki vendor/barter lookup during nested mode.
+// Nested mode now relies on cached/preloaded vendor datasets only.
+log('[Nested] Using cached vendor/barter datasets only (live wiki lookup skipped).');
   let considered = 0;
   let nestedUsed = 0;
 
