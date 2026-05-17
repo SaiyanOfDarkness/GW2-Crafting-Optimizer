@@ -4701,7 +4701,8 @@ function isKnownWalletCurrencyName(name) {
 function isHistoricalVendorRow(tr) {
   const html = String(tr?.innerHTML || '').toLowerCase();
   const text = String(tr?.textContent || '').toLowerCase();
-  return /\/historical|historical#vendor|historical vendor|discontinued|deprecated/.test(html)
+  return /lionguard[ _]belongings[ _]collector|artisan[ _]\(?master[ _]chef\)?|crafting[ _]supplier|consortium[ _]guard/i.test(html) || /lionguard[ _]belongings[ _]collector|artisan[ _]\(?master[ _]chef\)?|crafting[ _]supplier|consortium[ _]guard/i.test(text)
+    || /\/historical|historical#vendor|historical vendor|discontinued|deprecated/.test(html)
     || /historical vendor|discontinued|deprecated/.test(text);
 }
 
@@ -4966,7 +4967,7 @@ function shouldRenderVendorBarterIngredientLine(ing, barterCost) {
 
 
 function renderBulkAwareVendorIngredientCostHtml(baseCost, requiredCount = 1, unitValue = null) {
-  const compactPart = barterCost?.parts?.find(p => p.compactIconOnly && p.name);
+  const compactPart = baseCost?.parts?.find(p => p.compactIconOnly && p.name);
   if (compactPart) {
     const compactItemId = compactPart.itemId || findItemIdByExactName(compactPart.name);
     const compactIcon = compactItemId ? itemIcon(compactItemId) : null;
@@ -6884,9 +6885,6 @@ function barterPackagePureCoinTotal(entries) {
 }
 
 function parseWikiVendorQueryHtmlToBarterEntries(html, wantedName) {
-  // Ignore historical/retired vendor rows that can still appear in wiki Vendor_query output.
-  entries = (entries || []).filter(e => !/lionguard[ _]belongings[ _]collector|artisan[ _]\(?master[ _]chef\)?|crafting[ _]supplier|consortium[ _]guard/i.test(String(e.vendorPage || e.vendorName || e.sourcePage || e.sourceName || '')));
-
   html = String(html || '');
   if (!html || !/<table|<tr/i.test(html)) return [];
 
