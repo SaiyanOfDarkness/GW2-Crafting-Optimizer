@@ -7761,9 +7761,15 @@ function formatVendorSource(source) {
   return `${source.sourceName}: ${Number(source.cost || 0).toLocaleString()} ${currencyName} / ${source.outputCount}`;
 }
 
-function renderVendorLabelHtml(source) {
-  if (!source || !source.sourcePage || isBannedVendorName(source.sourcePage) || isBannedVendorName(source.sourceName)) return 'Vendor';
-  return `<a class="item-link vendor-link" href="https://wiki.guildwars2.com/wiki/${encodeURIComponent(source.sourcePage).replace(/%20/g, '_')}" target="_blank" rel="noopener noreferrer">Vendor</a>`;
+function renderVendorLabelHtml(source, fallbackItemId = null) {
+  const fallbackPage = fallbackItemId ? itemName(fallbackItemId) : '';
+  const page = source && source.sourcePage && !isBannedVendorName(source.sourcePage) && !isBannedVendorName(source.sourceName)
+    ? source.sourcePage
+    : fallbackPage;
+
+  if (!page) return 'Vendor';
+
+  return `<a class="item-link vendor-link" href="https://wiki.guildwars2.com/wiki/${encodeURIComponent(String(page).replace(/ /g, '_'))}" target="_blank" rel="noopener noreferrer">Vendor</a>`;
 }
 
 function renderVendorCostOnlyHtml(source) {
@@ -7782,9 +7788,9 @@ function renderVendorCostOnlyHtml(source) {
   return `${currencyPart} / ${outputCount} (${eachPart} each)`;
 }
 
-function renderVendorSourceHtml(source) {
+function renderVendorSourceHtml(source, fallbackItemId = null) {
   if (!source) return "";
-  return `${renderVendorLabelHtml(source)}: ${renderVendorCostOnlyHtml(source)}`;
+  return `${renderVendorLabelHtml(source, fallbackItemId)}: ${renderVendorCostOnlyHtml(source)}`;
 }
 
 function itemRarity(id) { return itemInfo.get(Number(id))?.rarity || 'Basic'; }
@@ -7865,7 +7871,7 @@ function renderIngredients(ingredients) {
     const ownedText = `Owned ${Number(ing.owned || 0).toLocaleString()}`;
 
     if (ing.vendorSource && !/TP\s+(?:Sell|Buy)\s+cheaper/i.test(String(ing.valueSource || ''))) {
-      return `<span class="ingredient-chip">${renderItemLink(ing.itemId)} <span class="muted">x ${count} / ${ownedText} | ${renderVendorSourceHtml(ing.vendorSource)}</span></span>`;
+      return `<span class="ingredient-chip">${renderItemLink(ing.itemId)} <span class="muted">x ${count} / ${ownedText} | ${renderVendorSourceHtml(ing.vendorSource, ing.itemId)}</span></span>`;
     }
 
     const unitValue = ing.unitValue ?? ing.unitSell;
