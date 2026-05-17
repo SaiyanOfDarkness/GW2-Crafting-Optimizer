@@ -4487,6 +4487,8 @@ const BANNED_VENDOR_NAMES = new Set([
 ]);
 
 function isBannedVendorName(name) {
+  if (/lionguard[ _]belongings[ _]collector|artisan[ _]\(?master[ _]chef\)?|crafting[ _]supplier|consortium[ _]guard/i.test(String(name || ''))) return true;
+
   if (/consortium[ _]guard/i.test(String(name || ''))) return true;
 
   const clean = normalizeWikiItemName(name).toLowerCase();
@@ -4948,11 +4950,11 @@ function getTpOpportunityUnitForProfitMode(itemId, mode = null) {
   return p.buy == null ? null : Number(p.buy);
 }
 
-function getVendorOpportunityUnitValue(itemId) {
+function getVendorOpportunityUnitValue(itemId, mode = null) {
   const vendorSource = getVendorBulkSourceForIngredient(itemId);
   const vendorCoinEach = getVendorSourceUnitCoinValue(vendorSource);
   if (vendorCoinEach != null) {
-    const materialUnit = getMaterialValueUnitForIngredient(itemId);
+    const materialUnit = getMaterialValueUnitForIngredient(itemId, mode || 'listing');
     return materialUnit.value == null ? vendorCoinEach : Number(materialUnit.value);
   }
   if (vendorSource && vendorSource.currency === "karma") return 0;
@@ -4970,7 +4972,7 @@ function getCraftReplacementCostForMode(itemId, count = 1, mode = null, recipeIn
 
   const selectedMode = mode || getProfitValuationMode();
   const index = recipeIndex || activeProfitRecipeIndexForValuation || buildRecipeIndexByOutput();
-  const vendorUnit = getVendorOpportunityUnitValue(itemId);
+  const vendorUnit = getVendorOpportunityUnitValue(itemId, selectedMode);
   if (vendorUnit != null) return vendorUnit * count;
 
   const isBoundOrNoTp = isAccountBoundOrNoTpIngredient(itemId);
@@ -5563,7 +5565,7 @@ function getProfitIngredientUnitValueForMode(itemId, ing, mode) {
   // Vendor / barter / karma inputs stay on their vendor valuation. They do not
   // switch between TP buy and TP sell with the Profit Value selector.
   if (vendorSource || (ing && String(ing.valueSource || '').toLowerCase().includes('vendor'))) {
-    const materialUnit = getMaterialValueUnitForIngredient(itemId);
+    const materialUnit = getMaterialValueUnitForIngredient(itemId, mode);
     return materialUnit && materialUnit.value != null ? Number(materialUnit.value) : 0;
   }
 
@@ -5613,7 +5615,7 @@ function getProfitDisplayIngredientsForMode(o, mode) {
 
     const vendorSource = ing.vendorSource || getVendorBulkSourceForIngredient(itemId);
     if (vendorSource || String(ing.valueSource || '').toLowerCase().includes('vendor')) {
-      const materialUnit = getMaterialValueUnitForIngredient(itemId);
+      const materialUnit = getMaterialValueUnitForIngredient(itemId, mode);
       if (materialUnit && materialUnit.value != null) {
         ing.unitValue = Number(materialUnit.value);
         ing.unitSell = Number(materialUnit.value);
@@ -6543,9 +6545,8 @@ function bulkFoodContainerInfoForIngredientName(name) {
 }
 
 function sourceFromVendorQueryEntriesForBulkContainer(ingredientName, bulkName, outputCount, entries) {
-  // Ignore historical/event vendor rows that can appear in Vendor_query output.
-  // Example: Consortium Guard (karma merchant)#vendor29.
-  entries = (entries || []).filter(e => !/consortium[ _]guard/i.test(String(e.vendorPage || e.vendorName || e.sourcePage || e.sourceName || '')));
+  // Ignore historical/retired vendor rows that can still appear in wiki Vendor_query output.
+  entries = (entries || []).filter(e => !/lionguard[ _]belongings[ _]collector|artisan[ _]\(?master[ _]chef\)?|crafting[ _]supplier|consortium[ _]guard/i.test(String(e.vendorPage || e.vendorName || e.sourcePage || e.sourceName || '')));
 
   entries = cleanBarterEntries(entries);
   if (!entries || entries.length !== 1) return null;
@@ -6642,6 +6643,9 @@ function barterPackagePureCoinTotal(entries) {
 }
 
 function parseWikiVendorQueryHtmlToBarterEntries(html, wantedName) {
+  // Ignore historical/retired vendor rows that can still appear in wiki Vendor_query output.
+  entries = (entries || []).filter(e => !/lionguard[ _]belongings[ _]collector|artisan[ _]\(?master[ _]chef\)?|crafting[ _]supplier|consortium[ _]guard/i.test(String(e.vendorPage || e.vendorName || e.sourcePage || e.sourceName || '')));
+
   html = String(html || '');
   if (!html || !/<table|<tr/i.test(html)) return [];
 
@@ -7674,10 +7678,6 @@ function wikiUrlForOutputOpportunity(o) {
     return 'https://wiki.guildwars2.com/wiki/' + encodeURIComponent(`${name} (${weight})`.replace(/[ ]+/g, '_'));
   }
 
-  // Many low-level crafted stat variants exist as API item names but not as
-  // separate wiki pages, e.g. "Ravaging Soft Wood Focus" should link to
-  // "Soft Wood Focus". Keep the displayed name, but resolve the href to the
-  // base crafted item page.
   const baseName = stripCraftedPrefixForVariantSearch(name);
   return wikiUrlForName(baseName || name);
 }
@@ -7712,8 +7712,7 @@ function renderVendorQueryLink(itemId, label = "Vendor Query") {
 }
 
 function wikiAcquisitionInfoUrlForItem(itemId) {
-  const name = itemName(itemId);
-  return wikiUrlForName(stripCraftedPrefixForVariantSearch(name) || name) + '#Acquisition';
+  return wikiUrlForName(itemName(itemId)) + '#Acquisition';
 }
 
 function renderAcquisitionInfoLink(itemId, label = "Acquisition Info") {
@@ -7816,18 +7815,40 @@ function getSelectedTpUnitValueForMode(itemId) {
   return getSelectedTpUnitValueInfoForMode(itemId).value;
 }
 
+
+function getVendorOrTpUnitValueForMaterialMode(itemId, vendorSource, mode = null) {
+  const vendorCoinEach = getVendorSourceUnitCoinValue(vendorSource);
+  const selectedMode = mode || (researchMaterialValueMode === 'buy' ? 'instant' : 'listing');
+
+  if (vendorCoinEach != null) {
+    if (selectedMode === 'instant') {
+      return { value: vendorCoinEach, source: 'Vendor', vendorSource };
+    }
+
+    const p = prices.get(Number(itemId));
+    const tpSell = p?.sell == null ? null : Number(p.sell);
+    if (!vendorSource.forceVendor && tpSell != null && Number.isFinite(tpSell) && tpSell > 0 && tpSell < vendorCoinEach) {
+      return { value: tpSell, source: 'TP Sell cheaper', vendorSource };
+    }
+
+    return { value: vendorCoinEach, source: 'Vendor', vendorSource };
+  }
+
+  return null;
+}
+
+
 function getCheapestVendorOrTpUnitValue(itemId, vendorSource, modeSourceText) {
   const vendorCoinEach = getVendorSourceUnitCoinValue(vendorSource);
+  const materialMode = researchMaterialValueMode === 'buy' ? 'instant' : 'listing';
+
+  if (vendorCoinEach != null) {
+    return getVendorOrTpUnitValueForMaterialMode(itemId, vendorSource, materialMode);
+  }
+
   const tpInfo = getSelectedTpUnitValueInfoForMode(itemId);
   const tpUnit = tpInfo.value;
   const tpSource = tpInfo.source || modeSourceText || (researchMaterialValueMode === 'buy' ? 'TP Buy' : 'TP Sell');
-
-  if (vendorCoinEach != null) {
-    if (!vendorSource.forceVendor && tpUnit != null && tpUnit < vendorCoinEach) {
-      return { value: tpUnit, source: `${tpSource} cheaper`, vendorSource };
-    }
-    return { value: vendorCoinEach, source: 'Vendor', vendorSource };
-  }
 
   return { value: tpUnit, source: tpUnit == null ? '' : tpSource, vendorSource };
 }
@@ -7837,10 +7858,13 @@ function getCheapestVendorBarterOrTpUnitValue(itemId, vendorCost, modeSourceText
   const tpInfo = getSelectedTpUnitValueInfoForMode(itemId);
   const tpUnit = tpInfo.value;
   const tpSource = tpInfo.source || modeSourceText || (researchMaterialValueMode === 'buy' ? 'TP Buy' : 'TP Sell');
+
   if (vendorUnit != null && Number.isFinite(vendorUnit)) {
+    if (researchMaterialValueMode === 'buy') return { value: vendorUnit, source: 'Vendor', vendorBarterCost: vendorCost };
     if (tpUnit != null && tpUnit < vendorUnit) return { value: tpUnit, source: `${tpSource} cheaper`, vendorBarterCost: vendorCost };
     return { value: vendorUnit, source: 'Vendor', vendorBarterCost: vendorCost };
   }
+
   return { value: tpUnit, source: tpUnit == null ? '' : tpSource, vendorBarterCost: vendorCost || null };
 }
 
@@ -7862,18 +7886,12 @@ function addOwnedMaterialTpSellValue(runningTotal, itemId, count) {
   return runningTotal + (Number(count || 0) * unit);
 }
 
-function getMaterialValueUnitForIngredient(ingId) {
+function getMaterialValueUnitForIngredient(ingId, mode = null) {
   const vendorSource = getVendorBulkSourceForIngredient(ingId);
   if (vendorSource) {
-    const vendorCoinEach = getVendorSourceUnitCoinValue(vendorSource);
-    if (vendorCoinEach != null) {
-      const p = prices.get(Number(ingId));
-      const tpSell = p?.sell == null ? null : Number(p.sell);
-      if (!vendorSource.forceVendor && tpSell != null && tpSell < vendorCoinEach) {
-        return { value: tpSell, source: 'TP Sell cheaper', vendorSource };
-      }
-      return { value: vendorCoinEach, source: 'Vendor', vendorSource };
-    }
+    const vendorMode = mode === 'instant' || mode === 'listing' ? mode : 'listing';
+    const vendorVal = getVendorOrTpUnitValueForMaterialMode(ingId, vendorSource, vendorMode);
+    if (vendorVal) return vendorVal;
   }
 
   const wikiVendorCost = getVendorBarterCost(ingId, 1);
