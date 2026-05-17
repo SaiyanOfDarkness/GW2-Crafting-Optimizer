@@ -1479,7 +1479,7 @@ let researchMaterialValueMode = 'buy';
 const RENDER_STEP = 500;
 const NESTED_INITIAL_RENDER_STEP = 100;
 const NESTED_BUILD_YIELD_EVERY = 100;
-const RESEARCH_INITIAL_RENDER_STEP = 50;
+const RESEARCH_INITIAL_RENDER_STEP = 100;
 const RESEARCH_BUILD_YIELD_EVERY = 100;
 
 function researchInitialRenderLimit() {
@@ -4858,46 +4858,6 @@ function setResearchMaterialValueMode(mode) {
   render();
 }
 
-
-const DEBUG_RESEARCH_ZERO_VALUE_INGREDIENTS = true;
-const DEBUG_RESEARCH_ZERO_VALUE_NAMES = new Set(['cherry', 'almond', 'rice', 'rice ball']);
-const DEBUG_RESEARCH_ZERO_VALUE_SEEN = new Set();
-
-function debugResearchZeroValueIngredient(itemId, materialUnit, context = '') {
-  if (!DEBUG_RESEARCH_ZERO_VALUE_INGREDIENTS) return;
-
-  const name = itemName(itemId);
-  const key = String(name || '').toLowerCase().trim();
-
-  // Keep this debug build safe: only log the named test items, and only once
-  // per item/context. Do not log every 0c item, because Research Mode can render
-  // thousands of ingredients and lock the browser.
-  if (!DEBUG_RESEARCH_ZERO_VALUE_NAMES.has(key)) return;
-
-  const seenKey = `${context}|${itemId}`;
-  if (DEBUG_RESEARCH_ZERO_VALUE_SEEN.has(seenKey)) return;
-  DEBUG_RESEARCH_ZERO_VALUE_SEEN.add(seenKey);
-
-  const vendorSource = getVendorBulkSourceForIngredient(itemId);
-  const bulkInfo = BULK_FOOD_CONTAINER_BY_INGREDIENT.get(key) || null;
-  const staticFallback = typeof STATIC_VENDOR_SOURCE_FALLBACK_BY_NAME !== 'undefined'
-    ? STATIC_VENDOR_SOURCE_FALLBACK_BY_NAME.get(key) || null
-    : null;
-  const p = prices.get(Number(itemId));
-
-  log(
-    `[Research Debug] ${context ? context + ' | ' : ''}${name} (${itemId}) -> ` +
-    `value=${materialUnit && materialUnit.value != null ? formatCoinPrecise(materialUnit.value) : 'null'}; ` +
-    `source=${materialUnit?.source || ''}; ` +
-    `isBoundNoTP=${isAccountBoundOrNoTpIngredient(itemId)}; ` +
-    `vendorSource=${vendorSource ? JSON.stringify(vendorSource) : 'none'}; ` +
-    `bulkInfo=${bulkInfo ? JSON.stringify(bulkInfo) : 'none'}; ` +
-    `staticFallback=${staticFallback ? JSON.stringify(staticFallback) : 'none'}; ` +
-    `tpBuy=${p?.buy ?? 'null'}; tpSell=${p?.sell ?? 'null'}`
-  );
-}
-
-
 function getResearchMaterialUnitValue(itemId) {
   itemId = Number(itemId);
 
@@ -8042,13 +8002,22 @@ function getResearchDisplayIngredientsForCurrentMode(ingredients) {
     if (!itemId || !count) return ing;
 
     const materialUnit = getResearchMaterialUnitValue(itemId);
-    debugResearchZeroValueIngredient(itemId, materialUnit, 'display ingredient');
     if (materialUnit && materialUnit.value != null && Number.isFinite(Number(materialUnit.value))) {
+      ing.vendorSource = materialUnit.vendorSource || ing.vendorSource;
+      ing.valueSource = materialUnit.source || (researchMaterialValueMode === 'buy' ? 'TP Buy' : 'TP Sell');
+      ing.accountBoundValueIgnored = false;
+
+      // Non-coin vendor currencies such as Karma intentionally have 0c coin
+      // value for math, but should display as Vendor currency cost instead of
+      // "@ 0c". Leave unitValue empty so renderIngredients uses vendorSource.
+      if (ing.vendorSource && ing.vendorSource.currency && ing.vendorSource.currency !== 'coin') {
+        ing.unitValue = null;
+        ing.unitSell = null;
+        return ing;
+      }
+
       ing.unitValue = Number(materialUnit.value);
       ing.unitSell = Number(materialUnit.value);
-      ing.valueSource = materialUnit.source || (researchMaterialValueMode === 'buy' ? 'TP Buy' : 'TP Sell');
-      ing.vendorSource = materialUnit.vendorSource || ing.vendorSource;
-      ing.accountBoundValueIgnored = false;
 
       if (materialUnit.craftReplacement || /craft replacement/i.test(String(materialUnit.source || ''))) {
         const recipeIndex = activeProfitRecipeIndexForValuation && activeProfitRecipeIndexForValuation.size
@@ -8075,7 +8044,6 @@ function getResearchMaterialValueFromIngredients(ingredients) {
     if (!itemId || !count) continue;
 
     const materialUnit = getResearchMaterialUnitValue(itemId);
-    debugResearchZeroValueIngredient(itemId, materialUnit, 'material total');
     if (!materialUnit || materialUnit.value == null || !Number.isFinite(Number(materialUnit.value))) {
       missing = true;
       continue;
