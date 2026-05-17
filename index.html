@@ -2441,7 +2441,8 @@ const EXTERNAL_DATA_PATHS = {
   vendorCraftingMaterialRows: './data/gw2_vendor_crafting_material_rows.json',
   vendorBulkRawRows: './data/gw2_vendor_bulk_raw_rows.json',
   vendorBulkItems: './data/gw2_vendor_bulk_items.json',
-  accountBoundMaterialRows: './data/gw2_account_bound_material_rows.json'
+  accountBoundMaterialRows: './data/gw2_account_bound_material_rows.json',
+  nonTradableOutputIds: './data/gw2_non_tradable_output_ids.json'
 };
 
 let externalMysticForgeRecipeRows = {};
@@ -2451,6 +2452,7 @@ let externalVendorBulkItems = {};
 let externalAccountBoundMaterialRows = {};
 let externalAccountBoundMaterialIds = new Set();
 let externalAccountBoundMaterialNames = new Set();
+let NON_TRADABLE_OUTPUT_IDS = new Set();
 let externalDatasetStatus = {
   mysticForgeRows: false,
   vendorCraftingMaterialRows: false,
@@ -3071,6 +3073,21 @@ async function loadExternalRepoDatasets() {
     externalAccountBoundMaterialNames = normalized.names;
     externalDatasetStatus.accountBoundMaterialCount = normalized.count;
     log(`[Data] Account-bound material rows normalized: ${normalized.count.toLocaleString()} item(s).`);
+  }
+
+  const nonTradableOutputIds = await fetchOptionalRepoJson(
+    EXTERNAL_DATA_PATHS.nonTradableOutputIds,
+    'Non-tradable output IDs'
+  );
+
+  if (nonTradableOutputIds && Array.isArray(nonTradableOutputIds.outputItemIds)) {
+    NON_TRADABLE_OUTPUT_IDS = new Set(
+      nonTradableOutputIds.outputItemIds.map(Number)
+    );
+
+    log(
+      `[Data] Non-tradable output IDs loaded: ${NON_TRADABLE_OUTPUT_IDS.size.toLocaleString()} item(s).`
+    );
   }
 
   if (totalVendorApplied > 0) {
@@ -6867,6 +6884,10 @@ async function buildNestedOpportunities() {
     const evald = evaluateNestedRequirements(expandedFlat, recipe.outputCount || 1);
     if (evald.missingOwned || evald.missingMaterialPrice) continue;
 
+    if (NON_TRADABLE_OUTPUT_IDS.has(recipe.outputItemId)) {
+      continue;
+    }
+
     const outputPrice = prices.get(recipe.outputItemId);
     if (!outputPrice || outputPrice.buy == null) continue;
 
@@ -6965,6 +6986,10 @@ async function buildOpportunities() {
 
     if (missingOwned || !Number.isFinite(canCraftQty) || canCraftQty <= 0) continue;
     if (missingMaterialPrice) continue;
+
+    if (NON_TRADABLE_OUTPUT_IDS.has(recipe.outputItemId)) {
+      continue;
+    }
 
     const outputPrice = prices.get(recipe.outputItemId);
     if (!outputPrice || outputPrice.buy == null) continue;
