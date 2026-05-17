@@ -2604,6 +2604,20 @@ const VENDOR_BULK_SOURCES_BY_NAME = new Map([
 // reads the current package cost, and normalizes it by 25. This avoids plural
 // guessing while keeping runtime lookup narrow.
 
+
+const DISPLAY_PREFERRED_VENDOR_SOURCE_BY_NAME = new Map([
+  // Prefer showing the bulk/container acquisition in Research Mode display.
+  // Karma/currency cost remains 0c for copper math, but the chip should show
+  // the currency cost instead of the direct coin vendor price.
+  ["rice ball", { ingredientName: "Rice Ball", sourceName: "Rice in Bulk", sourcePage: "Rice_Ball", currency: "karma", cost: 49, outputCount: 25 }]
+]);
+
+function getDisplayPreferredVendorSourceForIngredient(itemId) {
+  const key = String(itemName(itemId) || '').toLowerCase().trim();
+  return DISPLAY_PREFERRED_VENDOR_SOURCE_BY_NAME.get(key) || null;
+}
+
+
 const STATIC_VENDOR_SOURCE_FALLBACK_BY_NAME = new Map([
   // Known cooking vendor/bulk ingredients. These are display/valuation fallbacks
   // used only when the live vendor/bulk lookup has not populated VENDOR_BULK_SOURCES_BY_NAME.
@@ -2612,7 +2626,9 @@ const STATIC_VENDOR_SOURCE_FALLBACK_BY_NAME = new Map([
   ["rice", { ingredientName: "Rice", sourceName: "Rice in Bulk", sourcePage: "Rice", currency: "karma", cost: 49, outputCount: 25 }],
 
   // Direct vendor ingredient.
-  ["rice ball", { ingredientName: "Rice Ball", sourceName: "Rice Ball", sourcePage: "Rice_Ball", currency: "coin", cost: 32, outputCount: 1 }]
+  ["rice ball", { ingredientName: "Rice Ball", sourceName: "Rice Ball", sourcePage: "Rice_Ball", currency: "coin", cost: 32, outputCount: 1 }],
+  ["packet of yeast", { ingredientName: "Packet of Yeast", sourceName: "Yeast in Bulk", sourcePage: "Packet_of_Yeast", currency: "karma", cost: 35, outputCount: 25 }],
+  ["yeast", { ingredientName: "Yeast", sourceName: "Yeast in Bulk", sourcePage: "Yeast", currency: "karma", cost: 35, outputCount: 25 }]
 ]);
 
 
@@ -7174,13 +7190,15 @@ async function buildPartialResearchRecipes() {
 
 
 async function ensureOwnedBulkFoodVendorSourcesLoaded(contextLabel = 'Research') {
-  const names = [...ownedMaterials.keys()]
-    .map(id => itemName(id))
-    .filter(Boolean)
-    .filter(name => {
-      const key = String(name || '').toLowerCase().trim();
-      return BULK_FOOD_CONTAINER_BY_INGREDIENT.has(key) && !VENDOR_BULK_SOURCES_BY_NAME.has(key);
-    });
+  const names = [];
+  for (const id of ownedMaterials.keys()) {
+    const item = itemName(id);
+    for (const key of bulkFoodLookupKeysForIngredientName(item)) {
+      if (BULK_FOOD_CONTAINER_BY_INGREDIENT.has(key) && !VENDOR_BULK_SOURCES_BY_NAME.has(key)) {
+        names.push(key);
+      }
+    }
+  }
 
   const uniqueNames = [...new Set(names)];
   if (!uniqueNames.length) return 0;
@@ -7709,11 +7727,53 @@ function isAccountBoundOrNoTpIngredient(itemId) {
   return false;
 }
 
+
+function bulkFoodLookupKeysForIngredientName(name) {
+  const raw = String(name || '').toLowerCase().trim();
+  const keys = new Set([raw]);
+
+  const replacements = [
+    [/^packet of\s+/, ''],
+    [/^bag of\s+/, ''],
+    [/^bowl of\s+/, ''],
+    [/^jar of\s+/, ''],
+    [/^glass of\s+/, ''],
+    [/^piece of\s+/, ''],
+    [/^pile of\s+/, ''],
+    [/^slice of\s+/, '']
+  ];
+
+  for (const [rx, repl] of replacements) {
+    const v = raw.replace(rx, repl).trim();
+    if (v && v !== raw) keys.add(v);
+  }
+
+  // A few GW2 cooking names use slightly different ingredient/container names.
+  if (raw === 'packet of yeast') keys.add('yeast');
+
+  return [...keys].filter(Boolean);
+}
+
+function getBulkFoodContainerInfoForIngredient(itemId) {
+  const name = itemName(itemId);
+  for (const key of bulkFoodLookupKeysForIngredientName(name)) {
+    const info = BULK_FOOD_CONTAINER_BY_INGREDIENT.get(key);
+    if (info) return { key, info };
+  }
+  return null;
+}
+
+
 function getVendorBulkSourceForIngredient(ingId) {
   const name = String(itemName(ingId) || "").toLowerCase().trim();
-  return VENDOR_BULK_SOURCES_BY_NAME.get(name)
-    || STATIC_VENDOR_SOURCE_FALLBACK_BY_NAME.get(name)
-    || null;
+
+  for (const key of bulkFoodLookupKeysForIngredientName(name)) {
+    const source = VENDOR_BULK_SOURCES_BY_NAME.get(key)
+      || STATIC_VENDOR_SOURCE_FALLBACK_BY_NAME.get(key);
+    if (source) return source;
+  }
+
+  return null;
 }
 
 function getVendorSourceUnitCoinValue(source) {
@@ -8018,6 +8078,26 @@ function getResearchDisplayIngredientsForCurrentMode(ingredients) {
     if (!itemId || !count) return ing;
 
     const materialUnit = getResearchMaterialUnitValue(itemId);
+    const preferredDisplayVendorSource = getDisplayPreferredVendorSourceForIngredient(itemId);
+    if (preferredDisplayVendorSource && preferredDisplayVendorSource.currency && preferredDisplayVendorSource.currency !== 'coin') {
+      ing.vendorSource = preferredDisplayVendorSource;
+      ing.valueSource = 'Vendor';
+      ing.unitValue = null;
+      ing.unitSell = null;
+      ing.accountBoundValueIgnored = false;
+      return ing;
+    }
+
+    const resolvedVendorSource = getVendorBulkSourceForIngredient(itemId);
+    if (resolvedVendorSource && resolvedVendorSource.currency && resolvedVendorSource.currency !== 'coin') {
+      ing.vendorSource = resolvedVendorSource;
+      ing.valueSource = 'Vendor';
+      ing.unitValue = null;
+      ing.unitSell = null;
+      ing.accountBoundValueIgnored = false;
+      return ing;
+    }
+
     if (materialUnit && materialUnit.value != null && Number.isFinite(Number(materialUnit.value))) {
       ing.vendorSource = materialUnit.vendorSource || ing.vendorSource;
       ing.valueSource = materialUnit.source || (researchMaterialValueMode === 'buy' ? 'TP Buy' : 'TP Sell');
