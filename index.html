@@ -1280,6 +1280,55 @@ td { padding-left: 6px; padding-right: 6px; }
   text-shadow: 0 0 5px rgba(45,226,230,0.22);
 }
 
+
+
+.craft-replacement-source .craft-replacement-tooltip {
+  display: none;
+  white-space: nowrap;
+  position: absolute;
+  right: 0;
+  top: 1.65em;
+  z-index: 10000;
+  min-width: 260px;
+  max-width: 560px;
+  padding: 8px 10px;
+  color: #f2e9fb;
+  background:
+    linear-gradient(180deg, rgba(45,226,230,0.08), rgba(246,1,157,0.06)),
+    rgba(7,1,19,0.98);
+  border: 1px solid rgba(45,226,230,0.68);
+  box-shadow:
+    0 0 8px rgba(45,226,230,0.22),
+    0 0 18px rgba(246,1,157,0.14),
+    inset 0 0 16px rgba(0,0,0,0.55);
+  font-size: 12px;
+  line-height: 1.45;
+  text-align: left;
+  pointer-events: none;
+  text-shadow: 0 0 5px rgba(45,226,230,0.22);
+}
+
+.craft-replacement-source:hover .craft-replacement-tooltip {
+  display: block;
+}
+
+.craft-replacement-tooltip-line {
+  display: block;
+  padding: 1px 0;
+}
+
+.craft-replacement-tooltip .barter-cost {
+  display: inline-flex;
+  align-items: center;
+  gap: 3px;
+  vertical-align: middle;
+}
+
+.craft-replacement-tooltip .barter-icon {
+  width: 14px;
+  height: 14px;
+}
+
 </style>
 </head>
 <body>
@@ -4331,6 +4380,10 @@ const VENDOR_BARTER_BY_NAME = {
     { currency: "Spirit Shard", count: 10, vendorName: "Miyani", vendorPage: "Miyani" }
   ],
 
+  "Augur's Stone": [
+    { currency: "Spirit Shard", count: 1, vendorName: "Miyani", vendorPage: "Miyani" }
+  ],
+
   "Ambrite Fossilized Axe": [{ name: "Unidentified Fossilized Insect", count: 1 }],
   "Ambrite Fossilized Dagger": [{ name: "Unidentified Fossilized Insect", count: 1 }],
   "Ambrite Fossilized Focus": [{ name: "Unidentified Fossilized Insect", count: 1 }],
@@ -5010,10 +5063,10 @@ function getCraftReplacementCostForMode(itemId, count = 1, mode = null, recipeIn
 }
 
 
-function formatCraftReplacementTooltipLine(itemId, count, unitValue) {
+function formatCraftReplacementTooltipLine(itemId, count, unitValue, unitHtml = null) {
   const qty = Number(count || 0).toLocaleString();
-  const unitText = unitValue == null || !Number.isFinite(unitValue) ? '?' : formatCoinPrecise(unitValue);
-  return `${itemName(itemId)} x ${qty} (${unitText} per)`;
+  const unitText = unitHtml || escapeHtml(unitValue == null || !Number.isFinite(unitValue) ? '?' : formatCoinPrecise(unitValue));
+  return `<span class="craft-replacement-tooltip-line">${escapeHtml(itemName(itemId))} x ${qty} (${unitText} per)</span>`;
 }
 
 function getCraftReplacementTooltipLines(itemId, count = 1, mode = null, recipeIndex = null, path = new Set()) {
@@ -5036,7 +5089,18 @@ function getCraftReplacementTooltipLines(itemId, count = 1, mode = null, recipeI
     const ingCount = Number(ing.count || 0) * batches;
     if (!ingId || !ingCount) continue;
 
-    const vendorUnit = getVendorOpportunityUnitValue(ingId);
+    const vendorBarterCost = getVendorBarterCost(ingId, 1);
+    const currencyPart = vendorBarterCost && Array.isArray(vendorBarterCost.parts)
+      ? vendorBarterCost.parts.find(p => p.currency && p.currency !== 'coin')
+      : null;
+
+    if (currencyPart) {
+      const unitHtml = renderCurrencyCostFromApi(currencyPart.currency || currencyPart.name, currencyPart.count);
+      lines.push(formatCraftReplacementTooltipLine(ingId, ingCount, null, unitHtml));
+      continue;
+    }
+
+    const vendorUnit = getVendorOpportunityUnitValue(ingId, selectedMode);
     const replacementUnit = getCraftReplacementUnitForAccountBoundIngredient(ingId, selectedMode, index);
     const tpUnit = getTpOpportunityUnitForProfitMode(ingId, selectedMode);
 
@@ -5054,7 +5118,7 @@ function getCraftReplacementTooltipLines(itemId, count = 1, mode = null, recipeI
 function craftReplacementTooltipHtml(itemId, count, mode = null, recipeIndex = null) {
   const lines = getCraftReplacementTooltipLines(itemId, count, mode, recipeIndex);
   if (!lines.length) return 'Craft replacement';
-  return `<span class="craft-replacement-source" data-tooltip="${escapeHtml(lines.join('\n'))}">Craft replacement</span>`;
+  return `<span class="craft-replacement-source">Craft replacement<span class="craft-replacement-tooltip">${lines.join('')}</span></span>`;
 }
 
 
