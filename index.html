@@ -1390,8 +1390,8 @@ td { padding-left: 6px; padding-right: 6px; }
       <div class="filter-group value-group">
         <label for="researchMaterialValueModeSelect">RESEARCH MATERIAL VALUE</label>
         <select id="researchMaterialValueModeSelect" onchange="setResearchMaterialValueMode(this.value)">
-          <option value="sell" selected>TP Sell / instant-sell value</option>
-          <option value="buy">TP Buy / replacement cost</option>
+          <option value="buy" selected>Instant Sell</option>
+          <option value="sell">Sell Listing</option>
         </select>
       </div>
 
@@ -1475,7 +1475,7 @@ let researchNoteOpportunities = [];
 let partialResearchOpportunities = [];
 let tableMode = 'profit';
 let lastResearchTableMode = 'researchNotes';
-let researchMaterialValueMode = 'sell';
+let researchMaterialValueMode = 'buy';
 const RENDER_STEP = 500;
 const NESTED_INITIAL_RENDER_STEP = 100;
 const NESTED_BUILD_YIELD_EVERY = 100;
@@ -4840,10 +4840,9 @@ function formatVendorBarterSource(barterCost) {
 
 function setResearchMaterialValueMode(mode) {
   researchMaterialValueMode = mode === 'buy' ? 'buy' : 'sell';
-  log(`Research material valuation set to: ${researchMaterialValueMode === 'buy' ? 'TP Buy / replacement cost' : 'TP Sell / instant-sell value'}.`);
-
-  if (tableMode === 'researchNotes') buildResearchNoteMode();
-  else if (tableMode === 'researchPartial') buildPartialResearchRecipes();
+  const label = researchMaterialValueMode === 'buy' ? 'Instant Sell' : 'Sell Listing';
+  log(`Research material valuation set to: ${label}. Re-rendering cached Research rows only.`);
+  render();
 }
 
 function getResearchMaterialUnitValue(itemId) {
@@ -7306,7 +7305,7 @@ async function buildResearchNoteMode() {
     `Skipped missing owned materials: ${missingOwned.toLocaleString()}
 ` +
     `Cost-aware sub-crafting: enabled\n` +
-    `Material valuation: ${researchMaterialValueMode === 'buy' ? 'TP Buy / replacement cost' : 'TP Sell / instant-sell value'}`
+    `Material valuation: ${researchMaterialValueMode === 'buy' ? 'Sell Listing' : 'Instant Sell'}`
   );
 
   log(`[Done] Research Note Mode built: ${researchNoteOpportunities.length.toLocaleString()} rows matched, ${renderedNow.toLocaleString()} rendered, ${knownYieldRows.toLocaleString()} known yields, ${unknownYieldRows.toLocaleString()} unknown yields.`);
@@ -7762,14 +7761,10 @@ function formatVendorSource(source) {
 }
 
 function renderVendorLabelHtml(source, fallbackItemId = null) {
-  const fallbackPage = fallbackItemId ? itemName(fallbackItemId) : '';
-  const page = source && source.sourcePage && !isBannedVendorName(source.sourcePage) && !isBannedVendorName(source.sourceName)
-    ? source.sourcePage
-    : fallbackPage;
+  const itemPage = fallbackItemId ? itemName(fallbackItemId) : '';
+  if (!itemPage) return 'Vendor';
 
-  if (!page) return 'Vendor';
-
-  return `<a class="item-link vendor-link" href="https://wiki.guildwars2.com/wiki/${encodeURIComponent(String(page).replace(/ /g, '_'))}" target="_blank" rel="noopener noreferrer">Vendor</a>`;
+  return `<a class="item-link vendor-link" href="https://wiki.guildwars2.com/wiki/${encodeURIComponent(String(itemPage).replace(/ /g, '_'))}#Acquisition" target="_blank" rel="noopener noreferrer">Vendor</a>`;
 }
 
 function renderVendorCostOnlyHtml(source) {
@@ -7849,18 +7844,14 @@ function renderWikiTextLink(label, pageName = null, className = 'item-link vendo
   const text = String(label || pageName || 'Vendor');
   const page = String(pageName || label || '').trim();
   if (!page) return escapeHtml(text);
-  return `<a class="${escapeHtml(className)}" href="https://wiki.guildwars2.com/wiki/${encodeURIComponent(page.replace(/ /g, '_'))}" target="_blank" rel="noopener noreferrer">${escapeHtml(text)}</a>`;
+
+  const [basePage, section] = page.split('#');
+  const url = `https://wiki.guildwars2.com/wiki/${encodeURIComponent(basePage.replace(/ /g, '_'))}${section ? `#${encodeURIComponent(section.replace(/ /g, '_'))}` : ''}`;
+  return `<a class="${escapeHtml(className)}" href="${url}" target="_blank" rel="noopener noreferrer">${escapeHtml(text)}</a>`;
 }
 
 function renderVendorCostLabelForIngredient(ing, wikiVendorCost = null) {
-  const vendorPage = wikiVendorCost?.parts?.find(p => p.vendorPage)?.vendorPage || null;
-  const vendorName = wikiVendorCost?.parts?.find(p => p.vendorName)?.vendorName || null;
-
-  // Prefer the actual vendor if known. If the dataset only has a coin/vendor
-  // cost and no vendor page, link "Vendor" to the item's own wiki page so the
-  // user can still click through to where acquisition details are documented.
-  if (vendorPage || vendorName) return renderWikiTextLink('Vendor', vendorPage || vendorName);
-  return renderWikiTextLink('Vendor', itemName(ing.itemId));
+  return renderWikiTextLink('Vendor', `${itemName(ing.itemId)}#Acquisition`);
 }
 
 
@@ -7946,6 +7937,74 @@ function updateLoadMore(total, shown) {
   if (total > shown) btn.style.display = '';
 }
 
+
+function getResearchDisplayIngredientsForCurrentMode(ingredients) {
+  return ((ingredients || [])).map(raw => {
+    const ing = Object.assign({}, raw || {});
+    const itemId = Number(ing.itemId || 0);
+    const count = Number(ing.count || 0);
+    if (!itemId || !count) return ing;
+
+    const materialUnit = getResearchMaterialUnitValue(itemId);
+    if (materialUnit && materialUnit.value != null && Number.isFinite(Number(materialUnit.value))) {
+      ing.unitValue = Number(materialUnit.value);
+      ing.unitSell = Number(materialUnit.value);
+      ing.valueSource = materialUnit.source || (researchMaterialValueMode === 'buy' ? 'TP Buy' : 'TP Sell');
+      ing.vendorSource = materialUnit.vendorSource || ing.vendorSource;
+      ing.accountBoundValueIgnored = false;
+    } else if (materialUnit && materialUnit.source) {
+      ing.valueSource = materialUnit.source;
+    }
+
+    return ing;
+  });
+}
+
+function getResearchMaterialValueFromIngredients(ingredients) {
+  let total = 0;
+  let missing = false;
+
+  for (const ing of ingredients || []) {
+    const itemId = Number(ing.itemId || 0);
+    const count = Number(ing.count || 0);
+    if (!itemId || !count) continue;
+
+    const materialUnit = getResearchMaterialUnitValue(itemId);
+    if (!materialUnit || materialUnit.value == null || !Number.isFinite(Number(materialUnit.value))) {
+      missing = true;
+      continue;
+    }
+
+    total += Number(materialUnit.value) * count;
+  }
+
+  return missing ? null : total;
+}
+
+function getResearchNoteDisplayRow(row) {
+  const out = Object.assign({}, row || {});
+  out.ingredients = getResearchDisplayIngredientsForCurrentMode(out.ingredients);
+  const materialValue = getResearchMaterialValueFromIngredients(out.ingredients);
+
+  out.materialValue = materialValue;
+  const notesPerCraft = out.noteItem == null ? null : Number(out.noteItem) * Math.max(1, Number(out.outputCount || 1));
+  out.valuePerNote = copperPerResearchNote(materialValue, notesPerCraft);
+
+  return out;
+}
+
+function getPartialResearchDisplayRow(row) {
+  const out = Object.assign({}, row || {});
+  out.ingredients = getResearchDisplayIngredientsForCurrentMode(out.ingredients);
+  const materialValue = getResearchMaterialValueFromIngredients(out.ingredients);
+
+  out.materialValue = materialValue;
+  out.valuePerNote = out.noteItem == null ? null : copperPerResearchNote(materialValue, out.noteItem);
+
+  return out;
+}
+
+
 function render() {
   const isResearchTable = tableMode === 'researchNotes' || tableMode === 'researchPartial';
   const q = (document.getElementById(isResearchTable ? 'searchBoxResearch' : 'searchBox')?.value || '').trim().toLowerCase();
@@ -7963,7 +8022,7 @@ function render() {
   if (tableMode === 'researchPartial') {
     ensurePartialResearchHeaders();
 
-    let filtered = partialResearchOpportunities.filter(o => {
+    let filtered = partialResearchOpportunities.map(getPartialResearchDisplayRow).filter(o => {
       if (q && !(`${o.outputName} ${o.recipeId} ${o.outputItemId}`.toLowerCase().includes(q))) return false;
       if (o.coveragePct <= 0) return false;
       return true;
@@ -8006,7 +8065,7 @@ function render() {
   if (tableMode === 'researchNotes') {
     ensureResearchNoteHeaders();
 
-    let filtered = researchNoteOpportunities.filter(o => {
+    let filtered = researchNoteOpportunities.map(getResearchNoteDisplayRow).filter(o => {
       if (q && !(`${o.outputName} ${o.recipeId} ${o.outputItemId}`.toLowerCase().includes(q))) return false;
       if (o.canCraftQty < minCraftQty) return false;
       return true;
