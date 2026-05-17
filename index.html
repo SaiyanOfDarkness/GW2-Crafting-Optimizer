@@ -5930,6 +5930,7 @@ function setResearchNoteTableHeaders() {
 
 
 function setToolMode(mode) {
+  const previousTableMode = tableMode;
   const requestedResearch = mode === 'researchNotes' || mode === 'researchPartial';
 
   if (requestedResearch) {
@@ -5938,7 +5939,15 @@ function setToolMode(mode) {
     tableMode = 'profit';
   }
 
-  renderLimit = RENDER_STEP;
+  // Do not carry expanded 500/1000+ row render limits across mode switches.
+  // Research rows are heavy because of ingredient chips/tooltips, so returning
+  // to Research Mode should show the safe first page again while preserving the
+  // cached research results.
+  if (requestedResearch && previousTableMode !== tableMode) {
+    renderLimit = researchInitialRenderLimit();
+  } else if (!requestedResearch && previousTableMode !== tableMode) {
+    renderLimit = RENDER_STEP;
+  }
 
   const profitTab = document.getElementById('profitModeTab');
   const researchTab = document.getElementById('researchModeTab');
