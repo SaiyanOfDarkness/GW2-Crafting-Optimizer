@@ -4487,6 +4487,8 @@ const BANNED_VENDOR_NAMES = new Set([
 ]);
 
 function isBannedVendorName(name) {
+  if (/consortium[ _]guard/i.test(String(name || ''))) return true;
+
   const clean = normalizeWikiItemName(name).toLowerCase();
   if (!clean) return false;
   return [...BANNED_VENDOR_NAMES].some(v => normalizeWikiItemName(v).toLowerCase() === clean) || clean === 'lyhr';
@@ -6541,6 +6543,10 @@ function bulkFoodContainerInfoForIngredientName(name) {
 }
 
 function sourceFromVendorQueryEntriesForBulkContainer(ingredientName, bulkName, outputCount, entries) {
+  // Ignore historical/event vendor rows that can appear in Vendor_query output.
+  // Example: Consortium Guard (karma merchant)#vendor29.
+  entries = (entries || []).filter(e => !/consortium[ _]guard/i.test(String(e.vendorPage || e.vendorName || e.sourcePage || e.sourceName || '')));
+
   entries = cleanBarterEntries(entries);
   if (!entries || entries.length !== 1) return null;
   const e = entries[0];
