@@ -7673,7 +7673,13 @@ function wikiUrlForOutputOpportunity(o) {
   if (weight && /^Adventurer's /i.test(name)) {
     return 'https://wiki.guildwars2.com/wiki/' + encodeURIComponent(`${name} (${weight})`.replace(/[ ]+/g, '_'));
   }
-  return wikiUrlForName(name);
+
+  // Many low-level crafted stat variants exist as API item names but not as
+  // separate wiki pages, e.g. "Ravaging Soft Wood Focus" should link to
+  // "Soft Wood Focus". Keep the displayed name, but resolve the href to the
+  // base crafted item page.
+  const baseName = stripCraftedPrefixForVariantSearch(name);
+  return wikiUrlForName(baseName || name);
 }
 
 function wikiBaseIngredientsUrlForItem(itemId) {
@@ -7706,7 +7712,8 @@ function renderVendorQueryLink(itemId, label = "Vendor Query") {
 }
 
 function wikiAcquisitionInfoUrlForItem(itemId) {
-  return wikiUrlForName(itemName(itemId)) + '#Acquisition';
+  const name = itemName(itemId);
+  return wikiUrlForName(stripCraftedPrefixForVariantSearch(name) || name) + '#Acquisition';
 }
 
 function renderAcquisitionInfoLink(itemId, label = "Acquisition Info") {
@@ -7933,7 +7940,8 @@ function renderItemLink(id) {
   const rarity = itemRarity(id);
   const icon = itemIcon(id);
   const iconHtml = icon ? `<img class="item-icon" src="${escapeHtml(icon)}" loading="lazy" alt="">` : '';
-  return `<span class="item-cell">${iconHtml}<a class="item-link rarity-${escapeHtml(rarity)}" href="${wikiUrlForName(name)}" target="_blank" rel="noopener noreferrer">${escapeHtml(name)}</a></span>`;
+  const hrefName = stripCraftedPrefixForVariantSearch(name);
+  return `<span class="item-cell">${iconHtml}<a class="item-link rarity-${escapeHtml(rarity)}" href="${wikiUrlForName(hrefName || name)}" target="_blank" rel="noopener noreferrer">${escapeHtml(name)}</a></span>`;
 }
 
 
