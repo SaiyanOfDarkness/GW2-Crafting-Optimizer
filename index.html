@@ -5411,6 +5411,8 @@ function getCraftReplacementCostForMode(itemId, count = 1, mode = null, recipeIn
   count = Number(count || 0);
   if (!itemId || count <= 0) return null;
 
+  if (isExcludedCraftReplacementMaterial(itemId)) return 0;
+
   const selectedMode = mode || getProfitValuationMode();
   const index = recipeIndex || activeProfitRecipeIndexForValuation || buildRecipeIndexByOutput();
   const vendorUnit = getVendorOpportunityUnitValue(itemId, selectedMode);
@@ -5531,6 +5533,7 @@ function craftReplacementTooltipHtml(itemId, count, mode = null, recipeIndex = n
 function getCraftReplacementUnitForAccountBoundIngredient(itemId, mode = null, recipeIndex = null) {
   itemId = Number(itemId);
   if (!itemId || !isAccountBoundOrNoTpIngredient(itemId)) return null;
+  if (isExcludedCraftReplacementMaterial(itemId)) return null;
   const index = recipeIndex || activeProfitRecipeIndexForValuation || buildRecipeIndexByOutput();
   const recipe = index?.get(Number(itemId));
   if (!recipe || !Array.isArray(recipe.ingredients) || !recipe.ingredients.length) return null;
@@ -6037,6 +6040,8 @@ function getProfitIngredientUnitValueForMode(itemId, ing, mode) {
     if (chargedQuartz && chargedQuartz.value != null) return Number(chargedQuartz.value);
   }
 
+  if (isExcludedCraftReplacementMaterial(itemId)) return 0;
+
   // Vendor / barter / karma inputs stay on their vendor valuation. They do not
   // switch between TP buy and TP sell with the Profit Value selector.
   if (vendorSource || (ing && String(ing.valueSource || '').toLowerCase().includes('vendor'))) {
@@ -6081,6 +6086,15 @@ function getProfitDisplayIngredientsForMode(o, mode) {
         ing.valueSource = 'Charge';
         ing.accountBoundValueIgnored = false;
       }
+      return ing;
+    }
+
+    if (isExcludedCraftReplacementMaterial(itemId)) {
+      ing.unitValue = 0;
+      ing.unitSell = 0;
+      ing.valueSource = 'Account Bound';
+      ing.valueSourceHtml = '';
+      ing.accountBoundValueIgnored = true;
       return ing;
     }
 
@@ -8196,6 +8210,15 @@ function renderAcquisitionInfoLink(itemId, label = "Acquisition Info") {
 function itemName(id) { return itemInfo.get(Number(id))?.name || `Item ${id}`; }
 
 
+function isExcludedCraftReplacementMaterial(itemId) {
+  const name = String(itemName(itemId) || '').toLowerCase();
+
+  // Fulgurite is an account-bound HoT material made from account-bound
+  // map/progression materials. Treat it as owned/account-bound only instead
+  // of assigning a recursive craft replacement coin value or tooltip.
+  return name === 'fulgurite' || name.includes('fulgurite');
+}
+
 function isAccountBoundOrNoTpIngredient(itemId) {
   const info = itemInfo.get(Number(itemId)) || {};
   const flags = Array.isArray(info.flags) ? info.flags : [];
@@ -8209,6 +8232,7 @@ function isAccountBoundOrNoTpIngredient(itemId) {
   if (name.includes("charged quartz crystal")) return true;
   if (name.includes("lump of mithrillium")) return true;
   if (name.includes("spool of silk weaving thread")) return true;
+  if (isExcludedCraftReplacementMaterial(itemId)) return true;
 
   return false;
 }
@@ -8349,6 +8373,8 @@ function getOwnedMaterialTpSellUnitValue(ingId) {
 }
 
 function addOwnedMaterialTpSellValue(runningTotal, itemId, count) {
+  if (isExcludedCraftReplacementMaterial(itemId)) return runningTotal;
+
   // Material Sell Value / Owned Material Value should use the same normalized
   // per-item valuation that the ingredient renderer displays. This prevents
   // package-priced vendor materials (for example Thermocatalytic Reagent
