@@ -1491,7 +1491,7 @@ td { padding-left: 6px; padding-right: 6px; }
       </table>
     </div>
     <div class="load-more-wrap" id="loadMoreWrap" style="display:none;">
-      <button id="loadMoreRowsBtn" type="button" onclick="showMoreRows()">Show Another 500 Rows</button>
+      <button id="loadMoreRowsBtn" type="button" onclick="showMoreRows()">Show Another 250 Rows</button>
       <span id="loadMoreInfo"></span>
     </div>
   </section>
@@ -1535,7 +1535,8 @@ let partialResearchOpportunities = [];
 let tableMode = 'profit';
 let lastResearchTableMode = 'researchNotes';
 let researchMaterialValueMode = 'buy';
-const RENDER_STEP = 500;
+const RENDER_STEP = 250;
+const PROFIT_INITIAL_RENDER_STEP = 100;
 const NESTED_INITIAL_RENDER_STEP = 100;
 const NESTED_BUILD_YIELD_EVERY = 100;
 const RESEARCH_INITIAL_RENDER_STEP = 100;
@@ -1543,6 +1544,10 @@ const RESEARCH_BUILD_YIELD_EVERY = 100;
 
 function researchInitialRenderLimit() {
   return Math.min(RESEARCH_INITIAL_RENDER_STEP, RENDER_STEP);
+}
+
+function profitInitialRenderLimit() {
+  return Math.min(PROFIT_INITIAL_RENDER_STEP, RENDER_STEP);
 }
 
 function waitForUiFrame() {
@@ -1556,7 +1561,7 @@ function nestedInitialRenderLimit() {
 }
 
 const NESTED_RENDER_INITIAL_LIMIT = 100;
-let renderLimit = RENDER_STEP;
+let renderLimit = PROFIT_INITIAL_RENDER_STEP;
 let incrementalRenderCache = null;
 
 function optimizedIconAttrs() {
@@ -6129,7 +6134,7 @@ function setToolMode(mode) {
   if (requestedResearch && previousTableMode !== tableMode) {
     renderLimit = researchInitialRenderLimit();
   } else if (!requestedResearch && previousTableMode !== tableMode) {
-    renderLimit = RENDER_STEP;
+    renderLimit = profitInitialRenderLimit();
   }
 
   const profitTab = document.getElementById('profitModeTab');
@@ -6178,12 +6183,6 @@ function setNestedProfitToggleBusy(isBusy) {
   btn.disabled = !!isBusy;
 }
 
-async function getInitialRenderLimitForCurrentMode() {
-  return (tableMode === 'profit' && profitViewMode === 'nested')
-    ? NESTED_RENDER_INITIAL_LIMIT
-    : RENDER_STEP;
-}
-
 async function toggleNestedProfitRecipes() {
   tableMode = 'profit';
   renderLimit = getInitialRenderLimitForCurrentMode();
@@ -6200,7 +6199,7 @@ async function toggleNestedProfitRecipes() {
 
   if (profitViewMode === 'nested') {
     profitViewMode = 'normal';
-    renderLimit = RENDER_STEP;
+    renderLimit = profitInitialRenderLimit();
 
     if (normalProfitOpportunities && normalProfitOpportunities.length) {
       opportunities = normalProfitOpportunities.slice();
@@ -7387,7 +7386,7 @@ async function togglePartialResearchRecipes() {
   if (tableMode === 'researchPartial') {
     tableMode = 'researchNotes';
     lastResearchTableMode = 'researchNotes';
-    renderLimit = RENDER_STEP;
+    renderLimit = researchInitialRenderLimit();
     sortState = { key: 'totalExpectedNotes', dir: -1 };
 
     const modeDesc = document.getElementById('modeDescription');
@@ -7402,7 +7401,7 @@ async function togglePartialResearchRecipes() {
   if (partialResearchOpportunities && partialResearchOpportunities.length) {
     tableMode = 'researchPartial';
     lastResearchTableMode = 'researchPartial';
-    renderLimit = RENDER_STEP;
+    renderLimit = researchInitialRenderLimit();
     sortState = { key: 'coveragePct', dir: -1 };
 
     if (document.getElementById('profitModeTab')) document.getElementById('profitModeTab').classList.remove('active');
@@ -7892,7 +7891,7 @@ log('[Nested] Using cached vendor/barter datasets only (live wiki lookup skipped
 async function buildOpportunities() {
   tableMode = 'profit';
   profitViewMode = 'normal';
-  renderLimit = RENDER_STEP;
+  renderLimit = profitInitialRenderLimit();
   ensureProfitHeaders();
   if (document.getElementById('profitModeTab')) document.getElementById('profitModeTab').classList.add('active');
   if (document.getElementById('researchModeTab')) document.getElementById('researchModeTab').classList.remove('active');
@@ -8455,8 +8454,14 @@ function formatIngredientsText(ingredients) {
 }
 
 
+function getInitialRenderLimitForCurrentMode() {
+  if (tableMode === 'researchNotes' || tableMode === 'researchPartial') return researchInitialRenderLimit();
+  if (tableMode === 'profit' && profitViewMode === 'nested') return NESTED_RENDER_INITIAL_LIMIT;
+  return profitInitialRenderLimit();
+}
+
 function resetRenderLimitAndRender() {
-  renderLimit = RENDER_STEP;
+  renderLimit = getInitialRenderLimitForCurrentMode();
   incrementalRenderCache = null;
   render();
 }
