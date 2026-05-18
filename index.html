@@ -2772,16 +2772,26 @@ const VENDOR_BULK_SOURCES_BY_NAME = new Map([
   ["basil leaf", { ingredientName: "Basil Leaf", sourceName: "Basil Leaves in Bulk", sourcePage: "Apprentice_(cooking)", currency: "karma", cost: 49, outputCount: 25 }],
   ["coconut", { ingredientName: "Coconut", sourceName: "Coconuts in Bulk", sourcePage: "Lionscout_Tunnira", currency: "karma", cost: 112, outputCount: 25 }],
 
-  // Standard chef/vendor staples. Do not link these to the retired Crafting Supplier page;
-  // use a current cooking vendor page as the representative vendor link.
-  ["packet of baking powder", { ingredientName: "Packet of Baking Powder", sourceName: "Apprentice (cooking)", sourcePage: "Apprentice_(cooking)", currency: "coin", cost: 80, outputCount: 10 }],
-  ["bag of flour", { ingredientName: "Bag of Flour", sourceName: "Apprentice (cooking)", sourcePage: "Apprentice_(cooking)", currency: "coin", cost: 80, outputCount: 10 }],
-  ["bag of sugar", { ingredientName: "Bag of Sugar", sourceName: "Apprentice (cooking)", sourcePage: "Apprentice_(cooking)", currency: "coin", cost: 80, outputCount: 10 }],
-  ["jug of water", { ingredientName: "Jug of Water", sourceName: "Apprentice (cooking)", sourcePage: "Apprentice_(cooking)", currency: "coin", cost: 80, outputCount: 10 }],
-  ["jar of vegetable oil", { ingredientName: "Jar of Vegetable Oil", sourceName: "Apprentice (cooking)", sourcePage: "Apprentice_(cooking)", currency: "coin", cost: 80, outputCount: 10 }],
-  ["jar of vinegar", { ingredientName: "Jar of Vinegar", sourceName: "Apprentice (cooking)", sourcePage: "Apprentice_(cooking)", currency: "coin", cost: 80, outputCount: 10 }],
-  ["packet of salt", { ingredientName: "Packet of Salt", sourceName: "Apprentice (cooking)", sourcePage: "Apprentice_(cooking)", currency: "coin", cost: 80, outputCount: 10 }],
-  ["milling basin", { ingredientName: "Milling Basin", sourceName: "Apprentice (cooking)", sourcePage: "Apprentice_(cooking)", currency: "coin", cost: 560, outputCount: 10 }],
+  // Standard chef/vendor staples. These can have TP listings, but their
+  // material valuation should stay at NPC vendor price in both Instant Sell
+  // and Sell Listing modes.
+  ["crafter's backpack frame", { ingredientName: "Crafter's Backpack Frame", sourceName: "Master craftsman", sourcePage: "Crafter%27s_Backpack_Frame", currency: "coin", cost: 8, outputCount: 1, forceVendor: true }],
+  ["crystalline bottle", { ingredientName: "Crystalline Bottle", sourceName: "Master scribe", sourcePage: "Crystalline_Bottle", currency: "coin", cost: 32, outputCount: 1, forceVendor: true }],
+  ["bag of mortar", { ingredientName: "Bag of Mortar", sourceName: "Master scribe", sourcePage: "Bag_of_Mortar", currency: "coin", cost: 104, outputCount: 10, forceVendor: true }],
+  ["essence of elegance", { ingredientName: "Essence of Elegance", sourceName: "Master scribe", sourcePage: "Essence_of_Elegance", currency: "coin", cost: 5000, outputCount: 1, forceVendor: true }],
+  ["packet of baking powder", { ingredientName: "Packet of Baking Powder", sourceName: "Apprentice (cooking)", sourcePage: "Apprentice_(cooking)", currency: "coin", cost: 80, outputCount: 10, forceVendor: true }],
+  ["bag of flour", { ingredientName: "Bag of Flour", sourceName: "Apprentice (cooking)", sourcePage: "Apprentice_(cooking)", currency: "coin", cost: 80, outputCount: 10, forceVendor: true }],
+  ["bag of starch", { ingredientName: "Bag of Starch", sourceName: "Apprentice (cooking)", sourcePage: "Apprentice_(cooking)", currency: "coin", cost: 80, outputCount: 10, forceVendor: true }],
+  ["bag of sugar", { ingredientName: "Bag of Sugar", sourceName: "Apprentice (cooking)", sourcePage: "Apprentice_(cooking)", currency: "coin", cost: 80, outputCount: 10, forceVendor: true }],
+  ["jug of water", { ingredientName: "Jug of Water", sourceName: "Apprentice (cooking)", sourcePage: "Apprentice_(cooking)", currency: "coin", cost: 80, outputCount: 10, forceVendor: true }],
+  ["jar of vegetable oil", { ingredientName: "Jar of Vegetable Oil", sourceName: "Apprentice (cooking)", sourcePage: "Apprentice_(cooking)", currency: "coin", cost: 80, outputCount: 10, forceVendor: true }],
+  ["jar of vinegar", { ingredientName: "Jar of Vinegar", sourceName: "Apprentice (cooking)", sourcePage: "Apprentice_(cooking)", currency: "coin", cost: 80, outputCount: 10, forceVendor: true }],
+  ["packet of salt", { ingredientName: "Packet of Salt", sourceName: "Apprentice (cooking)", sourcePage: "Apprentice_(cooking)", currency: "coin", cost: 80, outputCount: 10, forceVendor: true }],
+  ["bottle of soy sauce", { ingredientName: "Bottle of Soy Sauce", sourceName: "Apprentice (cooking)", sourcePage: "Apprentice_(cooking)", currency: "coin", cost: 80, outputCount: 10, forceVendor: true }],
+  ["milling basin", { ingredientName: "Milling Basin", sourceName: "Apprentice (cooking)", sourcePage: "Apprentice_(cooking)", currency: "coin", cost: 560, outputCount: 10, forceVendor: true }],
+  ["pile of compost starter", { ingredientName: "Pile of Compost Starter", sourceName: "Apprentice (cooking)", sourcePage: "Apprentice_(cooking)", currency: "coin", cost: 1496, outputCount: 10, forceVendor: true }],
+  ["pile of powdered gelatin mix", { ingredientName: "Pile of Powdered Gelatin Mix", sourceName: "Apprentice (cooking)", sourcePage: "Apprentice_(cooking)", currency: "coin", cost: 1000, outputCount: 5, forceVendor: true }],
+  ["smell-enhancing culture", { ingredientName: "Smell-Enhancing Culture", sourceName: "Apprentice (cooking)", sourcePage: "Apprentice_(cooking)", currency: "coin", cost: 40000, outputCount: 1, forceVendor: true }],
   ["spool of gossamer thread", { ingredientName: "Spool of Gossamer Thread", sourceName: "Crafting vendor", sourcePage: "", currency: "coin", cost: 640, outputCount: 10 }],
   ["celery stalk", { ingredientName: "Celery Stalk", sourceName: "Celery Stalks in Bulk", sourcePage: "Milton_Book", currency: "karma", cost: 35, outputCount: 25 }],
 
@@ -2793,8 +2803,7 @@ const VENDOR_BULK_SOURCES_BY_NAME = new Map([
   // Standard vendor packages with live TP listings. Keep these static so the
   // research scan does not have to run a Wiki vendor query over thousands of
   // ingredients just to discover common vendor-price overrides.
-  ["lump of coal", { ingredientName: "Lump of Coal", sourceName: "Crafting vendor", sourcePage: "", currency: "coin", cost: 160, outputCount: 10 }],
-  ["pile of powdered gelatin mix", { ingredientName: "Pile of Powdered Gelatin Mix", sourceName: "Apprentice (cooking)", sourcePage: "Apprentice_(cooking)", currency: "coin", cost: 1000, outputCount: 5 }]
+  ["lump of coal", { ingredientName: "Lump of Coal", sourceName: "Crafting vendor", sourcePage: "", currency: "coin", cost: 160, outputCount: 10 }]
 ]);
 
 // Canonical mapping from https://wiki.guildwars2.com/wiki/Category:Bulk_foods.
@@ -6928,6 +6937,10 @@ const COIN_VENDOR_LOOKUP_ITEM_NAMES = new Set([
   'Lump of Coal',
   'Lump of Primordium',
   'Thermocatalytic Reagent',
+  "Crafter's Backpack Frame",
+  'Crystalline Bottle',
+  'Bag of Mortar',
+  'Essence of Elegance',
   'Bag of Flour',
   'Bag of Sugar',
   'Bag of Starch',
@@ -6937,8 +6950,13 @@ const COIN_VENDOR_LOOKUP_ITEM_NAMES = new Set([
   'Jar of Vegetable Oil',
   'Jar of Vinegar',
   'Jug of Water',
+  'Milling Basin',
   'Packet of Baking Powder',
-  'Packet of Yeast'
+  'Packet of Salt',
+  'Packet of Yeast',
+  'Pile of Compost Starter',
+  'Pile of Powdered Gelatin Mix',
+  'Smell-Enhancing Culture'
 ]);
 
 const DIRECT_WIKI_VENDOR_LOOKUP_ITEM_NAMES = new Set([
