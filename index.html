@@ -5446,6 +5446,16 @@ function setResearchMaterialValueMode(mode) {
   const label = researchMaterialValueMode === 'buy' ? 'Instant Sell' : 'Sell Listing';
   log(`Research material valuation set to: ${label}. Re-rendering cached Research rows only.`);
   render();
+  updateResearchMaterialValuationStatusLine(label);
+}
+
+function updateResearchMaterialValuationStatusLine(label) {
+  const el = document.getElementById('progressStatus') || document.getElementById('status');
+  if (!el) return;
+  const text = el.textContent || '';
+  if (/Material valuation:\s*(Instant Sell|Sell Listing)/.test(text)) {
+    el.textContent = text.replace(/Material valuation:\s*(Instant Sell|Sell Listing)/g, `Material valuation: ${label}`);
+  }
 }
 
 function getResearchMaterialUnitValue(itemId) {
