@@ -1339,6 +1339,16 @@ td { padding-left: 6px; padding-right: 6px; }
   box-sizing: border-box;
 }
 
+.craft-replacement-source.compact-barter-value-source {
+  color: inherit;
+  border-bottom: 1px dotted rgba(45,226,230,0.75);
+}
+
+.craft-replacement-source.compact-barter-value-source .craft-replacement-tooltip {
+  right: 0;
+  left: auto;
+}
+
 </style>
 </head>
 <body>
@@ -5127,15 +5137,67 @@ function shouldRenderVendorBarterIngredientLine(ing, barterCost) {
 }
 
 
+
+function getTpUnitValueInfoForCompactBarterPart(part) {
+  const itemId = Number(part?.itemId || (part?.name ? findItemIdByExactName(part.name) : 0));
+  if (!itemId) return { value: null, source: '' };
+
+  if (tableMode === 'profit') {
+    return getTpUnitValueInfoForProfitMode(itemId, getProfitValuationMode());
+  }
+
+  return getSelectedTpUnitValueInfoForMode(itemId);
+}
+
+function compactBarterValueTooltipHtml(part) {
+  const qty = Number(part?.count || 0);
+  const itemId = Number(part?.itemId || (part?.name ? findItemIdByExactName(part.name) : 0));
+  const name = itemId ? itemName(itemId) : (part?.name || 'Item');
+  const unitInfo = getTpUnitValueInfoForCompactBarterPart(part);
+  const unit = unitInfo && unitInfo.value != null ? Number(unitInfo.value) : null;
+  const source = unitInfo?.source || part?.source || 'TP';
+  const qtyText = qty.toLocaleString();
+
+  if (unit == null || !Number.isFinite(unit)) {
+    return `<span class="craft-replacement-source compact-barter-value-source">${escapeHtml(qtyText)}<span class="craft-replacement-tooltip"><span class="craft-replacement-tooltip-line">${escapeHtml(name)} x ${escapeHtml(qtyText)} (${escapeHtml(source)} price unknown)</span></span></span>`;
+  }
+
+  const total = unit * qty;
+  const line = `${name} x ${qtyText} @ ${formatCoinPrecise(unit)} ${source} each = ${formatCoinPrecise(total)}`;
+  return `<span class="craft-replacement-source compact-barter-value-source">${escapeHtml(qtyText)}<span class="craft-replacement-tooltip"><span class="craft-replacement-tooltip-line">${escapeHtml(line)}</span></span></span>`;
+}
+
+function getChargedQuartzCrystalUnitValueInfo(mode = null) {
+  const quartzId = findItemIdByExactName('Quartz Crystal');
+  if (!quartzId) return null;
+
+  const tpInfo = getTpUnitValueInfoForProfitMode(quartzId, mode || getProfitValuationMode());
+  const unit = tpInfo && tpInfo.value != null ? Number(tpInfo.value) : null;
+  if (unit == null || !Number.isFinite(unit)) return null;
+
+  return {
+    value: unit * 25,
+    source: 'Charge',
+    quartzItemId: quartzId,
+    quartzCount: 25,
+    quartzUnitValue: unit,
+    quartzSource: tpInfo.source || 'TP'
+  };
+}
+
+function isChargedQuartzCrystalItem(itemId) {
+  return String(itemName(itemId) || '').trim().toLowerCase() === 'charged quartz crystal';
+}
+
 function renderBulkAwareVendorIngredientCostHtml(baseCost, requiredCount = 1, unitValue = null) {
   const compactPart = baseCost?.parts?.find(p => p.compactIconOnly && p.name);
   if (compactPart) {
     const compactItemId = compactPart.itemId || findItemIdByExactName(compactPart.name);
     const compactIcon = compactItemId ? itemIcon(compactItemId) : null;
-    const qty = Number(compactPart.count || 0).toLocaleString();
+    const qtyHtml = compactBarterValueTooltipHtml(compactPart);
     return compactIcon
-      ? `<span class="barter-cost">${renderIconImg('barter-icon', compactIcon, compactPart.name)} <span class="barter-qty">${escapeHtml(qty)}</span></span>`
-      : `<span class="barter-cost"><span class="barter-qty">${escapeHtml(qty)}</span></span>`;
+      ? `<span class="barter-cost">${renderIconImg('barter-icon', compactIcon, compactPart.name)} <span class="barter-qty">${qtyHtml}</span></span>`
+      : `<span class="barter-cost"><span class="barter-qty">${qtyHtml}</span></span>`;
   }
 
   const parts = dedupeBarterCostPartsForDisplay(baseCost?.parts || []);
@@ -5970,6 +6032,11 @@ function getProfitIngredientUnitValueForMode(itemId, ing, mode) {
   itemId = Number(itemId);
   const vendorSource = (ing && ing.vendorSource) || getVendorBulkSourceForIngredient(itemId);
 
+  if (isChargedQuartzCrystalItem(itemId)) {
+    const chargedQuartz = getChargedQuartzCrystalUnitValueInfo(mode);
+    if (chargedQuartz && chargedQuartz.value != null) return Number(chargedQuartz.value);
+  }
+
   // Vendor / barter / karma inputs stay on their vendor valuation. They do not
   // switch between TP buy and TP sell with the Profit Value selector.
   if (vendorSource || (ing && String(ing.valueSource || '').toLowerCase().includes('vendor'))) {
@@ -6005,6 +6072,17 @@ function getProfitDisplayIngredientsForMode(o, mode) {
     const ing = Object.assign({}, raw || {});
     const itemId = Number(ing.itemId || 0);
     if (!itemId) return ing;
+
+    if (isChargedQuartzCrystalItem(itemId)) {
+      const chargedQuartz = getChargedQuartzCrystalUnitValueInfo(mode);
+      if (chargedQuartz && chargedQuartz.value != null) {
+        ing.unitValue = Number(chargedQuartz.value);
+        ing.unitSell = Number(chargedQuartz.value);
+        ing.valueSource = 'Charge';
+        ing.accountBoundValueIgnored = false;
+      }
+      return ing;
+    }
 
     const replacementUnit = getCraftReplacementUnitForAccountBoundIngredient(itemId, mode, activeProfitRecipeIndexForValuation);
     if (replacementUnit != null) {
