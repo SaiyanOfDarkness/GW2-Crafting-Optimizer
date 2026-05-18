@@ -491,6 +491,8 @@ a { color: #2DE2E6; }
 }
 
 input.account-label { min-width: 150px; }
+.api-key-form { margin: 0; min-width: 520px; }
+.api-key-form input.api-key { width: 100%; min-width: 0; box-sizing: border-box; }
 input.api-key { min-width: 520px; }
 
 a.item-link {
@@ -3629,7 +3631,7 @@ function renderAccounts() {
     return `
       <div class="account-row" data-id="${acc.id}">
         <input class="account-label" type="text" placeholder="Account label" value="${safeLabel}" oninput="updateAccount('${acc.id}', 'label', this.value)">
-        <input id="key-${acc.id}" class="api-key" type="password" placeholder="GW2 API key" value="${safeKey}" oninput="updateAccount('${acc.id}', 'key', this.value)">
+        <form class="api-key-form" onsubmit="return false;" autocomplete="off"><input id="key-${acc.id}" class="api-key" type="password" placeholder="GW2 API key" value="${safeKey}" autocomplete="off" oninput="updateAccount('${acc.id}', 'key', this.value)"></form>
         <button class="eye-btn" id="toggle-${acc.id}" onclick="toggleKeyVisibility('${acc.id}')">Show</button>
         <label><input type="checkbox" ${checked} onchange="updateAccount('${acc.id}', 'enabled', this.checked)"> Enabled</label>
         <button class="danger" onclick="removeAccount('${acc.id}')">Remove</button>
