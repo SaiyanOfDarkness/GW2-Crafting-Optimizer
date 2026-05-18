@@ -1,7 +1,7 @@
 <!DOCTYPE html>
 <html lang="en">
 <head>
-<link rel="icon" href="favicon.ico">
+<link rel="icon" href="./favicon.ico" type="image/x-icon">
 <meta charset="utf-8" />
 <meta name="viewport" content="width=device-width, initial-scale=1.0" />
 <title>GW2 Owned Material Crafting Optimizer</title>
@@ -164,6 +164,56 @@ main { padding: 16px 20px 40px; }
 }
 
 .key-panel { display: grid; gap: 10px; }
+
+
+
+.usage-guide summary {
+  cursor: pointer;
+  font-weight: bold;
+  font-size: 16px;
+  color: #2DE2E6;
+  text-transform: uppercase;
+  letter-spacing: 0.7px;
+}
+
+.usage-guide-body {
+  margin-top: 12px;
+  display: grid;
+  gap: 12px;
+  color: var(--text);
+  font-size: 12px;
+  line-height: 1.45;
+}
+
+.guide-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(260px, 1fr));
+  gap: 12px;
+}
+
+.guide-card {
+  border: 1px solid rgba(45,226,230,0.24);
+  background: rgba(7,1,19,0.42);
+  padding: 10px;
+}
+
+.guide-card h3 {
+  margin: 0 0 8px;
+  font-size: 13px;
+  color: #FF9A55;
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
+}
+
+.guide-card ul,
+.guide-card ol {
+  margin: 0;
+  padding-left: 20px;
+}
+
+.guide-card li { margin: 4px 0; }
+.guide-card strong { color: #50ff9f; }
+.guide-card code { color: #2DE2E6; }
 
 button,
 input,
@@ -1361,6 +1411,83 @@ td { padding-left: 6px; padding-right: 6px; }
 </header>
 
 <main>
+
+  <section class="panel usage-guide">
+    <details>
+      <summary>Usage Guide</summary>
+      <div class="usage-guide-body">
+        <div class="guide-grid">
+          <div class="guide-card">
+            <h3>First use</h3>
+            <ol>
+              <li>Add one or more GW2 API keys with <strong>account</strong>, <strong>characters</strong>, and <strong>inventories</strong> permissions.</li>
+              <li>Click <strong>Save API Keys</strong>. Keys are stored locally in this browser.</li>
+              <li>Use <strong>Run Full Scan</strong> for Profit Mode, or <strong>Run Research Note Scan</strong> for Research Note Mode.</li>
+              <li>Let the tool load owned materials, recipe cache, TP prices, and then build the table.</li>
+            </ol>
+          </div>
+
+          <div class="guide-card">
+            <h3>Repeat use</h3>
+            <ol>
+              <li>Do <strong>not</strong> reload recipes every time unless you want a fresh recipe cache.</li>
+              <li>Usually run <strong>Load Owned Materials</strong> if your inventory changed.</li>
+              <li>Run <strong>Refresh TP Prices</strong> when you want newer Trading Post values.</li>
+              <li>Then click <strong>Build Opportunities</strong> or <strong>Build Research Note Table</strong>.</li>
+              <li>Use <strong>Clear Data Cache</strong> only when cached recipe/item/price data seems wrong or stale.</li>
+            </ol>
+          </div>
+
+          <div class="guide-card">
+            <h3>Pricing modes</h3>
+            <ul>
+              <li><strong>Instant Sell</strong> values tradeable materials using current buy orders.</li>
+              <li><strong>Sell Listing</strong> values tradeable materials using current sell listings.</li>
+              <li>Some vendor materials are forced to <strong>Vendor</strong> cost even when TP modes are selected.</li>
+              <li>Missing buy orders may fall back to TP Sell and should be labeled that way in material details.</li>
+            </ul>
+          </div>
+        </div>
+
+        <div class="guide-grid">
+          <div class="guide-card">
+            <h3>Profit Mode columns</h3>
+            <ul>
+              <li><strong>Item</strong>: crafted output item.</li>
+              <li><strong>Recipe</strong>: recipe/source used for the craft.</li>
+              <li><strong>Can Make</strong>: how many you can craft from currently detected owned materials.</li>
+              <li><strong>Prof Qty</strong>: estimated quantity that can sell into profitable buy-order depth.</li>
+              <li><strong>Craft Qty</strong>: recommended craft amount after limits are applied.</li>
+              <li><strong>Avg Sell</strong>: average estimated sell value across the profitable depth.</li>
+              <li><strong>Last BO Hit</strong>: lowest buy order touched by the estimated profitable quantity.</li>
+              <li><strong>Top BO</strong>: current highest buy order for the output.</li>
+              <li><strong>Top BO Net</strong>: highest buy order after Trading Post fees.</li>
+              <li><strong>Mat Sell Value</strong>: value of the materials consumed by the recipe.</li>
+              <li><strong>Profit Each</strong>: extra profit per craft after material value.</li>
+              <li><strong>Profit Total</strong>: estimated total extra profit for the recommended craft quantity.</li>
+              <li><strong>ROI</strong>: profit compared against consumed material value.</li>
+              <li><strong>Owned Mats Used</strong>: ingredient breakdown and pricing source details.</li>
+            </ul>
+          </div>
+
+          <div class="guide-card">
+            <h3>Research Note Mode columns</h3>
+            <ul>
+              <li><strong>Item</strong>: crafted item being checked for research salvage.</li>
+              <li><strong>Recipe</strong>: recipe/source used to craft the item.</li>
+              <li><strong>Can Make</strong>: how many you can craft from currently detected owned materials.</li>
+              <li><strong>Craft Qty</strong>: quantity used for the displayed estimate.</li>
+              <li><strong>Mat Sell Value</strong>: material value consumed to craft the item.</li>
+              <li><strong>Research Notes</strong>: known or estimated notes gained from research salvaging.</li>
+              <li><strong>Cost / Note</strong>: material value divided by research notes.</li>
+              <li><strong>Owned Mats Used</strong>: ingredient breakdown, including vendor/TP/account-bound handling.</li>
+              <li><strong>Unknown yield</strong> rows may need manual verification before trusting the result.</li>
+            </ul>
+          </div>
+        </div>
+      </div>
+    </details>
+  </section>
   <section class="panel">
     <details id="apiKeyDetails">
       <summary style="cursor:pointer;font-weight:bold;font-size:16px;">API Keys</summary>
