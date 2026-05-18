@@ -8657,6 +8657,54 @@ function getPartialResearchDisplayRow(row) {
 }
 
 
+
+function sortRowsByKey(rows, valueFn, dir) {
+  rows.sort((a, b) => {
+    const av = valueFn(a);
+    const bv = valueFn(b);
+
+    if (typeof av === 'number' || typeof bv === 'number') {
+      const nullForA = dir === -1 ? -Infinity : Infinity;
+      const nullForB = dir === -1 ? -Infinity : Infinity;
+      return ((av ?? nullForA) - (bv ?? nullForB)) * dir;
+    }
+
+    return String(av ?? '').localeCompare(String(bv ?? '')) * dir;
+  });
+}
+
+function visibleSlice(rows) {
+  return rows.slice(0, Math.min(renderLimit, rows.length));
+}
+
+function makeLazyDisplayRowRenderer(displayRowFn, rowHtmlFn) {
+  return rawRow => rowHtmlFn(displayRowFn(rawRow));
+}
+
+function makeCachedDisplayValueGetter(displayRowFn, key) {
+  const cache = new WeakMap();
+  return row => {
+    let display = cache.get(row);
+    if (!display) {
+      display = displayRowFn(row);
+      cache.set(row, display);
+    }
+    return display[key];
+  };
+}
+
+function researchSortValueGetter(displayRowFn, key) {
+  // Most Research columns already exist on the raw opportunity rows. Avoid the
+  // expensive ingredient/display-material pass for every matched row unless the
+  // user explicitly sorts by a value that depends on the current material
+  // valuation mode.
+  if (key === 'materialValue' || key === 'valuePerNote') {
+    return makeCachedDisplayValueGetter(displayRowFn, key);
+  }
+  if (key === 'ingredientsText') return row => renderIngredients(displayRowFn(row).ingredients);
+  return row => row[key];
+}
+
 function render() {
   const isResearchTable = tableMode === 'researchNotes' || tableMode === 'researchPartial';
   const q = (document.getElementById(isResearchTable ? 'searchBoxResearch' : 'searchBox')?.value || '').trim().toLowerCase();
@@ -8675,27 +8723,16 @@ function render() {
   if (tableMode === 'researchPartial') {
     ensurePartialResearchHeaders();
 
-    let filtered = partialResearchOpportunities.map(getPartialResearchDisplayRow).filter(o => {
+    let filtered = partialResearchOpportunities.filter(o => {
       if (q && !(`${o.outputName} ${o.recipeId} ${o.outputItemId}`.toLowerCase().includes(q))) return false;
       if (o.coveragePct <= 0) return false;
       return true;
     });
 
-    filtered.sort((a, b) => {
-      const av = a[sortState.key];
-      const bv = b[sortState.key];
-
-      if (typeof av === 'number' || typeof bv === 'number') {
-        const nullForA = sortState.dir === -1 ? -Infinity : Infinity;
-        const nullForB = sortState.dir === -1 ? -Infinity : Infinity;
-        return ((av ?? nullForA) - (bv ?? nullForB)) * sortState.dir;
-      }
-
-      return String(av ?? '').localeCompare(String(bv ?? '')) * sortState.dir;
-    });
+    sortRowsByKey(filtered, researchSortValueGetter(getPartialResearchDisplayRow, sortState.key), sortState.dir);
 
     const totalRows = filtered.length;
-    const visibleRows = filtered.slice(0, renderLimit);
+    const visibleRows = visibleSlice(filtered);
     updateLoadMore(totalRows, visibleRows.length);
 
     const rowHtml = o => `
@@ -8711,8 +8748,9 @@ function render() {
         <td>${renderIngredients(o.ingredients)}</td>
       </tr>
     `;
-    cacheIncrementalRender(renderSignature, filtered, visibleRows.length, rowHtml);
-    setResultsTbodyHtml(tbody, visibleRows.map(rowHtml).join(''));
+    const lazyRowHtml = makeLazyDisplayRowRenderer(getPartialResearchDisplayRow, rowHtml);
+    cacheIncrementalRender(renderSignature, filtered, visibleRows.length, lazyRowHtml);
+    setResultsTbodyHtml(tbody, visibleRows.map(lazyRowHtml).join(''));
 
     return;
   }
@@ -8720,27 +8758,16 @@ function render() {
   if (tableMode === 'researchNotes') {
     ensureResearchNoteHeaders();
 
-    let filtered = researchNoteOpportunities.map(getResearchNoteDisplayRow).filter(o => {
+    let filtered = researchNoteOpportunities.filter(o => {
       if (q && !(`${o.outputName} ${o.recipeId} ${o.outputItemId}`.toLowerCase().includes(q))) return false;
       if (o.canCraftQty < minCraftQty) return false;
       return true;
     });
 
-    filtered.sort((a, b) => {
-      const av = a[sortState.key];
-      const bv = b[sortState.key];
-
-      if (typeof av === 'number' || typeof bv === 'number') {
-        const nullForA = sortState.dir === -1 ? -Infinity : Infinity;
-        const nullForB = sortState.dir === -1 ? -Infinity : Infinity;
-        return ((av ?? nullForA) - (bv ?? nullForB)) * sortState.dir;
-      }
-
-      return String(av ?? '').localeCompare(String(bv ?? '')) * sortState.dir;
-    });
+    sortRowsByKey(filtered, researchSortValueGetter(getResearchNoteDisplayRow, sortState.key), sortState.dir);
 
     const totalRows = filtered.length;
-    const visibleRows = filtered.slice(0, renderLimit);
+    const visibleRows = visibleSlice(filtered);
     updateLoadMore(totalRows, visibleRows.length);
 
     const rowHtml = o => `
@@ -8759,8 +8786,9 @@ function render() {
         <td>${renderIngredients(o.ingredients)}</td>
       </tr>
     `;
-    cacheIncrementalRender(renderSignature, filtered, visibleRows.length, rowHtml);
-    setResultsTbodyHtml(tbody, visibleRows.map(rowHtml).join(''));
+    const lazyRowHtml = makeLazyDisplayRowRenderer(getResearchNoteDisplayRow, rowHtml);
+    cacheIncrementalRender(renderSignature, filtered, visibleRows.length, lazyRowHtml);
+    setResultsTbodyHtml(tbody, visibleRows.map(lazyRowHtml).join(''));
 
     return;
   }
@@ -8775,21 +8803,10 @@ function render() {
     return true;
   });
 
-  filtered.sort((a, b) => {
-    const av = getProfitSortValue(a, sortState.key);
-    const bv = getProfitSortValue(b, sortState.key);
-
-    if (typeof av === 'number' || typeof bv === 'number') {
-      const nullForA = sortState.dir === -1 ? -Infinity : Infinity;
-      const nullForB = sortState.dir === -1 ? -Infinity : Infinity;
-      return ((av ?? nullForA) - (bv ?? nullForB)) * sortState.dir;
-    }
-
-    return String(av ?? '').localeCompare(String(bv ?? '')) * sortState.dir;
-  });
+  sortRowsByKey(filtered, row => getProfitSortValue(row, sortState.key), sortState.dir);
 
   const totalRows = filtered.length;
-  const visibleRows = filtered.slice(0, renderLimit);
+  const visibleRows = visibleSlice(filtered);
   updateLoadMore(totalRows, visibleRows.length);
 
   const rowHtml = o => `
