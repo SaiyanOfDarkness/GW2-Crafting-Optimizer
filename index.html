@@ -1355,6 +1355,8 @@ td { padding-left: 6px; padding-right: 6px; }
       <div id="accounts"></div>
       <div class="row">
         <button onclick="addAccountRow()">Add API Key</button>
+        <button onclick="setAllAccountsEnabled(false)">Disable All API Keys</button>
+        <button onclick="setAllAccountsEnabled(true)">Enable All API Keys</button>
         <button onclick="saveAccounts()">Save API Keys</button>
         <button onclick="loadAccounts()">Load Saved API Keys</button>
         <button onclick="exportAccountsJson()">Export API Keys JSON</button>
@@ -3621,6 +3623,18 @@ function updateAccount(id, field, value) {
   const acc = accounts.find(a => a.id === id);
   if (!acc) return;
   acc[field] = value;
+}
+
+async function setAllAccountsEnabled(enabled) {
+  if (!accounts.length) {
+    setStatus('No API key rows to update.');
+    return;
+  }
+
+  accounts = accounts.map(acc => ({ ...acc, enabled: !!enabled }));
+  renderAccounts();
+  await saveAccounts();
+  setStatus(`${enabled ? 'Enabled' : 'Disabled'} all ${accounts.length} API key row(s).`);
 }
 
 function removeAccount(id) {
