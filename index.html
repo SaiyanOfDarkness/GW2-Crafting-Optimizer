@@ -3625,7 +3625,7 @@ async function loadExternalRepoDatasets() {
     } else if (!bulkContentsMap.size) {
       log('[Data] Vendor bulk rows loaded, but no bulk contents mapping was available.');
     } else {
-      log('[Data] Vendor bulk rows loaded; no new/cheaper vendor-cache entries needed.');
+      log('[Data] Vendor bulk rows loaded; no new better vendor-cache entries needed.');
     }
   }
 
@@ -5264,7 +5264,7 @@ function shouldRenderVendorBarterIngredientLine(ing, barterCost) {
 
   // If TP already won the valuation comparison, do not display a more expensive
   // vendor/barter source as though it is the chosen source.
-  if (/^TP\b/i.test(source) || /TP\s+(?:Sell|Buy)\s+cheaper/i.test(source)) return false;
+  if (/^TP\b/i.test(source) || /^TP\s+(?:Sell|Buy)\b/i.test(source)) return false;
 
   const hasNonCoinCurrency = barterCost.parts.some(p => p.currency && p.currency !== 'coin');
   const hasSpecialDisplayPart = barterCost.parts.some(p => p.compactIconOnly || p.sourceLabel);
@@ -5445,22 +5445,6 @@ function setResearchMaterialValueMode(mode) {
   researchMaterialValueMode = mode === 'buy' ? 'buy' : 'sell';
   const label = researchMaterialValueMode === 'buy' ? 'Instant Sell' : 'Sell Listing';
   log(`Research material valuation set to: ${label}. Re-rendering cached Research rows only.`);
-  try {
-    const recipeIndex = activeProfitRecipeIndexForValuation && activeProfitRecipeIndexForValuation.size
-      ? activeProfitRecipeIndexForValuation
-      : buildRecipeIndexByOutput();
-
-    if (Array.isArray(partialResearchOpportunities)) {
-      for (const row of partialResearchOpportunities) {
-        row.missing = (row.missing || []).map(m => ({
-          ...m,
-          acquisition: compareMissingMaterialAcquisition(m.itemId, m.missing, recipeIndex)
-        }));
-      }
-    }
-  } catch (e) {
-    console.warn('Failed to refresh Missing Mats acquisition pricing', e);
-  }
   render();
 }
 
@@ -5794,7 +5778,8 @@ function compareMissingMaterialAcquisition(itemId, count, recipeIndex) {
     options.sort((a, b) => a.cost - b.cost);
     const best = options[0];
     result.best = best.type;
-    result.label = `${best.type} cheaper: ${formatCoin(best.cost)}`;
+    result.bestCost = best.cost;
+    result.label = `${best.type}: ${formatCoin(best.cost)}`;
 
     if (options.length > 1) {
       result.label += ` vs ${options.slice(1).map(o => `${o.type} ${formatCoin(o.cost)}`).join(" / ")}`;
@@ -8041,7 +8026,7 @@ async function buildResearchNoteMode() {
     `Skipped missing owned materials: ${missingOwned.toLocaleString()}
 ` +
     `Cost-aware sub-crafting: enabled\n` +
-    `Material valuation: ${researchMaterialValueMode === 'buy' ? 'Sell Listing' : 'Instant Sell'}`
+    `Material valuation: ${researchMaterialValueMode === 'buy' ? 'Instant Sell' : 'Sell Listing'}`
   );
 
   log(`[Done] Research Note Mode built: ${researchNoteOpportunities.length.toLocaleString()} rows matched, ${renderedNow.toLocaleString()} rendered, ${knownYieldRows.toLocaleString()} known yields, ${unknownYieldRows.toLocaleString()} unknown yields.`);
@@ -8493,7 +8478,7 @@ function getVendorOrTpUnitValueForMaterialMode(itemId, vendorSource, mode = null
     const p = prices.get(Number(itemId));
     const tpSell = p?.sell == null ? null : Number(p.sell);
     if (!vendorSource.forceVendor && tpSell != null && Number.isFinite(tpSell) && tpSell > 0 && tpSell < vendorCoinEach) {
-      return { value: tpSell, source: 'TP Sell cheaper', vendorSource };
+      return { value: tpSell, source: 'TP Sell', vendorSource };
     }
 
     return { value: vendorCoinEach, source: 'Vendor', vendorSource };
@@ -8526,7 +8511,7 @@ function getCheapestVendorBarterOrTpUnitValue(itemId, vendorCost, modeSourceText
 
   if (vendorUnit != null && Number.isFinite(vendorUnit)) {
     if (researchMaterialValueMode === 'buy') return { value: vendorUnit, source: 'Vendor', vendorBarterCost: vendorCost };
-    if (tpUnit != null && tpUnit < vendorUnit) return { value: tpUnit, source: `${tpSource} cheaper`, vendorBarterCost: vendorCost };
+    if (tpUnit != null && tpUnit < vendorUnit) return { value: tpUnit, source: tpSource, vendorBarterCost: vendorCost };
     return { value: vendorUnit, source: 'Vendor', vendorBarterCost: vendorCost };
   }
 
@@ -8567,7 +8552,7 @@ function getMaterialValueUnitForIngredient(ingId, mode = null) {
     const tpSell = price?.sell == null ? null : Number(price.sell);
     const vendorUnit = Number(wikiVendorCost.total || 0) / Math.max(1, Number(wikiVendorCost.count || 1));
     if (tpSell != null && tpSell < vendorUnit) {
-      return { value: tpSell, source: 'TP Sell cheaper', vendorSource, vendorBarterCost: wikiVendorCost };
+      return { value: tpSell, source: 'TP Sell', vendorSource, vendorBarterCost: wikiVendorCost };
     }
     return { value: vendorUnit, source: 'Vendor', vendorSource, vendorBarterCost: wikiVendorCost };
   }
@@ -8645,7 +8630,7 @@ function getDisplayIngredientWithVendorPriority(ing) {
   const vendorCoinEach = getVendorSourceUnitCoinValue(vendorSource);
   if (vendorCoinEach == null) {
     out.vendorSource = vendorSource;
-    if (!/TP\s+(?:Sell|Buy)\s+cheaper/i.test(String(out.valueSource || ''))) {
+    if (!/^TP\s+(?:Sell|Buy)\b/i.test(String(out.valueSource || ''))) {
       out.valueSource = 'Vendor';
       out.accountBoundValueIgnored = false;
     }
@@ -8658,7 +8643,7 @@ function getDisplayIngredientWithVendorPriority(ing) {
   out.vendorSource = vendorSource;
   if (!vendorSource.forceVendor && tpSell != null && tpSell < vendorCoinEach) {
     out.unitValue = tpSell;
-    out.valueSource = 'TP Sell cheaper';
+    out.valueSource = 'TP Sell';
   } else {
     out.unitValue = vendorCoinEach;
     out.valueSource = 'Vendor';
@@ -8696,7 +8681,7 @@ function renderIngredients(ingredients) {
     const count = Number(ing.count || 0).toLocaleString();
     const ownedText = `Owned ${Number(ing.owned || 0).toLocaleString()}`;
 
-    if (ing.vendorSource && !/TP\s+(?:Sell|Buy)\s+cheaper/i.test(String(ing.valueSource || ''))) {
+    if (ing.vendorSource && !/^TP\s+(?:Sell|Buy)\b/i.test(String(ing.valueSource || ''))) {
       return `<span class="ingredient-chip">${renderItemLink(ing.itemId)} <span class="muted">x ${count} / ${ownedText} | ${renderVendorSourceHtml(ing.vendorSource, ing.itemId)}</span></span>`;
     }
 
@@ -8920,6 +8905,43 @@ function getResearchMaterialValueFromIngredients(ingredients) {
   return missing ? null : total;
 }
 
+function refreshMissingMaterialsForCurrentMode(missing, recipeIndex = null) {
+  const idx = recipeIndex || (activeProfitRecipeIndexForValuation && activeProfitRecipeIndexForValuation.size
+    ? activeProfitRecipeIndexForValuation
+    : buildRecipeIndexByOutput());
+
+  return (missing || []).map(m => ({
+    ...m,
+    acquisition: compareMissingMaterialAcquisition(m.itemId, m.missing, idx)
+  }));
+}
+
+function getResearchMissingMaterialValue(missing) {
+  let total = 0;
+  let unknown = false;
+
+  for (const m of missing || []) {
+    const acq = m.acquisition || {};
+    const value = acq.bestCost;
+    if (value == null || !Number.isFinite(Number(value))) {
+      unknown = true;
+      continue;
+    }
+    total += Number(value);
+  }
+
+  return unknown ? null : total;
+}
+
+function combineKnownMaterialValues(...values) {
+  let total = 0;
+  for (const value of values) {
+    if (value == null || !Number.isFinite(Number(value))) return null;
+    total += Number(value);
+  }
+  return total;
+}
+
 function getResearchNoteDisplayRow(row) {
   const out = Object.assign({}, row || {});
   out.ingredients = getResearchDisplayIngredientsForCurrentMode(out.ingredients);
@@ -8935,7 +8957,11 @@ function getResearchNoteDisplayRow(row) {
 function getPartialResearchDisplayRow(row) {
   const out = Object.assign({}, row || {});
   out.ingredients = getResearchDisplayIngredientsForCurrentMode(out.ingredients);
-  const materialValue = getResearchMaterialValueFromIngredients(out.ingredients);
+  out.missing = refreshMissingMaterialsForCurrentMode(out.missing);
+
+  const ownedMaterialValue = getResearchMaterialValueFromIngredients(out.ingredients);
+  const missingMaterialValue = getResearchMissingMaterialValue(out.missing);
+  const materialValue = combineKnownMaterialValues(ownedMaterialValue, missingMaterialValue);
 
   out.materialValue = materialValue;
   out.valuePerNote = out.noteItem == null ? null : copperPerResearchNote(materialValue, out.noteItem);
