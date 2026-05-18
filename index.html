@@ -5288,18 +5288,31 @@ function getResearchMaterialUnitValue(itemId) {
 }
 
 
-function getTpOpportunityUnitForProfitMode(itemId, mode = null) {
+function getTpUnitValueInfoForProfitMode(itemId, mode = null) {
   const p = prices.get(Number(itemId));
-  if (!p) return null;
   const selectedMode = mode || getProfitValuationMode();
+  if (!p) return { value: null, source: selectedMode === 'listing' ? 'TP Sell' : 'TP Buy' };
 
-  // Ingredient/material costs are costs, not sale revenue.
-  // They should use the full 100% TP price. Only finished output revenue
-  // gets reduced by the 15% TP fee.
+  const buy = p.buy == null ? null : Number(p.buy);
+  const sell = p.sell == null ? null : Number(p.sell);
+
+  // In Instant Sell mode, ingredient/material value prefers the buy-order price.
+  // If there are no buy orders, fall back to the lowest sell listing instead of
+  // treating the material as 0c. The source label intentionally switches to
+  // "TP Sell" so the row shows when the fallback was used.
   if (selectedMode === 'listing') {
-    return p.sell == null ? null : Number(p.sell);
+    if (Number.isFinite(sell) && sell > 0) return { value: sell, source: 'TP Sell' };
+    if (Number.isFinite(buy) && buy > 0) return { value: buy, source: 'TP Buy' };
+    return { value: null, source: 'TP Sell' };
   }
-  return p.buy == null ? null : Number(p.buy);
+
+  if (Number.isFinite(buy) && buy > 0) return { value: buy, source: 'TP Buy' };
+  if (Number.isFinite(sell) && sell > 0) return { value: sell, source: 'TP Sell' };
+  return { value: null, source: 'TP Buy' };
+}
+
+function getTpOpportunityUnitForProfitMode(itemId, mode = null) {
+  return getTpUnitValueInfoForProfitMode(itemId, mode).value;
 }
 
 function getVendorOpportunityUnitValue(itemId, mode = null) {
@@ -5953,14 +5966,9 @@ function getProfitIngredientUnitValueForMode(itemId, ing, mode) {
   const replacementUnit = getCraftReplacementUnitForAccountBoundIngredient(itemId, mode, activeProfitRecipeIndexForValuation);
   if (replacementUnit != null) return replacementUnit;
 
-  const p = prices.get(itemId);
-  if (!p) return isAccountBoundOrNoTpIngredient(itemId) ? 0 : null;
+  if (isAccountBoundOrNoTpIngredient(itemId)) return 0;
 
-  if (mode === 'listing') {
-    return p.sell == null ? null : Number(p.sell);
-  }
-
-  return p.buy == null ? null : Number(p.buy);
+  return getTpUnitValueInfoForProfitMode(itemId, mode).value;
 }
 
 function getProfitMaterialValueForMode(o, mode) {
@@ -6005,19 +6013,12 @@ function getProfitDisplayIngredientsForMode(o, mode) {
       return ing;
     }
 
-    const p = prices.get(itemId);
-    if (p) {
-      if (mode === 'listing' && p.sell != null) {
-        ing.unitValue = Number(p.sell);
-        ing.unitSell = ing.unitValue;
-        ing.valueSource = 'TP Sell';
-        ing.accountBoundValueIgnored = false;
-      } else if (mode !== 'listing' && p.buy != null) {
-        ing.unitValue = Number(p.buy);
-        ing.unitSell = ing.unitValue;
-        ing.valueSource = 'TP Buy';
-        ing.accountBoundValueIgnored = false;
-      }
+    const tpInfo = getTpUnitValueInfoForProfitMode(itemId, mode);
+    if (tpInfo.value != null && Number.isFinite(Number(tpInfo.value))) {
+      ing.unitValue = Number(tpInfo.value);
+      ing.unitSell = ing.unitValue;
+      ing.valueSource = tpInfo.source;
+      ing.accountBoundValueIgnored = false;
     }
 
     return ing;
@@ -8286,10 +8287,11 @@ function getMaterialValueUnitForIngredient(ingId, mode = null) {
     return { value: vendorUnit, source: 'Vendor', vendorSource, vendorBarterCost: wikiVendorCost };
   }
 
-  const price = prices.get(Number(ingId));
+  const selectedMode = mode === 'instant' || mode === 'listing' ? mode : 'listing';
+  const tpInfo = getTpUnitValueInfoForProfitMode(ingId, selectedMode);
   return {
-    value: price?.sell ?? null,
-    source: price?.sell == null ? "" : "TP Sell",
+    value: tpInfo.value,
+    source: tpInfo.value == null ? "" : tpInfo.source,
     vendorSource
   };
 }
