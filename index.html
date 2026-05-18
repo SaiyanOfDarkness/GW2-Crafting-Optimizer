@@ -5445,6 +5445,22 @@ function setResearchMaterialValueMode(mode) {
   researchMaterialValueMode = mode === 'buy' ? 'buy' : 'sell';
   const label = researchMaterialValueMode === 'buy' ? 'Instant Sell' : 'Sell Listing';
   log(`Research material valuation set to: ${label}. Re-rendering cached Research rows only.`);
+  try {
+    const recipeIndex = activeProfitRecipeIndexForValuation && activeProfitRecipeIndexForValuation.size
+      ? activeProfitRecipeIndexForValuation
+      : buildRecipeIndexByOutput();
+
+    if (Array.isArray(partialResearchOpportunities)) {
+      for (const row of partialResearchOpportunities) {
+        row.missing = (row.missing || []).map(m => ({
+          ...m,
+          acquisition: compareMissingMaterialAcquisition(m.itemId, m.missing, recipeIndex)
+        }));
+      }
+    }
+  } catch (e) {
+    console.warn('Failed to refresh Missing Mats acquisition pricing', e);
+  }
   render();
 }
 
