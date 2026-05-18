@@ -1557,6 +1557,7 @@ function nestedInitialRenderLimit() {
 
 const NESTED_RENDER_INITIAL_LIMIT = 100;
 let renderLimit = RENDER_STEP;
+let incrementalRenderCache = null;
 
 function optimizedIconAttrs() {
   return ' loading="lazy" decoding="async" fetchpriority="low"';
@@ -8456,10 +8457,70 @@ function formatIngredientsText(ingredients) {
 
 function resetRenderLimitAndRender() {
   renderLimit = RENDER_STEP;
+  incrementalRenderCache = null;
   render();
 }
 
+function getRenderControlsSignature() {
+  const isResearchTable = tableMode === 'researchNotes' || tableMode === 'researchPartial';
+  const q = (document.getElementById(isResearchTable ? 'searchBoxResearch' : 'searchBox')?.value || '').trim().toLowerCase();
+  const minProfitGold = Number(document.getElementById('minProfitGold')?.value || 0);
+  const minProfitSilver = Number(document.getElementById('minProfitSilver')?.value || 0);
+  const minProfitCopper = Number(document.getElementById('minProfitCopper')?.value || 0);
+  const minCraftQty = Number(document.getElementById(isResearchTable ? 'minCraftQtyResearch' : 'minCraftQty')?.value || 0);
+  const hideLoss = !!document.getElementById('hideLoss')?.checked;
+  return JSON.stringify({
+    tableMode,
+    profitViewMode,
+    researchMaterialValueMode,
+    q,
+    minProfitGold,
+    minProfitSilver,
+    minProfitCopper,
+    minCraftQty,
+    hideLoss,
+    sortKey: sortState?.key,
+    sortDir: sortState?.dir,
+    opportunitiesLength: opportunities?.length || 0,
+    researchLength: researchNoteOpportunities?.length || 0,
+    partialLength: partialResearchOpportunities?.length || 0
+  });
+}
+
+function cacheIncrementalRender(signature, filtered, shown, rowHtmlFn) {
+  incrementalRenderCache = { signature, filtered, shown, rowHtmlFn };
+}
+
+function appendMoreRowsFromCache() {
+  const tbody = document.querySelector('#results tbody');
+  const cache = incrementalRenderCache;
+  if (!tbody || !cache || cache.signature !== getRenderControlsSignature()) return false;
+
+  const oldShown = Math.min(cache.shown || 0, cache.filtered.length);
+  const newShown = Math.min(oldShown + RENDER_STEP, cache.filtered.length);
+  if (newShown <= oldShown) {
+    updateLoadMore(cache.filtered.length, oldShown);
+    return true;
+  }
+
+  const btn = document.getElementById('loadMoreRowsBtn');
+  if (btn) btn.disabled = true;
+  try {
+    const html = cache.filtered.slice(oldShown, newShown).map(cache.rowHtmlFn).join('');
+    tbody.insertAdjacentHTML('beforeend', html);
+    cache.shown = newShown;
+    renderLimit = newShown;
+    tbody.__lastResultsHtml = null;
+    updateLoadMore(cache.filtered.length, newShown);
+    scheduleWikiIconResolution();
+  } finally {
+    if (btn) btn.disabled = false;
+  }
+  return true;
+}
+
 function showMoreRows() {
+  if (appendMoreRowsFromCache()) return;
   renderLimit += RENDER_STEP;
   render();
 }
@@ -8603,6 +8664,7 @@ function render() {
 
   const tbody = document.querySelector('#results tbody');
   if (!tbody) return;
+  const renderSignature = getRenderControlsSignature();
 
 
   if (tableMode === 'researchPartial') {
@@ -8631,7 +8693,7 @@ function render() {
     const visibleRows = filtered.slice(0, renderLimit);
     updateLoadMore(totalRows, visibleRows.length);
 
-    setResultsTbodyHtml(tbody, visibleRows.map(o => `
+    const rowHtml = o => `
       <tr>
         <td>${renderOutputItemLink(o.outputItemId, o)}</td>
         <td><span class="rarity-label rarity-${escapeHtml(o.rarity || itemRarity(o.outputItemId))}">${escapeHtml(o.rarity || itemRarity(o.outputItemId))}</span></td>
@@ -8643,7 +8705,9 @@ function render() {
         <td>${renderMissingMaterials(o.missing)}</td>
         <td>${renderIngredients(o.ingredients)}</td>
       </tr>
-    `).join(''));
+    `;
+    cacheIncrementalRender(renderSignature, filtered, visibleRows.length, rowHtml);
+    setResultsTbodyHtml(tbody, visibleRows.map(rowHtml).join(''));
 
     return;
   }
@@ -8674,7 +8738,7 @@ function render() {
     const visibleRows = filtered.slice(0, renderLimit);
     updateLoadMore(totalRows, visibleRows.length);
 
-    setResultsTbodyHtml(tbody, visibleRows.map(o => `
+    const rowHtml = o => `
       <tr>
         <td>${renderOutputItemLink(o.outputItemId, o)}</td>
         <td><span class="rarity-label rarity-${escapeHtml(o.rarity || itemRarity(o.outputItemId))}">${escapeHtml(o.rarity || itemRarity(o.outputItemId))}</span></td>
@@ -8689,7 +8753,9 @@ function render() {
         <td class="num">${o.materialValue == null ? '<span class="muted">unknown</span>' : formatCoin(o.materialValue)}</td>
         <td>${renderIngredients(o.ingredients)}</td>
       </tr>
-    `).join(''));
+    `;
+    cacheIncrementalRender(renderSignature, filtered, visibleRows.length, rowHtml);
+    setResultsTbodyHtml(tbody, visibleRows.map(rowHtml).join(''));
 
     return;
   }
@@ -8721,7 +8787,7 @@ function render() {
   const visibleRows = filtered.slice(0, renderLimit);
   updateLoadMore(totalRows, visibleRows.length);
 
-  setResultsTbodyHtml(tbody, visibleRows.map(o => `
+  const rowHtml = o => `
     <tr>
       <td>${renderOutputItemLink(o.outputItemId, o)}</td>
       <td><span class="rarity-label rarity-${escapeHtml(o.rarity || itemRarity(o.outputItemId))}">${escapeHtml(o.rarity || itemRarity(o.outputItemId))}</span></td>
@@ -8740,7 +8806,9 @@ function render() {
       <td class="num">${pct(o.roi)}</td>
       <td>${renderIngredients(o.ingredients)}</td>
     </tr>
-  `).join(''));
+  `;
+  cacheIncrementalRender(renderSignature, filtered, visibleRows.length, rowHtml);
+  setResultsTbodyHtml(tbody, visibleRows.map(rowHtml).join(''));
 }
 
 function setupTableSorting() {
