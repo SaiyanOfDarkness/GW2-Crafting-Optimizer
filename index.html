@@ -1447,7 +1447,18 @@ td { padding-left: 6px; padding-right: 6px; }
   cursor: help;
 }
 
-</style>
+
+    .mini-search-btn {
+      padding: 7px 10px;
+      font-size: 12px;
+      line-height: 1;
+      margin-left: 6px;
+      white-space: nowrap;
+    }
+    .mini-search-btn.muted {
+      opacity: 0.85;
+    }
+  </style>
 </head>
 <body>
 <header>
@@ -1599,6 +1610,8 @@ td { padding-left: 6px; padding-right: 6px; }
       <div class="filter-group search-group">
         <label for="searchBox">SEARCH</label>
         <input id="searchBox" type="text" placeholder="item, material, recipe...">
+        <button type="button" class="mini-search-btn" onclick="applySearchFilter('searchBox')">Apply</button>
+        <button type="button" class="mini-search-btn muted" onclick="clearSearchFilter('searchBox')">Clear</button>
       </div>
 
       <div class="filter-group profit-value-group profit-only">
@@ -1636,6 +1649,8 @@ td { padding-left: 6px; padding-right: 6px; }
       <div class="filter-group search-group">
         <label for="searchBoxResearch">SEARCH</label>
         <input id="searchBoxResearch" type="text" placeholder="item, material, recipe...">
+        <button type="button" class="mini-search-btn" onclick="applySearchFilter('searchBoxResearch')">Apply</button>
+        <button type="button" class="mini-search-btn muted" onclick="clearSearchFilter('searchBoxResearch')">Clear</button>
       </div>
 
       <div class="filter-group recipe-unlock-group">
@@ -6360,6 +6375,33 @@ function flattenRecipeIngredients(recipe, recipeIndex, path = new Set(), depth =
 }
 
 
+function isGemUpgradeChainOutput(itemId) {
+  const name = String(itemName(itemId) || '').trim();
+  if (!name) return false;
+  const gemNames = [
+    'Amber','Amethyst','Azurite','Beryl','Carnelian','Chrysocola','Coral','Emerald','Garnet','Lapis','Malachite','Opal','Pearl','Peridot','Ruby','Sapphire','Sunstone','Tiger\'s Eye','Topaz','Turquoise'
+  ];
+  const hasGemName = gemNames.some(gem => name.toLowerCase().includes(gem.toLowerCase()));
+  if (!hasGemName) return false;
+
+  // These recipes are gemstone upgrade/conversion chains, not normal material
+  // refinement/component crafting. Counting them as automatic Can Make supply
+  // can wildly inflate rows such as Beryl Mithril Earring by converting unrelated
+  // gems/dust into Beryl intermediates.
+  return /\b(Shard|Crystal|Orb|Jewel)\b/i.test(name);
+}
+
+function isAllowedOwnedIntermediateCraftabilityRecipe(itemId, subRecipe) {
+  if (!subRecipe || !Array.isArray(subRecipe.ingredients) || !subRecipe.ingredients.length) return false;
+
+  const disciplines = normalizeDisciplines(subRecipe.disciplines).map(d => String(d || '').toLowerCase());
+  if (disciplines.some(d => d.includes('mystic'))) return false;
+
+  if (isGemUpgradeChainOutput(itemId)) return false;
+
+  return true;
+}
+
 function isUnlimitedCraftabilityIngredient(itemId) {
   const vendorSource = getVendorBulkSourceForIngredient(itemId);
   if (vendorSource) return true;
@@ -6390,6 +6432,7 @@ function consumeOwnedOrCraftableForCanMake(itemId, neededCount, virtualInventory
 
   const subRecipe = recipeIndex && recipeIndex.get(itemId);
   if (!subRecipe || !Array.isArray(subRecipe.ingredients) || !subRecipe.ingredients.length) return false;
+  if (!isAllowedOwnedIntermediateCraftabilityRecipe(itemId, subRecipe)) return false;
   if (path.has(itemId)) return false;
 
   const outputCount = Math.max(1, Number(subRecipe.outputCount || 1));
@@ -6503,10 +6546,11 @@ function collectOwnedIntermediateContributors(recipe, recipeIndex, out = new Map
     if (!ingId || path.has(ingId)) continue;
     const subRecipe = recipeIndex.get(ingId);
     const owned = Number(ownedMaterials.get(ingId) || 0);
-    if (subRecipe && owned > 0 && !isUnlimitedCraftabilityIngredient(ingId)) {
+    const allowedSubRecipe = subRecipe && isAllowedOwnedIntermediateCraftabilityRecipe(ingId, subRecipe);
+    if (allowedSubRecipe && owned > 0 && !isUnlimitedCraftabilityIngredient(ingId)) {
       out.set(ingId, Math.max(Number(out.get(ingId) || 0), owned));
     }
-    if (subRecipe) collectOwnedIntermediateContributors(subRecipe, recipeIndex, out, new Set(path), depth + 1);
+    if (allowedSubRecipe) collectOwnedIntermediateContributors(subRecipe, recipeIndex, out, new Set(path), depth + 1);
   }
 
   return out;
@@ -9668,7 +9712,44 @@ function setupTableSorting() {
   });
 }
 
+function applySearchFilter(id) {
+  const el = document.getElementById(id);
+  if (el) el.value = String(el.value || '').trim();
+  resetRenderLimitAndRender();
+}
+
+function clearSearchFilter(id) {
+  const el = document.getElementById(id);
+  if (el && el.value) {
+    el.value = '';
+    resetRenderLimitAndRender();
+  } else if (el) {
+    // Still refresh if the visible table was built from a stale search state.
+    resetRenderLimitAndRender();
+  }
+}
+
+function setupFilterControls() {
+  const bind = id => {
+    const el = document.getElementById(id);
+    if (!el || el.__gw2FilterBound) return;
+    el.__gw2FilterBound = true;
+    // Do not render on every typed character; large RN/profit tables can be heavy.
+    // Search applies only on Enter, Apply, Clear, or when the field is committed/changed.
+    el.addEventListener('keydown', event => {
+      if (event.key === 'Enter') {
+        event.preventDefault();
+        applySearchFilter(id);
+      }
+    });
+    el.addEventListener('change', () => applySearchFilter(id));
+  };
+  bind('searchBox');
+  bind('searchBoxResearch');
+}
+
 setupTableSorting();
+setupFilterControls();
 
 (async function init() {
   await loadAccounts();
