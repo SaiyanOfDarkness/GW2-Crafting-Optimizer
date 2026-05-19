@@ -1773,6 +1773,12 @@ function disableAllDebugLogs() {
   log('[Debug] All optional debug logs disabled.');
 }
 
+
+window.DEBUG_RECIPE_UNLOCK = false;
+function enableRecipeUnlockDebugLogs() { window.DEBUG_RECIPE_UNLOCK = true; log('[Debug] Recipe unlock debug logs enabled until page refresh.'); }
+function disableRecipeUnlockDebugLogs() { window.DEBUG_RECIPE_UNLOCK = false; log('[Debug] Recipe unlock debug logs disabled.'); }
+function recipeUnlockDebugLog(message) { if (!window.DEBUG_RECIPE_UNLOCK) return; log(String(message || '')); }
+
 function researchPerfLog(message) {
   if (!window.DEBUG_RESEARCH_PERF) return;
   log(String(message || ''));
@@ -4290,7 +4296,7 @@ function recipeUnlockDebug(recipeId) {
     finalUnlockedResult: isRecipeUnlockedForSelectedSource(n)
   };
   console.table(info);
-  log(`[RecipeUnlockDebug] Manual check recipe ${n}: ` + JSON.stringify(info));
+  recipeUnlockDebugLog(`[RecipeUnlockDebug] Manual check recipe ${n}: ` + JSON.stringify(info));
   return info;
 }
 
@@ -7020,24 +7026,62 @@ function findRecipeByRecipeId(recipeId) {
   return (recipeCache || []).find(r => Number(r.recipeId) === target) || null;
 }
 
+
+function isBlockedOwnedIntermediateUpgradeRecipe(recipe, targetItemId = null) {
+  if (!recipe) return false;
+  try { if (typeof isGemUpgradeChainOutput === 'function' && isGemUpgradeChainOutput(Number(recipe.outputItemId))) return true; } catch (_) {}
+  const outputName = itemName(Number(recipe.outputItemId)).toLowerCase();
+  const targetName = targetItemId ? itemName(Number(targetItemId)).toLowerCase() : outputName;
+  const combinedName = `${outputName} ${targetName}`;
+  const gemWords = ['agate','amethyst','aquamarine','azurite','beryl','carnelian','chrysocola','coral','emerald','garnet','lapis','malachite','opal','pearl','peridot','ruby','sapphire','sunstone','topaz','turquoise','spinel','citrine','quartz','crystal','shard','lump','nugget','orb','jewel','doubloon','crest'];
+  const looksLikeGemOutput = gemWords.some(w => combinedName.includes(w));
+  if (!looksLikeGemOutput) return false;
+  const ingredientNames = (recipe.ingredients || []).map(ing => itemName(Number(ing.item_id || ing.id || ing.itemId)).toLowerCase());
+  const hasDust = ingredientNames.some(n => n.includes('dust'));
+  const gemIngredientCount = ingredientNames.filter(n => gemWords.some(w => n.includes(w))).length;
+  if (hasDust && gemIngredientCount >= 1) return true;
+  if (gemIngredientCount >= 2) return true;
+  return false;
+}
+function shouldRejectOwnedIntermediateContributorRecipe(recipe, targetItemId = null) {
+  if (!recipe) return false;
+  if (isBlockedOwnedIntermediateUpgradeRecipe(recipe, targetItemId)) return true;
+  try { if (typeof isAllowedOwnedIntermediateRecipe === 'function' && !isAllowedOwnedIntermediateRecipe(recipe, targetItemId)) return true; } catch (_) {}
+  return false;
+}
+
 function collectOwnedIntermediateContributors(recipe, recipeIndex, out = new Map(), path = new Set(), depth = 0) {
-  if (!recipe || !recipeIndex || depth > 5) return out;
-  const outputId = Number(recipe.outputItemId || 0);
-  if (outputId) path.add(outputId);
-
-  for (const ing of recipe.ingredients || []) {
-    const ingId = Number(ing.itemId || 0);
-    if (!ingId || path.has(ingId)) continue;
-    const subRecipe = recipeIndex.get(ingId);
-    const owned = Number(ownedMaterials.get(ingId) || 0);
-    const allowedSubRecipe = subRecipe && isAllowedOwnedIntermediateCraftabilityRecipe(ingId, subRecipe);
-    if (allowedSubRecipe && owned > 0 && !isUnlimitedCraftabilityIngredient(ingId)) {
-      out.set(ingId, Math.max(Number(out.get(ingId) || 0), owned));
-    }
-    if (allowedSubRecipe) collectOwnedIntermediateContributors(subRecipe, recipeIndex, out, new Set(path), depth + 1);
+  const contributors = new Map();
+  const seen = new Set();
+  function addOwned(itemId) {
+    itemId = Number(itemId);
+    if (!itemId) return;
+    const owned = Number(ownedMaterials.get(itemId) || 0);
+    if (owned > 0) contributors.set(itemId, Math.max(Number(contributors.get(itemId) || 0), owned));
   }
-
-  return out;
+  function getSubRecipeForItem(itemId) {
+    if (recipeIndex && typeof recipeIndex.get === 'function') return recipeIndex.get(Number(itemId)) || null;
+    return null;
+  }
+  function visit(recipe, depth = 0) {
+    if (!recipe || depth > 5) return;
+    const recipeId = Number(recipe.id || recipe.recipe_id || recipe.recipeId || 0);
+    const outputId = Number(recipe.outputItemId || recipe.output_item_id || 0);
+    const seenKey = `${recipeId}:${outputId}:${depth}`;
+    if (seen.has(seenKey)) return;
+    seen.add(seenKey);
+    for (const ing of (recipe.ingredients || [])) {
+      const itemId = Number(ing.item_id || ing.id || ing.itemId);
+      if (!itemId) continue;
+      addOwned(itemId);
+      const subRecipe = getSubRecipeForItem(itemId);
+      if (!subRecipe) continue;
+      if (shouldRejectOwnedIntermediateContributorRecipe(subRecipe, itemId)) continue;
+      visit(subRecipe, depth + 1);
+    }
+  }
+  visit(recipe, 0);
+  return contributors;
 }
 
 function buildOwnedIntermediateCanMakeTooltip(row) {
