@@ -1763,11 +1763,13 @@ function disablePartialDebugLogs() {
   log('[Debug] Partial/cache debug logs disabled.');
 }
 function enableAllDebugLogs() {
+  window.DEBUG_SORT = true;
   window.DEBUG_RESEARCH_PERF = true;
   window.DEBUG_PARTIAL_DEBUG = true;
   log('[Debug] All optional debug logs enabled until page refresh.');
 }
 function disableAllDebugLogs() {
+  window.DEBUG_SORT = false;
   window.DEBUG_RESEARCH_PERF = false;
   window.DEBUG_PARTIAL_DEBUG = false;
   log('[Debug] All optional debug logs disabled.');
@@ -1778,6 +1780,21 @@ window.DEBUG_RECIPE_UNLOCK = false;
 function enableRecipeUnlockDebugLogs() { window.DEBUG_RECIPE_UNLOCK = true; log('[Debug] Recipe unlock debug logs enabled until page refresh.'); }
 function disableRecipeUnlockDebugLogs() { window.DEBUG_RECIPE_UNLOCK = false; log('[Debug] Recipe unlock debug logs disabled.'); }
 function recipeUnlockDebugLog(message) { if (!window.DEBUG_RECIPE_UNLOCK) return; log(String(message || '')); }
+
+window.DEBUG_SORT = false;
+function enableSortDebugLogs() {
+  window.DEBUG_SORT = true;
+  log('[Debug] Sort debug logs enabled until page refresh.');
+}
+function disableSortDebugLogs() {
+  window.DEBUG_SORT = false;
+  log('[Debug] Sort debug logs disabled.');
+}
+function sortDebugLog(message) {
+  if (!window.DEBUG_SORT) return;
+  log(String(message || ''));
+}
+
 
 function researchPerfLog(message) {
   if (!window.DEBUG_RESEARCH_PERF) return;
@@ -4526,6 +4543,7 @@ function escapeSmwValue(value) {
 
 function stripCraftedPrefixForVariantSearch(name = "") {
   const text = String(name || "").trim();
+  if (shouldPreserveCraftedPrefixForWikiLink(text)) return text;
   const prefixes = [
     "Berserker's","Assassin's","Harrier's","Minstrel's","Viper's","Marauder's","Cleric's","Knight's",
     "Rabid","Carrion","Rampager's","Sentinel's","Dire","Nomad's","Apothecary's","Celestial","Sinister",
@@ -9615,14 +9633,34 @@ function armorWeightFromDisciplines(disciplines) {
   return '';
 }
 
+
+function shouldPreserveCraftedPrefixForWikiLink(name, itemId = null) {
+  const text = String(name || '').trim();
+  if (!text) return false;
+
+  // Slaying potions and similar consumables use these words as actual item tiers.
+  // They are not stat prefixes in the wiki page title.
+  if (/^(Weak|Minor|Strong|Potent|Powerful)\s+Potion\s+of\b/i.test(text)) return true;
+  if (/^Potion\s+of\b/i.test(text)) return true;
+
+  const info = itemId != null ? itemInfo.get(Number(itemId)) : null;
+  const type = String(info?.type || '').toLowerCase();
+  if (type === 'consumable' && /^(Weak|Minor|Strong|Potent|Powerful)\s+/i.test(text)) return true;
+
+  return false;
+}
+
 function wikiUrlForOutputOpportunity(o) {
-  const name = itemName(o?.outputItemId);
+  const itemId = Number(o?.outputItemId);
+  const name = itemName(itemId);
   const weight = armorWeightFromDisciplines(o?.disciplines);
   if (weight && /^Adventurer's /i.test(name)) {
     return 'https://wiki.guildwars2.com/wiki/' + encodeURIComponent(`${name} (${weight})`.replace(/[ ]+/g, '_'));
   }
 
-  const baseName = stripCraftedPrefixForVariantSearch(name);
+  const baseName = shouldPreserveCraftedPrefixForWikiLink(name, itemId)
+    ? name
+    : stripCraftedPrefixForVariantSearch(name);
   return wikiUrlForName(baseName || name);
 }
 
@@ -10363,6 +10401,10 @@ function researchSortValueGetter(displayRowFn, key) {
 }
 
 function render() {
+  const __sortDebugRenderStart = (window.DEBUG_SORT && performance && performance.now) ? performance.now() : 0;
+  const __sortDebugSortKey = sortState && sortState.key ? sortState.key : '';
+  const __sortDebugSortDir = sortState && sortState.dir ? sortState.dir : '';
+
   try { syncResearchOwnedAndPartialControls(); } catch (_) {}
   ensureUseOwnedMaterialsResearchControlVisible();
   const isResearchTable = tableMode === 'researchNotes' || tableMode === 'researchPartial';
@@ -10510,6 +10552,12 @@ function render() {
   `;
   cacheIncrementalRender(renderSignature, filtered, visibleRows.length, rowHtml);
   setResultsTbodyHtml(tbody, visibleRows.map(rowHtml).join(''));
+
+  if (window.DEBUG_SORT && __sortDebugRenderStart) {
+    const __sortDebugRenderMs = Math.round(performance.now() - __sortDebugRenderStart);
+    const __sortDebugRows = Array.isArray(currentRows) ? currentRows.length : (Array.isArray(opportunities) ? opportunities.length : 0);
+    sortDebugLog(`[SortDebug] render key=${__sortDebugSortKey || 'none'} dir=${__sortDebugSortDir || ''} mode=${tableMode || ''} rows=${__sortDebugRows.toLocaleString()} total=${__sortDebugRenderMs}ms`);
+  }
 }
 
 function setupTableSorting() {
