@@ -4817,6 +4817,8 @@ async function refreshMarketPrices() {
   listings = await getListings(outputIds);
 
   setStatus(`Loaded TP prices for ${prices.size} IDs and output listings for ${listings.size} crafted outputs.`);
+
+  try { await rebuildOwnedOffResearchAfterTpRefreshIfNeeded(); } catch (err) { console.warn('owned-off RN rebuild after TP refresh failed', err); }
 }
 
 async function getPrices(ids) {
@@ -5911,7 +5913,9 @@ async function ensureTpPricesForOwnedOffResearchBrowser() {
     setStatus('Loading TP prices for Research craft-cost browser...');
     await waitForUiFrame();
 
-    if (typeof refreshTpPrices === 'function') {
+    if (typeof refreshMarketPrices === 'function') {
+      await refreshMarketPrices();
+    } else if (typeof refreshTpPrices === 'function') {
       await refreshTpPrices();
     } else if (typeof refreshTPPrices === 'function') {
       await refreshTPPrices();
