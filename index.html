@@ -602,6 +602,34 @@ a.item-link:hover {
   decoding: async;
 }
 
+.owned-mats-details {
+  display: inline-block;
+  max-width: 920px;
+}
+
+.owned-mats-details > summary {
+  cursor: pointer;
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  color: var(--accent);
+  border: 1px solid rgba(246,1,157,0.24);
+  background: rgba(246,1,157,0.055);
+  border-radius: 8px;
+  padding: 3px 8px;
+  white-space: nowrap;
+  user-select: none;
+}
+
+.owned-mats-details > summary:hover {
+  border-color: rgba(246,1,157,0.48);
+  background: rgba(246,1,157,0.10);
+}
+
+.owned-mats-details[open] > summary {
+  margin-bottom: 6px;
+}
+
 .ingredient-list {
   display: flex;
   flex-wrap: wrap;
@@ -8686,7 +8714,9 @@ function renderVendorCostLabelForIngredient(ing, wikiVendorCost = null) {
 
 
 function renderIngredients(ingredients) {
-  return '<div class="ingredient-list">' + ingredients.map(rawIng => {
+  if (!ingredients || !ingredients.length) return '<span class="muted">none</span>';
+
+  const chipsHtml = ingredients.map(rawIng => {
     const ing = getDisplayIngredientWithVendorPriority(rawIng);
     const count = Number(ing.count || 0).toLocaleString();
     const ownedText = `Owned ${Number(ing.owned || 0).toLocaleString()}`;
@@ -8726,7 +8756,10 @@ function renderIngredients(ingredients) {
     const priceText = unitValue == null ? '?' : formatCoin(unitValue);
     const sourceText = ing.valueSourceHtml ? ` ${ing.valueSourceHtml}` : (finalSource && !isOwnedBoundNoTpText(finalSource) ? ` ${escapeHtml(finalSource)}` : '');
     return `<span class="ingredient-chip">${renderItemLink(ing.itemId)} <span class="muted">x ${count} / ${ownedText} @ ${priceText}${sourceText}</span></span>`;
-  }).join('') + '</div>';
+  }).join('');
+
+  const countLabel = `${ingredients.length.toLocaleString()} ${ingredients.length === 1 ? 'item' : 'items'}`;
+  return `<details class="owned-mats-details"><summary>Owned Mats Used (${countLabel})</summary><div class="ingredient-list">${chipsHtml}</div></details>`;
 }
 
 
