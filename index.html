@@ -3780,6 +3780,7 @@ async function loadDataCache() {
   invalidItemIds = new Set((data.invalidItemIds || []).map(Number));
   researchSalvageableItemIds = new Set((data.researchSalvageableItemIds || []).map(Number));
   ownedRecipesByAccount = data.ownedRecipesByAccount || {};
+  for (const key of Object.keys(ownedRecipesByAccount || {})) normalizeOwnedRecipeData(ownedRecipesByAccount[key]);
   updateRecipeUnlockSourceOptions();
   if (data.wikiVendorCacheSchemaVersion === WIKI_VENDOR_CACHE_SCHEMA_VERSION) {
     wikiVendorBarterByName = data.wikiVendorBarterByName || {};
@@ -3800,7 +3801,8 @@ async function loadDataCache() {
     itemInfoCount: itemInfo.size,
     recipeCount: recipeCache.length,
     materialIdCount: materialIdSet.size,
-    invalidItemIdCount: invalidItemIds.size
+    invalidItemIdCount: invalidItemIds.size,
+    ownedRecipeAccountCount: Object.values(ownedRecipesByAccount || {}).filter(data => Array.isArray(data?.recipeIds) && data.recipeIds.length).length
   };
 }
 
@@ -4064,6 +4066,7 @@ function updateRecipeUnlockSourceOptions() {
 
   const previous = selectedRecipeUnlockSource || select.value || 'disabled';
   const entries = Object.entries(ownedRecipesByAccount || {})
+    .map(([id, data]) => [id, normalizeOwnedRecipeData(data)])
     .filter(([, data]) => Array.isArray(data?.recipeIds) && data.recipeIds.length)
     .sort((a, b) => String(a[1].label || a[0]).localeCompare(String(b[1].label || b[0])));
 
@@ -4087,18 +4090,90 @@ function getSelectedRecipeUnlockData() {
   return ownedRecipesByAccount?.[selectedRecipeUnlockSource] || null;
 }
 
+function normalizeRecipeId(value) {
+  const n = Number(value);
+  return Number.isFinite(n) && n > 0 ? n : null;
+}
+
+function normalizeOwnedRecipeData(data) {
+  if (!data || !Array.isArray(data.recipeIds)) return data;
+  const recipeIds = [...new Set(data.recipeIds.map(normalizeRecipeId).filter(Boolean))].sort((a, b) => a - b);
+  data.recipeIds = recipeIds;
+  data.count = Number(data.count || recipeIds.length || 0);
+  data._recipeSet = new Set(recipeIds);
+  return data;
+}
+
 function getSelectedRecipeUnlockSet() {
   const data = getSelectedRecipeUnlockData();
   if (!data || !Array.isArray(data.recipeIds)) return null;
-  if (!data._recipeSet) data._recipeSet = new Set(data.recipeIds.map(Number));
-  return data._recipeSet;
+  normalizeOwnedRecipeData(data);
+  return data._recipeSet || null;
+}
+
+function getRecipeFlagsForRecipeId(recipeId) {
+  const recipe = findRecipeByRecipeId(recipeId);
+  return Array.isArray(recipe?.flags) ? recipe.flags : [];
+}
+
+function isRecipeAutoLearned(recipeId) {
+  const flags = getRecipeFlagsForRecipeId(recipeId);
+  return flags.includes('AutoLearned') || flags.includes('AutoLearnedFromItem');
+}
+
+let recipeUnlockDebugMissCount = 0;
+function logRecipeUnlockDebug(recipeId, unlocked, reason) {
+  if (recipeUnlockDebugMissCount >= 40) return;
+  const data = getSelectedRecipeUnlockData();
+  const ids = Array.isArray(data?.recipeIds) ? data.recipeIds : [];
+  const n = normalizeRecipeId(recipeId);
+  const label = data?.label || recipeUnlockAccountLabel(selectedRecipeUnlockSource);
+  const sample = ids.slice(0, 12).join(', ');
+  const flags = getRecipeFlagsForRecipeId(n).join(', ') || 'none/unknown';
+  const msg = `[RecipeUnlockDebug] ${label || selectedRecipeUnlockSource || 'disabled'} recipe ${n || recipeId}: unlocked=${unlocked} reason=${reason}; loaded=${ids.length.toLocaleString()} IDs; sample=[${sample}]; flags=${flags}`;
+  console.debug(msg);
+  log(msg);
+  recipeUnlockDebugMissCount++;
 }
 
 function isRecipeUnlockedForSelectedSource(recipeId) {
+  const n = normalizeRecipeId(recipeId);
+  if (!n) return true;
+
+  // API /v2/account/recipes usually contains recipes learned/unlocked by the account.
+  // Recipes that are auto-learned by the discipline may not appear in that account list,
+  // so treat explicit AutoLearned API recipes as unlocked when the flag is available.
+  if (isRecipeAutoLearned(n)) return true;
+
   const recipeSet = getSelectedRecipeUnlockSet();
   if (!recipeSet) return true;
-  return recipeSet.has(Number(recipeId));
+  const unlocked = recipeSet.has(n);
+  if (!unlocked) logRecipeUnlockDebug(n, false, 'missing-from-selected-account-recipe-set');
+  return unlocked;
 }
+
+function recipeUnlockDebug(recipeId) {
+  const n = normalizeRecipeId(recipeId);
+  const data = getSelectedRecipeUnlockData();
+  const recipeSet = getSelectedRecipeUnlockSet();
+  const recipe = findRecipeByRecipeId(n);
+  const info = {
+    selectedRecipeUnlockSource,
+    selectedLabel: data?.label || null,
+    loadedRecipeCount: Array.isArray(data?.recipeIds) ? data.recipeIds.length : 0,
+    recipeId: n,
+    inSelectedRecipeSet: !!recipeSet?.has(n),
+    recipeCacheFound: !!recipe,
+    recipeFlags: Array.isArray(recipe?.flags) ? recipe.flags : [],
+    autoLearned: isRecipeAutoLearned(n),
+    finalUnlockedResult: isRecipeUnlockedForSelectedSource(n)
+  };
+  console.table(info);
+  log(`[RecipeUnlockDebug] Manual check recipe ${n}: ` + JSON.stringify(info));
+  return info;
+}
+
+window.recipeUnlockDebug = recipeUnlockDebug;
 
 function renderRecipeIdCell(recipeId) {
   const idText = escapeHtml(String(recipeId ?? ''));
@@ -4116,6 +4191,7 @@ function renderRecipeIdCell(recipeId) {
 }
 
 function setRecipeUnlockSource(value) {
+  recipeUnlockDebugMissCount = 0;
   selectedRecipeUnlockSource = value || 'disabled';
   const select = document.getElementById('recipeUnlockSourceSelect');
   if (select && select.value !== selectedRecipeUnlockSource) select.value = selectedRecipeUnlockSource;
@@ -4140,12 +4216,12 @@ async function loadOwnedRecipes() {
     try {
       const ids = await fetchJson(`${API}/account/recipes?access_token=${token}`);
       const recipeIds = [...new Set((ids || []).map(Number).filter(n => Number.isFinite(n) && n > 0))].sort((a, b) => a - b);
-      ownedRecipesByAccount[acc.id] = {
+      ownedRecipesByAccount[acc.id] = normalizeOwnedRecipeData({
         label,
         count: recipeIds.length,
         recipeIds,
         loadedAt: new Date().toISOString()
-      };
+      });
       loaded++;
       log(`Unlocked recipes loaded for ${label}: ${recipeIds.length.toLocaleString()} recipe ID(s).`);
     } catch (e) {
@@ -4154,8 +4230,15 @@ async function loadOwnedRecipes() {
     }
   });
 
+  recipeUnlockDebugMissCount = 0;
   updateRecipeUnlockSourceOptions();
   await saveDataCache();
+  const loadedSummary = Object.values(ownedRecipesByAccount || {})
+    .filter(data => Array.isArray(data?.recipeIds) && data.recipeIds.length)
+    .map(data => `${data.label || 'Account'}: ${data.recipeIds.length.toLocaleString()}`)
+    .join('; ');
+  log(`[Recipes] Owned recipe cache summary: ${loadedSummary || 'none'}`);
+  resetRenderLimitAndRender();
   setStatus(`Loaded owned recipes for ${loaded.toLocaleString()} / ${active.length.toLocaleString()} enabled account(s).`);
 }
 
@@ -4367,6 +4450,7 @@ function compactRecipeFromApi(r) {
     outputCount: r.output_item_count || 1,
     disciplines: r.disciplines || [],
     minRating: r.min_rating ?? '',
+    flags: Array.isArray(r.flags) ? r.flags : [],
     ingredients: r.ingredients.map(i => ({ itemId: i.item_id, count: i.count })).filter(i => i.itemId && i.count)
   };
 }
@@ -4616,6 +4700,7 @@ async function loadRecipeCache() {
             outputCount: r.output_item_count || 1,
             disciplines: r.disciplines || [],
             minRating: r.min_rating ?? '',
+            flags: Array.isArray(r.flags) ? r.flags : [],
             ingredients: r.ingredients.map(i => ({ itemId: i.item_id, count: i.count })).filter(i => i.itemId && i.count)
           });
         }
