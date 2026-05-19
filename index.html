@@ -8447,6 +8447,24 @@ async function buildResearchNoteMode() {
   for (const recipe of recipeCache) {
     considered++;
 
+    const researchRecipeStart = performance.now();
+    let researchRecipeLastMark = researchRecipeStart;
+    const researchRecipePhases = [];
+    function markResearchRecipePhase(name) {
+      const now = performance.now();
+      researchRecipePhases.push(`${name}=${Math.round(now - researchRecipeLastMark)}ms`);
+      researchRecipeLastMark = now;
+    }
+    function maybeLogSlowResearchRecipe(exitReason) {
+      const totalMs = performance.now() - researchRecipeStart;
+      if (considered < 7000 || totalMs < 250) return;
+      const rid = Number(recipe.recipeId || recipe.id || 0);
+      const oid = Number(recipe.outputItemId || 0);
+      const name = oid ? itemName(oid) : '(unknown output)';
+      const flags = Array.isArray(recipe.flags) && recipe.flags.length ? recipe.flags.join(',') : 'none';
+      log(`[ResearchSlowRecipe] #${considered.toLocaleString()} recipe ${rid || '(no id)'} -> ${name} (${oid || 'no output id'}) took ${Math.round(totalMs).toLocaleString()}ms; exit=${exitReason}; phases: ${researchRecipePhases.join(' | ') || 'none'}; flags=${flags}; rows=${researchNoteOpportunities.length.toLocaleString()}.`);
+    }
+
     if (considered % RESEARCH_BUILD_YIELD_EVERY === 0) {
       const researchPerfNow = performance.now();
       const researchPerfMs = researchPerfNow - researchPerfChunkStart;
@@ -8465,7 +8483,11 @@ async function buildResearchNoteMode() {
 
     const outputId = Number(recipe.outputItemId);
     const noteItem = getResearchNoteYield(outputId);
-    if (!isResearchNoteCandidateOutput(outputId, noteItem)) continue;
+    markResearchRecipePhase('candidate');
+    if (!isResearchNoteCandidateOutput(outputId, noteItem)) {
+      maybeLogSlowResearchRecipe('not-candidate');
+      continue;
+    }
     if (noteItem == null) withoutYield++;
     else withYield++;
 
@@ -8482,23 +8504,30 @@ async function buildResearchNoteMode() {
       flat = { ok: true, requirements, steps: [] };
     }
 
+    markResearchRecipePhase('flatten');
     if (!flat || !flat.ok || !flat.requirements || !flat.requirements.size) {
       badFlat++;
+      maybeLogSlowResearchRecipe('bad-flatten');
       continue;
     }
     flattened++;
 
     const expandedFlat = expandRequirementsUsingOwnedCrafting(flat, recipeIndex);
+    markResearchRecipePhase('expand-owned-crafting');
     const mergedSteps = [...(flat.steps || []), ...(expandedFlat.steps || [])];
     const evald = evaluateNestedRequirements(expandedFlat, recipe.outputCount || 1);
+    markResearchRecipePhase('evaluate');
     const baselineCanCraftQty = evald.canCraftQty;
     const smartCanCraftQty = getSmartCanCraftQtyWithOwnedIntermediates(recipe, recipeIndex, evald.canCraftQty);
+    markResearchRecipePhase('smart-can-make');
     const ownedIntermediateContributors = smartCanCraftQty > baselineCanCraftQty
       ? Array.from(collectOwnedIntermediateContributors(recipe, recipeIndex).entries()).map(([itemId, owned]) => ({ itemId, owned }))
       : [];
+    markResearchRecipePhase('collect-intermediates');
 
     if (evald.missingOwned && (!Number.isFinite(smartCanCraftQty) || smartCanCraftQty <= 0)) {
       missingOwned++;
+      maybeLogSlowResearchRecipe('missing-owned');
       continue;
     }
 
@@ -8507,7 +8536,10 @@ async function buildResearchNoteMode() {
 
     const outputCount = Math.max(1, Number(recipe.outputCount || 1));
     const canCraftQty = smartCanCraftQty; // number of recipe executions possible, counting owned refined/intermediate components
-    if (!Number.isFinite(canCraftQty) || canCraftQty <= 0) continue;
+    if (!Number.isFinite(canCraftQty) || canCraftQty <= 0) {
+      maybeLogSlowResearchRecipe('zero-can-make');
+      continue;
+    }
 
     // In Research Note Mode, Craft Qty should mean total crafted output items,
     // not the number of recipe executions. Recipes with outputCount > 1 should
@@ -8538,6 +8570,8 @@ async function buildResearchNoteMode() {
       ingredients: evald.ingredients,
       nestedSteps: mergedSteps || flat.steps || []
     });
+    markResearchRecipePhase('push-row');
+    maybeLogSlowResearchRecipe('row-added');
   }
 
   researchNoteOpportunities.sort((a, b) => {
