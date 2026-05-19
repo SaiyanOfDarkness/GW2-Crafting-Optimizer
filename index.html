@@ -1734,6 +1734,45 @@ td { padding-left: 6px; padding-right: 6px; }
 </main>
 
 <script>
+
+// Debug logs are disabled by default and reset on page refresh.
+// Use these in DevTools Console when troubleshooting:
+//   enableResearchPerfLogs()
+//   disableResearchPerfLogs()
+//   enablePartialDebugLogs()
+//   disablePartialDebugLogs()
+//   enableAllDebugLogs()
+//   disableAllDebugLogs()
+window.DEBUG_RESEARCH_PERF = false;
+window.DEBUG_PARTIAL_DEBUG = false;
+
+function enableResearchPerfLogs() {
+  window.DEBUG_RESEARCH_PERF = true;
+  log('[Debug] Research performance logs enabled until page refresh.');
+}
+function disableResearchPerfLogs() {
+  window.DEBUG_RESEARCH_PERF = false;
+  log('[Debug] Research performance logs disabled.');
+}
+function enablePartialDebugLogs() {
+  window.DEBUG_PARTIAL_DEBUG = true;
+  log('[Debug] Partial/cache debug logs enabled until page refresh.');
+}
+function disablePartialDebugLogs() {
+  window.DEBUG_PARTIAL_DEBUG = false;
+  log('[Debug] Partial/cache debug logs disabled.');
+}
+function enableAllDebugLogs() {
+  window.DEBUG_RESEARCH_PERF = true;
+  window.DEBUG_PARTIAL_DEBUG = true;
+  log('[Debug] All optional debug logs enabled until page refresh.');
+}
+function disableAllDebugLogs() {
+  window.DEBUG_RESEARCH_PERF = false;
+  window.DEBUG_PARTIAL_DEBUG = false;
+  log('[Debug] All optional debug logs disabled.');
+}
+
 const API = 'https://api.guildwars2.com/v2';
 const DB_NAME = 'gw2OwnedMaterialCraftingOptimizerDB';
 const DB_VERSION = 1;
@@ -8803,7 +8842,7 @@ async function buildPartialResearchRecipes() {
     `No owned materials skipped: ${noMaterialsAtAll.toLocaleString()}`
   );
 
-  log(`[PartialCache] plan=${partialCheapestOwnedPlanCache.size}, expanded=${partialExpandedRequirementsCache.size}, replacement=${partialCraftReplacementCostCache.size}, vendorUnit=${partialVendorOpportunityUnitValueCache.size}, researchUnit=${partialResearchMaterialUnitValueCache.size}, vendorCost=${vendorBarterCostCache.size}.`);
+  if (window.DEBUG_PARTIAL_DEBUG) log(`[PartialCache] plan=${partialCheapestOwnedPlanCache.size}, expanded=${partialExpandedRequirementsCache.size}, replacement=${partialCraftReplacementCostCache.size}, vendorUnit=${partialVendorOpportunityUnitValueCache.size}, researchUnit=${partialResearchMaterialUnitValueCache.size}, vendorCost=${vendorBarterCostCache.size}.`);
   log(`[Done] Partial Research Recipes built: ${partialResearchOpportunities.length.toLocaleString()} partial rows matched, ${renderedNow.toLocaleString()} rendered.`);
 }
 
@@ -8948,6 +8987,7 @@ async function buildResearchNoteMode() {
       researchRecipeLastMark = now;
     }
     function maybeLogSlowResearchRecipe(exitReason) {
+  if (!window.DEBUG_RESEARCH_PERF) return;
       const totalMs = performance.now() - researchRecipeStart;
       if (considered < 7000) return;
       const rid = Number(recipe.recipeId || recipe.id || 0);
@@ -8958,14 +8998,14 @@ async function buildResearchNoteMode() {
         researchChunkSlowRecipes.push({ index: considered, recipeId: rid, outputId: oid, name, ms: totalMs, exitReason });
       }
       if (totalMs < 150) return;
-      log(`[ResearchSlowRecipe] #${considered.toLocaleString()} recipe ${rid || '(no id)'} -> ${name} (${oid || 'no output id'}) took ${Math.round(totalMs).toLocaleString()}ms; exit=${exitReason}; phases: ${researchRecipePhases.join(' | ') || 'none'}; flags=${flags}; rows=${researchNoteOpportunities.length.toLocaleString()}.`);
+      if (window.DEBUG_RESEARCH_PERF) log(`[ResearchSlowRecipe] #${considered.toLocaleString()} recipe ${rid || '(no id)'} -> ${name} (${oid || 'no output id'}) took ${Math.round(totalMs).toLocaleString()}ms; exit=${exitReason}; phases: ${researchRecipePhases.join(' | ') || 'none'}; flags=${flags}; rows=${researchNoteOpportunities.length.toLocaleString()}.`);
     }
 
     if (considered % RESEARCH_BUILD_YIELD_EVERY === 0) {
       const researchPerfNow = performance.now();
       const researchPerfMs = researchPerfNow - researchPerfChunkStart;
       if (considered >= 7000 || researchPerfMs >= 750) {
-        log(`[ResearchPerf] ${researchPerfChunkStartIndex.toLocaleString()}-${considered.toLocaleString()} took ${Math.round(researchPerfMs).toLocaleString()}ms; rows=${researchNoteOpportunities.length.toLocaleString()}; phases: ${formatResearchChunkPhaseTotals()}; top recipes: ${formatResearchChunkSlowRecipes()}.`);
+        if (window.DEBUG_RESEARCH_PERF) log(`[ResearchPerf] ${researchPerfChunkStartIndex.toLocaleString()}-${considered.toLocaleString()} took ${Math.round(researchPerfMs).toLocaleString()}ms; rows=${researchNoteOpportunities.length.toLocaleString()}; phases: ${formatResearchChunkPhaseTotals()}; top recipes: ${formatResearchChunkSlowRecipes()}.`);
       }
       researchPerfChunkStart = researchPerfNow;
       researchPerfChunkStartIndex = considered;
