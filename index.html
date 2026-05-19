@@ -7405,7 +7405,7 @@ function getProfitDisplayRow(o) {
 }
 
 function getProfitSortValue(row, key) {
-  if (key === 'ingredientsText') return renderIngredients(row.ingredients);
+  if (key === 'ingredientsText') return ingredientsCheapSortKey(row.ingredients || []);
   return row[key];
 }
 
@@ -10364,33 +10364,42 @@ function sortRowsByKey(rows, valueFn, dir) {
   const __sortRowsDebugKey = sortState && sortState.key ? sortState.key : 'unknown';
   const __sortRowsDebugMode = tableMode || currentTableMode || '';
 
-  rows.sort((a, b) => {
-    __sortRowsDebugCompareCount++;
-
-    let av;
-    let bv;
+  const decorated = rows.map((row, index) => {
+    let value;
     if (__sortRowsDebugEnabled && performance && performance.now) {
-      const __sortRowsValueStart = performance.now();
-      av = valueFn(a);
-      bv = valueFn(b);
-      __sortRowsDebugValueMs += performance.now() - __sortRowsValueStart;
+      const __valueStart = performance.now();
+      value = valueFn(row);
+      __sortRowsDebugValueMs += performance.now() - __valueStart;
     } else {
-      av = valueFn(a);
-      bv = valueFn(b);
+      value = valueFn(row);
     }
+    return { row, value, index };
+  });
 
+  decorated.sort((a, b) => {
+    __sortRowsDebugCompareCount++;
+    const av = a.value;
+    const bv = b.value;
+
+    let result;
     if (typeof av === 'number' || typeof bv === 'number') {
       const nullForA = dir === -1 ? -Infinity : Infinity;
       const nullForB = dir === -1 ? -Infinity : Infinity;
-      return ((av ?? nullForA) - (bv ?? nullForB)) * dir;
+      result = ((av ?? nullForA) - (bv ?? nullForB)) * dir;
+    } else {
+      result = String(av ?? '').localeCompare(String(bv ?? '')) * dir;
     }
 
-    return String(av ?? '').localeCompare(String(bv ?? '')) * dir;
+    return result || (a.index - b.index);
   });
+
+  for (let i = 0; i < decorated.length; i++) {
+    rows[i] = decorated[i].row;
+  }
 
   if (__sortRowsDebugEnabled && __sortRowsDebugStart) {
     const __sortRowsDebugTotalMs = Math.round(performance.now() - __sortRowsDebugStart);
-    sortDebugLog(`[SortDebug] sortRows key=${__sortRowsDebugKey} dir=${dir} mode=${__sortRowsDebugMode} rows=${__sortRowsDebugRows.toLocaleString()} compares=${__sortRowsDebugCompareCount.toLocaleString()} valueFn=${Math.round(__sortRowsDebugValueMs)}ms total=${__sortRowsDebugTotalMs}ms`);
+    sortDebugLog(`[SortDebug] sortRows key=${__sortRowsDebugKey} dir=${dir} mode=${__sortRowsDebugMode} rows=${__sortRowsDebugRows.toLocaleString()} compares=${__sortRowsDebugCompareCount.toLocaleString()} valueFn=${Math.round(__sortRowsDebugValueMs)}ms total=${__sortRowsDebugTotalMs}ms cachedValues=${decorated.length.toLocaleString()}`);
   }
 }
 
@@ -10414,6 +10423,23 @@ function makeCachedDisplayValueGetter(displayRowFn, key) {
   };
 }
 
+
+function ingredientsCheapSortKey(ingredients) {
+  if (!ingredients || !ingredients.length) return '';
+  try {
+    return ingredients
+      .map(ing => {
+        const itemId = Number(ing.itemId || ing.item_id || ing.id || 0);
+        const count = Number(ing.count || ing.qty || ing.quantity || ing.owned || 0);
+        return `${itemName(itemId).toLowerCase()} x ${count}`;
+      })
+      .sort()
+      .join(' | ');
+  } catch (_) {
+    return '';
+  }
+}
+
 function researchSortValueGetter(displayRowFn, key) {
   // Most Research columns already exist on the raw opportunity rows. Avoid the
   // expensive ingredient/display-material pass for every matched row unless the
@@ -10422,7 +10448,12 @@ function researchSortValueGetter(displayRowFn, key) {
   if (key === 'materialValue' || key === 'valuePerNote') {
     return makeCachedDisplayValueGetter(displayRowFn, key);
   }
-  if (key === 'ingredientsText') return row => shouldUseOwnedMaterialsForResearch() ? renderIngredients(displayRowFn(row).ingredients) : renderRecipeInputs(displayRowFn(row).ingredients);
+  if (key === 'ingredientsText') {
+    return row => {
+      const rawIngredients = row && row.ingredients ? row.ingredients : [];
+      return ingredientsCheapSortKey(rawIngredients);
+    };
+  }
   return row => row[key];
 }
 
