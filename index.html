@@ -5829,7 +5829,67 @@ function ensureUseOwnedMaterialsResearchControlVisible() {
   if (container && container.parentElement) {
     container.parentElement.insertBefore(label, container.nextSibling);
   }
+
+  try { syncResearchOwnedAndPartialControls(); } catch (_) {}}
+
+
+function findPartialResearchToggleControl() {
+  const byIdCandidates = [
+    'showPartialResearchRecipesToggle',
+    'showPartialResearchRecipes',
+    'partialResearchToggle',
+    'partialResearchRecipesToggle',
+    'btnPartialResearchRecipes',
+    'togglePartialResearchRecipes',
+    'showPartialResearchBtn'
+  ];
+  for (const id of byIdCandidates) {
+    const el = document.getElementById(id);
+    if (el) return el;
+  }
+
+  const candidates = Array.from(document.querySelectorAll('button, input[type="checkbox"], input[type="button"]'));
+  return candidates.find(el => /partial\s+research|show\s+partial/i.test((el.textContent || el.value || el.title || el.getAttribute('aria-label') || '').trim())) || null;
 }
+
+function setPartialResearchControlEnabled(enabled) {
+  const ctrl = findPartialResearchToggleControl();
+  if (!ctrl) return;
+
+  ctrl.disabled = !enabled;
+  ctrl.classList.toggle('disabled', !enabled);
+
+  if (!enabled) {
+    ctrl.title = 'Partial Research Recipes require Use Owned Materials.';
+    if (ctrl.tagName === 'BUTTON') {
+      ctrl.dataset.disabledReason = 'Partial Research Recipes require Use Owned Materials.';
+    }
+  } else {
+    if (ctrl.dataset && ctrl.dataset.disabledReason) delete ctrl.dataset.disabledReason;
+    if (ctrl.title === 'Partial Research Recipes require Use Owned Materials.') ctrl.title = '';
+  }
+}
+
+function syncResearchOwnedAndPartialControls() {
+  const useOwned = shouldUseOwnedMaterialsForResearch();
+  setPartialResearchControlEnabled(useOwned);
+  try { updatePartialResearchButtonState(); } catch (_) {}
+}
+
+function updatePartialResearchButtonState() {
+  const ctrl = findPartialResearchToggleControl();
+  if (!ctrl) return;
+  const useOwned = shouldUseOwnedMaterialsForResearch();
+  ctrl.disabled = !useOwned;
+  if (ctrl.tagName === 'BUTTON') {
+    const active = tableMode === 'researchPartial';
+    if (/partial\s+research/i.test(ctrl.textContent || '')) {
+      ctrl.textContent = active ? 'Show Partial Research Recipes: ON' : 'Show Partial Research Recipes: OFF';
+    }
+  }
+  if (!useOwned) ctrl.title = 'Partial Research Recipes require Use Owned Materials.';
+}
+
 
 function shouldUseOwnedMaterialsForResearch() {
   const el = document.getElementById('useOwnedMaterialsResearch');
@@ -5838,6 +5898,16 @@ function shouldUseOwnedMaterialsForResearch() {
 }
 
 async function setUseOwnedMaterialsForResearch(checked) {
+  // If owned materials are disabled, Partial Research mode is not valid.
+  if (!checked && tableMode === 'researchPartial') {
+    useOwnedMaterialsForResearch = false;
+    const el = document.getElementById('useOwnedMaterialsResearch');
+    if (el) el.checked = false;
+    setPartialResearchControlEnabled(false);
+    await forceShowNormalResearchTableFromPartial();
+    return;
+  }
+
   useOwnedMaterialsForResearch = !!checked;
   const el = document.getElementById('useOwnedMaterialsResearch');
   if (el && el.checked !== useOwnedMaterialsForResearch) el.checked = useOwnedMaterialsForResearch;
@@ -5853,6 +5923,8 @@ async function setUseOwnedMaterialsForResearch(checked) {
   } else {
     resetRenderLimitAndRender();
   }
+
+  syncResearchOwnedAndPartialControls();
 }
 
 function getOutputTpBuyPrice(itemId) {
@@ -8464,6 +8536,13 @@ function updatePartialResearchToggleButton() {
 
 async function togglePartialResearchRecipes() {
   if (tableMode === 'researchPartial') {
+    await setPartialResearchRecipesEnabledSafe(false);
+    return;
+  }
+  await setPartialResearchRecipesEnabledSafe(true);
+  return;
+
+  if (tableMode === 'researchPartial') {
     tableMode = 'researchNotes';
     lastResearchTableMode = 'researchNotes';
     renderLimit = researchInitialRenderLimit();
@@ -8501,6 +8580,12 @@ async function togglePartialResearchRecipes() {
 }
 
 async function buildPartialResearchRecipes() {
+  if (!shouldUseOwnedMaterialsForResearch()) {
+    setStatus('Partial Research Recipes require Use Owned Materials.');
+    setPartialResearchControlEnabled(false);
+    return;
+  }
+
   invalidatePartialResearchHotCaches();
   smartCanMakeScanCache = new Map();
   await loadCurrencyInfo();
@@ -8668,6 +8753,41 @@ async function buildPartialResearchRecipes() {
   log(`[PartialCache] plan=${partialCheapestOwnedPlanCache.size}, expanded=${partialExpandedRequirementsCache.size}, replacement=${partialCraftReplacementCostCache.size}, vendorUnit=${partialVendorOpportunityUnitValueCache.size}, researchUnit=${partialResearchMaterialUnitValueCache.size}, vendorCost=${vendorBarterCostCache.size}.`);
   log(`[Done] Partial Research Recipes built: ${partialResearchOpportunities.length.toLocaleString()} partial rows matched, ${renderedNow.toLocaleString()} rendered.`);
 }
+
+async function forceShowNormalResearchTableFromPartial() {
+  tableMode = 'researchNotes';
+  try {
+    if (typeof showPartialResearchRecipes !== 'undefined') showPartialResearchRecipes = false;
+  } catch (_) {}
+  try {
+    if (typeof partialResearchMode !== 'undefined') partialResearchMode = false;
+  } catch (_) {}
+  try {
+    if (typeof isPartialResearchMode !== 'undefined') isPartialResearchMode = false;
+  } catch (_) {}
+
+  renderLimit = researchInitialRenderLimit();
+  await waitForUiFrame();
+  await buildResearchNoteMode();
+  syncResearchOwnedAndPartialControls();
+}
+
+async function setPartialResearchRecipesEnabledSafe(enabled) {
+  if (enabled && !shouldUseOwnedMaterialsForResearch()) {
+    setStatus('Partial Research Recipes require Use Owned Materials.');
+    setPartialResearchControlEnabled(false);
+    return;
+  }
+
+  if (!enabled) {
+    await forceShowNormalResearchTableFromPartial();
+    return;
+  }
+
+  await buildPartialResearchRecipes();
+  syncResearchOwnedAndPartialControls();
+}
+
 
 
 async function ensureOwnedBulkFoodVendorSourcesLoaded(contextLabel = 'Research') {
@@ -10065,6 +10185,7 @@ function researchSortValueGetter(displayRowFn, key) {
 }
 
 function render() {
+  try { syncResearchOwnedAndPartialControls(); } catch (_) {}
   ensureUseOwnedMaterialsResearchControlVisible();
   const isResearchTable = tableMode === 'researchNotes' || tableMode === 'researchPartial';
   const q = (document.getElementById(isResearchTable ? 'searchBoxResearch' : 'searchBox')?.value || '').trim().toLowerCase();
