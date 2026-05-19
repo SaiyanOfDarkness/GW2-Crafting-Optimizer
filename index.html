@@ -10356,9 +10356,28 @@ function getPartialResearchDisplayRow(row) {
 
 
 function sortRowsByKey(rows, valueFn, dir) {
+  const __sortRowsDebugEnabled = !!window.DEBUG_SORT;
+  const __sortRowsDebugStart = (__sortRowsDebugEnabled && performance && performance.now) ? performance.now() : 0;
+  let __sortRowsDebugCompareCount = 0;
+  let __sortRowsDebugValueMs = 0;
+  const __sortRowsDebugRows = Array.isArray(rows) ? rows.length : 0;
+  const __sortRowsDebugKey = sortState && sortState.key ? sortState.key : 'unknown';
+  const __sortRowsDebugMode = tableMode || currentTableMode || '';
+
   rows.sort((a, b) => {
-    const av = valueFn(a);
-    const bv = valueFn(b);
+    __sortRowsDebugCompareCount++;
+
+    let av;
+    let bv;
+    if (__sortRowsDebugEnabled && performance && performance.now) {
+      const __sortRowsValueStart = performance.now();
+      av = valueFn(a);
+      bv = valueFn(b);
+      __sortRowsDebugValueMs += performance.now() - __sortRowsValueStart;
+    } else {
+      av = valueFn(a);
+      bv = valueFn(b);
+    }
 
     if (typeof av === 'number' || typeof bv === 'number') {
       const nullForA = dir === -1 ? -Infinity : Infinity;
@@ -10368,6 +10387,11 @@ function sortRowsByKey(rows, valueFn, dir) {
 
     return String(av ?? '').localeCompare(String(bv ?? '')) * dir;
   });
+
+  if (__sortRowsDebugEnabled && __sortRowsDebugStart) {
+    const __sortRowsDebugTotalMs = Math.round(performance.now() - __sortRowsDebugStart);
+    sortDebugLog(`[SortDebug] sortRows key=${__sortRowsDebugKey} dir=${dir} mode=${__sortRowsDebugMode} rows=${__sortRowsDebugRows.toLocaleString()} compares=${__sortRowsDebugCompareCount.toLocaleString()} valueFn=${Math.round(__sortRowsDebugValueMs)}ms total=${__sortRowsDebugTotalMs}ms`);
+  }
 }
 
 function visibleSlice(rows) {
