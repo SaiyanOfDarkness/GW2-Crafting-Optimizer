@@ -1539,8 +1539,9 @@ td { padding-left: 6px; padding-right: 6px; }
               <li><strong>Total Notes</strong>: estimated total notes from the displayed craft quantity.</li>
               <li><strong>Mat Value / Note</strong>: material value divided by estimated total notes.</li>
               <li><strong>Out Qty</strong>: quantity produced per craft.</li>
-              <li><strong>Owned Mat Value</strong>: estimated owned material value consumed.</li>
-              <li><strong>Owned Mats Used</strong>: ingredient breakdown and pricing source details.</li>
+              <li><strong>Owned Mat Value / Craft Cost</strong>: owned-material opportunity value when Use Owned Materials is checked; full acquisition/craft cost when unchecked.</li>
+              <li><strong>TP Buy / TP Sell</strong>: output item Trading Post prices, shown when Use Owned Materials is unchecked.</li>
+              <li><strong>Owned Mats Used / Recipe Inputs</strong>: ingredient breakdown and pricing source details.</li>
             </ul>
           </div>
         </div>
@@ -1668,6 +1669,11 @@ td { padding-left: 6px; padding-right: 6px; }
         </select>
       </div>
 
+      <label class="filter-group checkbox-group research-owned-materials-group" title="When unchecked, Research Note Mode ignores your owned inventory and shows craft costs as if buying/acquiring all inputs.">
+        <input id="useOwnedMaterialsResearch" type="checkbox" checked onchange="setUseOwnedMaterialsForResearch(this.checked)">
+        Use Owned Materials
+      </label>
+
       <div class="filter-group qty-group">
         <label for="minCraftQtyResearch">MIN CRAFT QTY</label>
         <input id="minCraftQtyResearch" type="number" min="1" value="1" onchange="render()" oninput="if (tableMode === 'researchPartial') render()">
@@ -1764,6 +1770,7 @@ let partialResearchOpportunities = [];
 let tableMode = 'profit';
 let lastResearchTableMode = 'researchNotes';
 let researchMaterialValueMode = 'buy';
+let useOwnedMaterialsForResearch = true;
 const RENDER_STEP = 250;
 const PROFIT_INITIAL_RENDER_STEP = 100;
 const NESTED_INITIAL_RENDER_STEP = 100;
@@ -5061,7 +5068,8 @@ function ensureProfitHeaders() {
 }
 
 function ensureResearchNoteHeaders() {
-  const headers = [
+  const useOwned = shouldUseOwnedMaterialsForResearch();
+  const headers = (useOwned ? [
     ["outputName", "Item"],
     ["rarity", "Rarity"],
     ["disciplinesText", "Professions"],
@@ -5074,7 +5082,19 @@ function ensureResearchNoteHeaders() {
     ["outputCount", "Out Qty"],
     ["materialValue", "Owned Mat Value"],
     ["ingredientsText", "Owned Mats Used"]
-  ].map(([key, label]) => ({ key, label }));
+  ] : [
+    ["outputName", "Item"],
+    ["rarity", "Rarity"],
+    ["disciplinesText", "Professions"],
+    ["recipeId", "Recipe"],
+    ["materialValue", "Craft Cost"],
+    ["outputBuy", "TP Buy"],
+    ["outputSell", "TP Sell"],
+    ["noteItem", "Expected Notes / Item"],
+    ["valuePerNote", "Mat Value / Note"],
+    ["outputCount", "Out Qty"],
+    ["ingredientsText", "Recipe Inputs"]
+  ]).map(([key, label]) => ({ key, label }));
   setResultsHeaders(headers);
 }
 
@@ -5769,11 +5789,146 @@ function formatVendorBarterSource(barterCost) {
   }).join(" + ");
 }
 
-function setResearchMaterialValueMode(mode) {
+
+function shouldUseOwnedMaterialsForResearch() {
+  const el = document.getElementById('useOwnedMaterialsResearch');
+  if (el) return !!el.checked;
+  return useOwnedMaterialsForResearch !== false;
+}
+
+async function setUseOwnedMaterialsForResearch(checked) {
+  useOwnedMaterialsForResearch = !!checked;
+  const el = document.getElementById('useOwnedMaterialsResearch');
+  if (el && el.checked !== useOwnedMaterialsForResearch) el.checked = useOwnedMaterialsForResearch;
+
+  if (tableMode === 'researchNotes') {
+    invalidatePartialResearchHotCaches();
+    renderLimit = researchInitialRenderLimit();
+    setStatus(useOwnedMaterialsForResearch
+      ? 'Use Owned Materials enabled. Rebuilding Research Note table...'
+      : 'Use Owned Materials disabled. Rebuilding Research Note table as a full craft-cost browser...');
+    await waitForUiFrame();
+    await buildResearchNoteMode();
+  } else {
+    resetRenderLimitAndRender();
+  }
+}
+
+function getOutputTpBuyPrice(itemId) {
+  const p = prices.get(Number(itemId));
+  const buy = p && p.buy != null ? Number(p.buy) : null;
+  return Number.isFinite(buy) && buy > 0 ? buy : null;
+}
+
+function getOutputTpSellPrice(itemId) {
+  const p = prices.get(Number(itemId));
+  const sell = p && p.sell != null ? Number(p.sell) : null;
+  return Number.isFinite(sell) && sell > 0 ? sell : null;
+}
+
+function evaluateResearchCraftCostWithoutOwned(flat) {
+  let craftCost = 0;
+  let missingMaterialPrice = false;
+  let accountBoundValueIgnored = false;
+  const ingredients = [];
+
+  for (const [itemIdRaw, countRaw] of flat.requirements.entries()) {
+    const itemId = Number(itemIdRaw);
+    const count = Number(countRaw || 0);
+    if (!itemId || !count) continue;
+
+    const priced = getResearchMaterialUnitValue(itemId);
+    const unitValue = priced && priced.value != null ? Number(priced.value) : null;
+    const valueSource = priced && priced.source ? priced.source : (researchMaterialValueMode === 'buy' ? 'TP Buy' : 'TP Sell');
+    const vendorSource = priced && priced.vendorSource ? priced.vendorSource : getVendorBulkSourceForIngredient(itemId);
+    const vendorBarterCost = priced && priced.vendorBarterCost ? priced.vendorBarterCost : getVendorBarterCost(itemId, 1);
+    const isBoundNoTp = isAccountBoundOrNoTpIngredient(itemId);
+
+    if (unitValue == null || !Number.isFinite(unitValue)) {
+      missingMaterialPrice = true;
+    } else {
+      craftCost += unitValue * count;
+    }
+
+    if (isBoundNoTp && (unitValue == null || unitValue === 0)) {
+      accountBoundValueIgnored = true;
+    }
+
+    ingredients.push({
+      itemId,
+      count,
+      owned: 0,
+      unitSell: prices.get(itemId)?.sell ?? null,
+      unitValue,
+      valueSource,
+      vendorSource,
+      vendorBarterCost,
+      accountBoundValueIgnored: isBoundNoTp
+    });
+  }
+
+  return {
+    canCraftQty: Number.POSITIVE_INFINITY,
+    materialValue: missingMaterialPrice ? null : craftCost,
+    missingOwned: false,
+    missingMaterialPrice,
+    accountBoundValueIgnored,
+    ingredients
+  };
+}
+
+function renderRecipeInputs(ingredients) {
+  if (!ingredients || !ingredients.length) return '<span class="muted">none</span>';
+
+  const chipsHtml = ingredients.map(rawIng => {
+    const ing = getDisplayIngredientWithVendorPriority(rawIng);
+    const count = Number(ing.count || 0).toLocaleString();
+
+    if (ing.vendorSource && !/^TP\s+(?:Sell|Buy)\b/i.test(String(ing.valueSource || ''))) {
+      return `<span class="ingredient-chip">${renderItemLink(ing.itemId)} <span class="muted">x ${count} | ${renderVendorSourceHtml(ing.vendorSource, ing.itemId)}</span></span>`;
+    }
+
+    const unitValue = ing.unitValue ?? ing.unitSell;
+    const wikiVendorCostRaw = ing.vendorBarterCost || getVendorBarterCost(ing.itemId, 1);
+    const wikiVendorCost = wikiVendorCostRaw && !isLikelyIndirectContainerCostPackage(wikiVendorCostRaw.parts || []) ? wikiVendorCostRaw : null;
+
+    if (shouldRenderVendorBarterIngredientLine(ing, wikiVendorCost)) {
+      const vendorLabel = renderVendorCostLabelForIngredient(ing, wikiVendorCost);
+      const costHtml = renderBulkAwareVendorIngredientCostHtml(wikiVendorCost, Number(ing.count || 1), unitValue);
+      if (costHtml) {
+        return `<span class="ingredient-chip">${renderItemLink(ing.itemId)} <span class="muted">x ${count} | ${vendorLabel}: ${costHtml}</span></span>`;
+      }
+    }
+
+    const finalSource = String(ing.valueSource || '');
+    const isCraftReplacement = /craft replacement/i.test(finalSource);
+    const ownedBoundNoTp = !isCraftReplacement && (ing.accountBoundValueIgnored || isOwnedBoundNoTpText(ing.valueSource) || isExternalAccountBoundMaterial(ing.itemId));
+    const hasBetterDisplaySource = isCraftReplacement || !!ing.vendorSource || !!wikiVendorCost || /^TP\b/i.test(String(ing.valueSource || ''));
+
+    if (ownedBoundNoTp && !hasBetterDisplaySource) {
+      return `<span class="ingredient-chip">${renderItemLink(ing.itemId)} <span class="muted">x ${count} | Account Bound</span></span>`;
+    }
+
+    const priceText = unitValue == null ? '?' : formatCoin(unitValue);
+    const sourceText = ing.valueSourceHtml ? ` ${ing.valueSourceHtml}` : (finalSource && !isOwnedBoundNoTpText(finalSource) ? ` ${escapeHtml(finalSource)}` : '');
+    return `<span class="ingredient-chip">${renderItemLink(ing.itemId)} <span class="muted">x ${count} @ ${priceText}${sourceText}</span></span>`;
+  }).join('');
+
+  const countLabel = `${ingredients.length.toLocaleString()} ${ingredients.length === 1 ? 'item' : 'items'}`;
+  return `<details class="owned-mats-details recipe-inputs-details"><summary>Recipe Inputs (${countLabel})</summary><div class="ingredient-list">${chipsHtml}</div></details>`;
+}
+
+async function setResearchMaterialValueMode(mode) {
   researchMaterialValueMode = mode === 'buy' ? 'buy' : 'sell';
+  invalidatePartialResearchHotCaches();
   const label = researchMaterialValueMode === 'buy' ? 'Instant Sell' : 'Sell Listing';
-  log(`Research material valuation set to: ${label}. Re-rendering cached Research rows only.`);
-  render();
+  if (tableMode === 'researchNotes' && !shouldUseOwnedMaterialsForResearch()) {
+    log(`Research material valuation set to: ${label}. Rebuilding Research rows because Craft Cost depends on this mode.`);
+    await buildResearchNoteMode();
+  } else {
+    log(`Research material valuation set to: ${label}. Re-rendering cached Research rows only.`);
+    render();
+  }
   updateResearchMaterialValuationStatusLine(label);
 }
 
@@ -7026,7 +7181,7 @@ function setToolMode(mode) {
     if (tableMode === 'researchPartial') {
       desc.textContent = 'Research Note Mode: showing partial research recipes from owned materials plus missing ingredient acquisition options.';
     } else if (tableMode === 'researchNotes') {
-      desc.textContent = 'Research Note Mode: show crafts you can make from owned materials, then salvage for expected Research Notes.';
+      desc.textContent = shouldUseOwnedMaterialsForResearch() ? 'Research Note Mode: show crafts you can make from owned materials, then salvage for expected Research Notes.' : 'Research Note Mode: browsing all researchable crafts by full craft cost, ignoring owned inventory.';
     } else {
       desc.textContent = 'Profit Mode: find crafts that turn owned materials into more gold than selling the materials directly.';
     }
@@ -8271,10 +8426,10 @@ async function togglePartialResearchRecipes() {
     tableMode = 'researchNotes';
     lastResearchTableMode = 'researchNotes';
     renderLimit = researchInitialRenderLimit();
-    sortState = { key: 'totalExpectedNotes', dir: -1 };
+    sortState = { key: useOwnedMaterials ? 'totalExpectedNotes' : 'valuePerNote', dir: useOwnedMaterials ? -1 : 1 };
 
     const modeDesc = document.getElementById('modeDescription');
-    if (modeDesc) modeDesc.textContent = 'Research Note Mode: show crafts you can make from owned materials, then salvage for expected Research Notes.';
+    if (modeDesc) modeDesc.textContent = useOwnedMaterials ? 'Research Note Mode: show crafts you can make from owned materials, then salvage for expected Research Notes.' : 'Research Note Mode: browsing all researchable crafts by full craft cost, ignoring owned inventory.';
 
     ensureResearchNoteHeaders();
     updatePartialResearchToggleButton();
@@ -8499,8 +8654,9 @@ async function ensureOwnedBulkFoodVendorSourcesLoaded(contextLabel = 'Research')
 async function buildResearchNoteMode() {
   invalidatePartialResearchHotCaches();
   smartCanMakeScanCache = new Map();
-  if (!ownedMaterials.size || !recipeCache.length) {
-    setStatus('Load owned materials and recipe cache first.');
+  const useOwnedMaterials = shouldUseOwnedMaterialsForResearch();
+  if (!recipeCache.length || (useOwnedMaterials && !ownedMaterials.size)) {
+    setStatus(useOwnedMaterials ? 'Load owned materials and recipe cache first.' : 'Load recipe cache first.');
     return;
   }
 
@@ -8509,7 +8665,7 @@ async function buildResearchNoteMode() {
     : new Map(recipeCache.map(r => [Number(r.outputItemId), r]));
   activeProfitRecipeIndexForValuation = recipeIndex;
 
-  await ensureOwnedBulkFoodVendorSourcesLoaded('Research');
+  if (useOwnedMaterials) await ensureOwnedBulkFoodVendorSourcesLoaded('Research');
 
   researchNoteOpportunities = [];
 
@@ -8636,20 +8792,22 @@ async function buildResearchNoteMode() {
     }
     flattened++;
 
-    const expandedFlat = expandRequirementsUsingOwnedCrafting(flat, recipeIndex);
+    const expandedFlat = useOwnedMaterials ? expandRequirementsUsingOwnedCrafting(flat, recipeIndex) : flat;
     markResearchRecipePhase('expand-owned-crafting');
-    const mergedSteps = [...(flat.steps || []), ...(expandedFlat.steps || [])];
-    const evald = evaluateNestedRequirements(expandedFlat, recipe.outputCount || 1);
+    const mergedSteps = useOwnedMaterials ? [...(flat.steps || []), ...(expandedFlat.steps || [])] : (flat.steps || []);
+    const evald = useOwnedMaterials
+      ? evaluateNestedRequirements(expandedFlat, recipe.outputCount || 1)
+      : evaluateResearchCraftCostWithoutOwned(expandedFlat);
     markResearchRecipePhase('evaluate');
-    const baselineCanCraftQty = evald.canCraftQty;
-    const smartCanCraftQty = getSmartCanCraftQtyWithOwnedIntermediates(recipe, recipeIndex, evald.canCraftQty);
+    const baselineCanCraftQty = useOwnedMaterials ? evald.canCraftQty : Number.POSITIVE_INFINITY;
+    const smartCanCraftQty = useOwnedMaterials ? getSmartCanCraftQtyWithOwnedIntermediates(recipe, recipeIndex, evald.canCraftQty) : Number.POSITIVE_INFINITY;
     markResearchRecipePhase('smart-can-make');
-    const ownedIntermediateContributors = smartCanCraftQty > baselineCanCraftQty
+    const ownedIntermediateContributors = useOwnedMaterials && smartCanCraftQty > baselineCanCraftQty
       ? Array.from(collectOwnedIntermediateContributors(recipe, recipeIndex).entries()).map(([itemId, owned]) => ({ itemId, owned }))
       : [];
     markResearchRecipePhase('collect-intermediates');
 
-    if (evald.missingOwned && (!Number.isFinite(smartCanCraftQty) || smartCanCraftQty <= 0)) {
+    if (useOwnedMaterials && evald.missingOwned && (!Number.isFinite(smartCanCraftQty) || smartCanCraftQty <= 0)) {
       missingOwned++;
       maybeLogSlowResearchRecipe('missing-owned');
       continue;
@@ -8660,15 +8818,14 @@ async function buildResearchNoteMode() {
 
     const outputCount = Math.max(1, Number(recipe.outputCount || 1));
     const canCraftQty = smartCanCraftQty; // number of recipe executions possible, counting owned refined/intermediate components
-    if (!Number.isFinite(canCraftQty) || canCraftQty <= 0) {
+    if (useOwnedMaterials && (!Number.isFinite(canCraftQty) || canCraftQty <= 0)) {
       maybeLogSlowResearchRecipe('zero-can-make');
       continue;
     }
 
-    // In Research Note Mode, Craft Qty should mean total crafted output items,
-    // not the number of recipe executions. Recipes with outputCount > 1 should
-    // therefore diverge from Can Craft.
-    const recommendedCraftQty = canCraftQty * outputCount;
+    // In owned-material mode, Craft Qty means total output items craftable from inventory.
+    // In owned-off mode, use one recipe execution so Craft Cost / Mat Value per Note stay meaningful.
+    const recommendedCraftQty = useOwnedMaterials ? canCraftQty * outputCount : outputCount;
     const notesPerCraft = noteItem == null ? null : noteItem * outputCount;
     const totalExpectedNotes = noteItem == null ? null : recommendedCraftQty * noteItem;
     craftable++;
@@ -8690,6 +8847,9 @@ async function buildResearchNoteMode() {
       totalExpectedNotes,
       valuePerNote: copperPerResearchNote(evald.missingMaterialPrice ? null : evald.materialValue, notesPerCraft),
       materialValue: evald.missingMaterialPrice ? null : evald.materialValue,
+      craftCost: evald.missingMaterialPrice ? null : evald.materialValue,
+      outputBuy: getOutputTpBuyPrice(outputId),
+      outputSell: getOutputTpSellPrice(outputId),
       accountBoundValueIgnored: evald.accountBoundValueIgnored,
       ingredients: evald.ingredients,
       nestedSteps: mergedSteps || flat.steps || []
@@ -8744,7 +8904,8 @@ async function buildResearchNoteMode() {
 ` +
     `Skipped missing owned materials: ${missingOwned.toLocaleString()}
 ` +
-    `Cost-aware sub-crafting: enabled\n` +
+    `Use owned materials: ${useOwnedMaterials ? 'yes' : 'no'}\n` +
+    `Cost-aware sub-crafting: ${useOwnedMaterials ? 'enabled' : 'disabled for owned-off browser'}\n` +
     `Material valuation: ${researchMaterialValueMode === 'buy' ? 'Instant Sell' : 'Sell Listing'}`
   );
 
@@ -9560,6 +9721,7 @@ function getRenderControlsSignature() {
     profitViewMode,
     researchMaterialValueMode,
     selectedRecipeUnlockSource,
+    useOwnedMaterialsForResearch: shouldUseOwnedMaterialsForResearch(),
     q,
     minProfitGold,
     minProfitSilver,
@@ -9755,6 +9917,16 @@ function combineKnownMaterialValues(...values) {
 function getResearchNoteDisplayRow(row) {
   const out = Object.assign({}, row || {});
   out.ingredients = getResearchDisplayIngredientsForCurrentMode(out.ingredients);
+
+  if (!shouldUseOwnedMaterialsForResearch()) {
+    out.materialValue = out.craftCost == null ? out.materialValue : out.craftCost;
+    const notesPerCraft = out.noteItem == null ? null : Number(out.noteItem) * Math.max(1, Number(out.outputCount || 1));
+    out.valuePerNote = copperPerResearchNote(out.materialValue, notesPerCraft);
+    out.outputBuy = getOutputTpBuyPrice(out.outputItemId);
+    out.outputSell = getOutputTpSellPrice(out.outputItemId);
+    return out;
+  }
+
   const materialValue = getResearchMaterialValueFromIngredients(out.ingredients);
 
   out.materialValue = materialValue;
@@ -9847,7 +10019,7 @@ function researchSortValueGetter(displayRowFn, key) {
   if (key === 'materialValue' || key === 'valuePerNote') {
     return makeCachedDisplayValueGetter(displayRowFn, key);
   }
-  if (key === 'ingredientsText') return row => renderIngredients(displayRowFn(row).ingredients);
+  if (key === 'ingredientsText') return row => shouldUseOwnedMaterialsForResearch() ? renderIngredients(displayRowFn(row).ingredients) : renderRecipeInputs(displayRowFn(row).ingredients);
   return row => row[key];
 }
 
@@ -9906,7 +10078,7 @@ function render() {
 
     let filtered = researchNoteOpportunities.filter(o => {
       if (q && !(`${o.outputName} ${o.recipeId} ${o.outputItemId}`.toLowerCase().includes(q))) return false;
-      if (o.canCraftQty < minCraftQty) return false;
+      if (shouldUseOwnedMaterialsForResearch() && o.canCraftQty < minCraftQty) return false;
       return true;
     });
 
@@ -9916,22 +10088,42 @@ function render() {
     const visibleRows = visibleSlice(filtered);
     updateLoadMore(totalRows, visibleRows.length);
 
-    const rowHtml = o => `
-      <tr>
-        <td>${renderOutputItemLink(o.outputItemId, o)}</td>
-        <td><span class="rarity-label rarity-${escapeHtml(o.rarity || itemRarity(o.outputItemId))}">${escapeHtml(o.rarity || itemRarity(o.outputItemId))}</span></td>
-        <td>${renderDisciplines(o.disciplines)}</td>
-        <td class="num">${renderRecipeIdCell(o.recipeId)}</td>
-        <td class="num">${renderCanMakeQtyCell(o)}</td>
-        <td class="num good">${o.recommendedCraftQty}</td>
-        <td class="num note-value">${o.noteItem == null ? '<span class="muted">unknown</span>' : formatNoteValue(o.noteItem)}</td>
-        <td class="num note-value">${o.totalExpectedNotes == null ? '<span class="muted">unknown</span>' : formatNoteValue(o.totalExpectedNotes)}</td>
-        <td class="num">${o.valuePerNote == null ? '<span class="muted">unknown</span>' : formatCoin(o.valuePerNote)}</td>
-        <td class="num">${o.outputCount}</td>
-        <td class="num">${o.materialValue == null ? '<span class="muted">unknown</span>' : formatCoin(o.materialValue)}</td>
-        <td>${renderIngredients(o.ingredients)}</td>
-      </tr>
-    `;
+    const rowHtml = o => {
+      if (!shouldUseOwnedMaterialsForResearch()) {
+        return `
+          <tr>
+            <td>${renderOutputItemLink(o.outputItemId, o)}</td>
+            <td><span class="rarity-label rarity-${escapeHtml(o.rarity || itemRarity(o.outputItemId))}">${escapeHtml(o.rarity || itemRarity(o.outputItemId))}</span></td>
+            <td>${renderDisciplines(o.disciplines)}</td>
+            <td class="num">${renderRecipeIdCell(o.recipeId)}</td>
+            <td class="num">${o.materialValue == null ? '<span class="muted">unknown</span>' : formatCoin(o.materialValue)}</td>
+            <td class="num">${o.outputBuy == null ? '<span class="muted">—</span>' : formatCoin(o.outputBuy)}</td>
+            <td class="num">${o.outputSell == null ? '<span class="muted">—</span>' : formatCoin(o.outputSell)}</td>
+            <td class="num note-value">${o.noteItem == null ? '<span class="muted">unknown</span>' : formatNoteValue(o.noteItem)}</td>
+            <td class="num">${o.valuePerNote == null ? '<span class="muted">unknown</span>' : formatCoin(o.valuePerNote)}</td>
+            <td class="num">${o.outputCount}</td>
+            <td>${renderRecipeInputs(o.ingredients)}</td>
+          </tr>
+        `;
+      }
+
+      return `
+        <tr>
+          <td>${renderOutputItemLink(o.outputItemId, o)}</td>
+          <td><span class="rarity-label rarity-${escapeHtml(o.rarity || itemRarity(o.outputItemId))}">${escapeHtml(o.rarity || itemRarity(o.outputItemId))}</span></td>
+          <td>${renderDisciplines(o.disciplines)}</td>
+          <td class="num">${renderRecipeIdCell(o.recipeId)}</td>
+          <td class="num">${renderCanMakeQtyCell(o)}</td>
+          <td class="num good">${o.recommendedCraftQty}</td>
+          <td class="num note-value">${o.noteItem == null ? '<span class="muted">unknown</span>' : formatNoteValue(o.noteItem)}</td>
+          <td class="num note-value">${o.totalExpectedNotes == null ? '<span class="muted">unknown</span>' : formatNoteValue(o.totalExpectedNotes)}</td>
+          <td class="num">${o.valuePerNote == null ? '<span class="muted">unknown</span>' : formatCoin(o.valuePerNote)}</td>
+          <td class="num">${o.outputCount}</td>
+          <td class="num">${o.materialValue == null ? '<span class="muted">unknown</span>' : formatCoin(o.materialValue)}</td>
+          <td>${renderIngredients(o.ingredients)}</td>
+        </tr>
+      `;
+    };
     const lazyRowHtml = makeLazyDisplayRowRenderer(getResearchNoteDisplayRow, rowHtml);
     cacheIncrementalRender(renderSignature, filtered, visibleRows.length, lazyRowHtml);
     setResultsTbodyHtml(tbody, visibleRows.map(lazyRowHtml).join(''));
