@@ -8443,6 +8443,28 @@ async function buildResearchNoteMode() {
 
   let researchPerfChunkStart = performance.now();
   let researchPerfChunkStartIndex = 0;
+  let researchChunkPhaseTotals = {};
+  let researchChunkSlowRecipes = [];
+
+  function addResearchChunkPhaseTime(name, ms) {
+    if (!Number.isFinite(ms) || ms <= 0) return;
+    researchChunkPhaseTotals[name] = (researchChunkPhaseTotals[name] || 0) + ms;
+  }
+
+  function formatResearchChunkPhaseTotals() {
+    return Object.entries(researchChunkPhaseTotals)
+      .sort((a, b) => b[1] - a[1])
+      .map(([name, ms]) => `${name}=${Math.round(ms)}ms`)
+      .join(' | ') || 'none';
+  }
+
+  function formatResearchChunkSlowRecipes() {
+    return researchChunkSlowRecipes
+      .sort((a, b) => b.ms - a.ms)
+      .slice(0, 5)
+      .map(r => `#${r.index} r${r.recipeId || '?'} ${r.name}=${Math.round(r.ms)}ms`)
+      .join(' | ') || 'none';
+  }
 
   for (const recipe of recipeCache) {
     considered++;
@@ -8452,16 +8474,22 @@ async function buildResearchNoteMode() {
     const researchRecipePhases = [];
     function markResearchRecipePhase(name) {
       const now = performance.now();
-      researchRecipePhases.push(`${name}=${Math.round(now - researchRecipeLastMark)}ms`);
+      const delta = now - researchRecipeLastMark;
+      researchRecipePhases.push(`${name}=${Math.round(delta)}ms`);
+      addResearchChunkPhaseTime(name, delta);
       researchRecipeLastMark = now;
     }
     function maybeLogSlowResearchRecipe(exitReason) {
       const totalMs = performance.now() - researchRecipeStart;
-      if (considered < 7000 || totalMs < 250) return;
+      if (considered < 7000) return;
       const rid = Number(recipe.recipeId || recipe.id || 0);
       const oid = Number(recipe.outputItemId || 0);
       const name = oid ? itemName(oid) : '(unknown output)';
       const flags = Array.isArray(recipe.flags) && recipe.flags.length ? recipe.flags.join(',') : 'none';
+      if (totalMs >= 50) {
+        researchChunkSlowRecipes.push({ index: considered, recipeId: rid, outputId: oid, name, ms: totalMs, exitReason });
+      }
+      if (totalMs < 150) return;
       log(`[ResearchSlowRecipe] #${considered.toLocaleString()} recipe ${rid || '(no id)'} -> ${name} (${oid || 'no output id'}) took ${Math.round(totalMs).toLocaleString()}ms; exit=${exitReason}; phases: ${researchRecipePhases.join(' | ') || 'none'}; flags=${flags}; rows=${researchNoteOpportunities.length.toLocaleString()}.`);
     }
 
@@ -8469,10 +8497,12 @@ async function buildResearchNoteMode() {
       const researchPerfNow = performance.now();
       const researchPerfMs = researchPerfNow - researchPerfChunkStart;
       if (considered >= 7000 || researchPerfMs >= 750) {
-        log(`[ResearchPerf] ${researchPerfChunkStartIndex.toLocaleString()}-${considered.toLocaleString()} took ${Math.round(researchPerfMs).toLocaleString()}ms; rows=${researchNoteOpportunities.length.toLocaleString()}.`);
+        log(`[ResearchPerf] ${researchPerfChunkStartIndex.toLocaleString()}-${considered.toLocaleString()} took ${Math.round(researchPerfMs).toLocaleString()}ms; rows=${researchNoteOpportunities.length.toLocaleString()}; phases: ${formatResearchChunkPhaseTotals()}; top recipes: ${formatResearchChunkSlowRecipes()}.`);
       }
       researchPerfChunkStart = researchPerfNow;
       researchPerfChunkStartIndex = considered;
+      researchChunkPhaseTotals = {};
+      researchChunkSlowRecipes = [];
 
       setStatus(`Building Research Note table: ${considered.toLocaleString()} / ${recipeCache.length.toLocaleString()} recipes checked; ${researchNoteOpportunities.length.toLocaleString()} rows found...`);
       if (considered % 500 === 0) {
