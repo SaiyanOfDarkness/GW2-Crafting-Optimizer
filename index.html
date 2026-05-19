@@ -6375,20 +6375,45 @@ function flattenRecipeIngredients(recipe, recipeIndex, path = new Set(), depth =
 }
 
 
+const GEM_UPGRADE_CHAIN_NAME_PARTS = [
+  'Amber','Amethyst','Azurite','Beryl','Carnelian','Chrysocola','Coral','Emerald','Garnet','Lapis','Malachite','Opal','Pearl','Peridot','Ruby','Sapphire','Sunstone','Tiger\'s Eye','Topaz','Turquoise'
+];
+
+function gemFamilyFromItemName(name) {
+  const lower = String(name || '').toLowerCase();
+  return GEM_UPGRADE_CHAIN_NAME_PARTS.find(gem => lower.includes(gem.toLowerCase())) || '';
+}
+
 function isGemUpgradeChainOutput(itemId) {
   const name = String(itemName(itemId) || '').trim();
   if (!name) return false;
-  const gemNames = [
-    'Amber','Amethyst','Azurite','Beryl','Carnelian','Chrysocola','Coral','Emerald','Garnet','Lapis','Malachite','Opal','Pearl','Peridot','Ruby','Sapphire','Sunstone','Tiger\'s Eye','Topaz','Turquoise'
-  ];
-  const hasGemName = gemNames.some(gem => name.toLowerCase().includes(gem.toLowerCase()));
-  if (!hasGemName) return false;
+  if (!gemFamilyFromItemName(name)) return false;
 
-  // These recipes are gemstone upgrade/conversion chains, not normal material
-  // refinement/component crafting. Counting them as automatic Can Make supply
-  // can wildly inflate rows such as Beryl Mithril Earring by converting unrelated
-  // gems/dust into Beryl intermediates.
-  return /\b(Shard|Crystal|Orb|Jewel)\b/i.test(name);
+  // Gemstone upgrades/conversions are not normal material refinement. These can
+  // explode Can Make by converting unrelated gems/dust into the target gem chain.
+  return /(Pebble|Nugget|Lump|Shard|Crystal|Orb|Jewel|Tentacle)/i.test(name);
+}
+
+function recipeLooksLikeGemUpgradeChain(itemId, subRecipe) {
+  if (!isGemUpgradeChainOutput(itemId)) return false;
+  if (!subRecipe || !Array.isArray(subRecipe.ingredients)) return true;
+
+  const outputFamily = gemFamilyFromItemName(itemName(itemId));
+  let hasDust = false;
+  let hasDifferentGemFamily = false;
+  let hasGemIngredient = false;
+
+  for (const ing of subRecipe.ingredients || []) {
+    const ingName = itemName(Number(ing.itemId));
+    if (/Pile of .* Dust/i.test(String(ingName || ''))) hasDust = true;
+    const ingFamily = gemFamilyFromItemName(ingName);
+    if (ingFamily) {
+      hasGemIngredient = true;
+      if (outputFamily && ingFamily !== outputFamily) hasDifferentGemFamily = true;
+    }
+  }
+
+  return hasDust || hasDifferentGemFamily || hasGemIngredient;
 }
 
 function isAllowedOwnedIntermediateCraftabilityRecipe(itemId, subRecipe) {
@@ -6397,7 +6422,7 @@ function isAllowedOwnedIntermediateCraftabilityRecipe(itemId, subRecipe) {
   const disciplines = normalizeDisciplines(subRecipe.disciplines).map(d => String(d || '').toLowerCase());
   if (disciplines.some(d => d.includes('mystic'))) return false;
 
-  if (isGemUpgradeChainOutput(itemId)) return false;
+  if (recipeLooksLikeGemUpgradeChain(itemId, subRecipe)) return false;
 
   return true;
 }
@@ -8416,10 +8441,21 @@ async function buildResearchNoteMode() {
   setStatus(`Building Research Note table: 0 / ${recipeCache.length.toLocaleString()} recipes checked...`);
   await waitForUiFrame();
 
+  let researchPerfChunkStart = performance.now();
+  let researchPerfChunkStartIndex = 0;
+
   for (const recipe of recipeCache) {
     considered++;
 
     if (considered % RESEARCH_BUILD_YIELD_EVERY === 0) {
+      const researchPerfNow = performance.now();
+      const researchPerfMs = researchPerfNow - researchPerfChunkStart;
+      if (considered >= 7000 || researchPerfMs >= 750) {
+        log(`[ResearchPerf] ${researchPerfChunkStartIndex.toLocaleString()}-${considered.toLocaleString()} took ${Math.round(researchPerfMs).toLocaleString()}ms; rows=${researchNoteOpportunities.length.toLocaleString()}.`);
+      }
+      researchPerfChunkStart = researchPerfNow;
+      researchPerfChunkStartIndex = considered;
+
       setStatus(`Building Research Note table: ${considered.toLocaleString()} / ${recipeCache.length.toLocaleString()} recipes checked; ${researchNoteOpportunities.length.toLocaleString()} rows found...`);
       if (considered % 500 === 0) {
         log(`[Research] Progress: ${considered.toLocaleString()} / ${recipeCache.length.toLocaleString()} recipes checked; ${researchNoteOpportunities.length.toLocaleString()} rows found.`);
