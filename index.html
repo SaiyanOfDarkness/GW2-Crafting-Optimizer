@@ -6258,6 +6258,120 @@ function flattenRecipeIngredients(recipe, recipeIndex, path = new Set(), depth =
   return { ok, requirements, steps };
 }
 
+
+function isUnlimitedCraftabilityIngredient(itemId) {
+  const vendorSource = getVendorBulkSourceForIngredient(itemId);
+  if (vendorSource) return true;
+  const barterCost = getVendorBarterCost(itemId, 1);
+  if (barterCost && !barterCost.missingPrice) return true;
+  return false;
+}
+
+function consumeOwnedOrCraftableForCanMake(itemId, neededCount, virtualInventory, recipeIndex, path = new Set()) {
+  itemId = Number(itemId);
+  neededCount = Number(neededCount || 0);
+  if (!itemId || neededCount <= 0) return true;
+
+  // Coin/vendor/barter-purchasable inputs do not limit Can Make. They still keep
+  // their normal material value elsewhere; this helper is only for craft quantity.
+  if (isUnlimitedCraftabilityIngredient(itemId)) return true;
+
+  const ownedNow = Number(virtualInventory.get(itemId) || 0);
+  const useDirect = Math.min(ownedNow, neededCount);
+  if (useDirect > 0) {
+    const left = ownedNow - useDirect;
+    if (left > 0) virtualInventory.set(itemId, left);
+    else virtualInventory.delete(itemId);
+  }
+
+  const remaining = neededCount - useDirect;
+  if (remaining <= 0) return true;
+
+  const subRecipe = recipeIndex && recipeIndex.get(itemId);
+  if (!subRecipe || !Array.isArray(subRecipe.ingredients) || !subRecipe.ingredients.length) return false;
+  if (path.has(itemId)) return false;
+
+  const outputCount = Math.max(1, Number(subRecipe.outputCount || 1));
+  const batchesNeeded = Math.ceil(remaining / outputCount);
+  const nextPath = new Set(path);
+  nextPath.add(itemId);
+
+  for (const ing of subRecipe.ingredients || []) {
+    const ingId = Number(ing.itemId);
+    const ingCount = Number(ing.count || 0) * batchesNeeded;
+    if (!ingId || ingCount <= 0) continue;
+    if (!consumeOwnedOrCraftableForCanMake(ingId, ingCount, virtualInventory, recipeIndex, nextPath)) {
+      return false;
+    }
+  }
+
+  const produced = batchesNeeded * outputCount;
+  const surplus = produced - remaining;
+  if (surplus > 0) {
+    virtualInventory.set(itemId, Number(virtualInventory.get(itemId) || 0) + surplus);
+  }
+
+  return true;
+}
+
+function canCraftRecipeExecutionsWithOwnedIntermediates(recipe, recipeIndex, requestedCrafts) {
+  const crafts = Math.floor(Number(requestedCrafts || 0));
+  if (!recipe || crafts <= 0) return false;
+  const virtualInventory = new Map(ownedMaterials);
+
+  for (const ing of recipe.ingredients || []) {
+    const ingId = Number(ing.itemId);
+    const ingCount = Number(ing.count || 0) * crafts;
+    if (!ingId || ingCount <= 0) continue;
+    if (!consumeOwnedOrCraftableForCanMake(ingId, ingCount, virtualInventory, recipeIndex, new Set([Number(recipe.outputItemId)]))) {
+      return false;
+    }
+  }
+
+  return true;
+}
+
+function getSmartCanCraftQtyWithOwnedIntermediates(recipe, recipeIndex, baselineQty = 0) {
+  if (!recipe || !Array.isArray(recipe.ingredients) || !recipe.ingredients.length) return 0;
+
+  const hardCap = 999999;
+  let low = Math.max(0, Math.floor(Number(baselineQty || 0)));
+  if (low > hardCap) low = hardCap;
+
+  // If the old flattened-requirement estimate was optimistic for a weird recipe,
+  // clamp it back down before searching upward.
+  if (low > 0 && !canCraftRecipeExecutionsWithOwnedIntermediates(recipe, recipeIndex, low)) {
+    let lo = 0;
+    let hi = low;
+    while (lo < hi) {
+      const mid = Math.ceil((lo + hi) / 2);
+      if (canCraftRecipeExecutionsWithOwnedIntermediates(recipe, recipeIndex, mid)) lo = mid;
+      else hi = mid - 1;
+    }
+    return lo;
+  }
+
+  let high = Math.max(1, low || 1);
+  while (high < hardCap && canCraftRecipeExecutionsWithOwnedIntermediates(recipe, recipeIndex, high)) {
+    low = high;
+    high = Math.min(hardCap, high * 2);
+    if (high === low) break;
+  }
+
+  if (low === hardCap) return low;
+  if (high === hardCap && canCraftRecipeExecutionsWithOwnedIntermediates(recipe, recipeIndex, high)) return high;
+
+  let lo = low;
+  let hi = high - 1;
+  while (lo < hi) {
+    const mid = Math.ceil((lo + hi) / 2);
+    if (canCraftRecipeExecutionsWithOwnedIntermediates(recipe, recipeIndex, mid)) lo = mid;
+    else hi = mid - 1;
+  }
+
+  return lo;
+}
+
 function evaluateNestedRequirements(flat, outputCount) {
   let canCraftQty = Infinity;
   let materialValue = 0;
@@ -7925,8 +8039,9 @@ async function buildPartialResearchRecipes() {
 
     const expandedFlat = expandRequirementsUsingOwnedCrafting(flat, recipeIndex);
     const evald = evaluateNestedRequirements(expandedFlat, recipe.outputCount || 1);
+    const smartCanCraftQty = getSmartCanCraftQtyWithOwnedIntermediates(recipe, recipeIndex, evald.canCraftQty);
 
-    if (!evald.missingOwned) {
+    if (!evald.missingOwned || (Number.isFinite(smartCanCraftQty) && smartCanCraftQty > 0)) {
       alreadyCraftable++;
       continue;
     }
@@ -8121,8 +8236,9 @@ async function buildResearchNoteMode() {
     const expandedFlat = expandRequirementsUsingOwnedCrafting(flat, recipeIndex);
     const mergedSteps = [...(flat.steps || []), ...(expandedFlat.steps || [])];
     const evald = evaluateNestedRequirements(expandedFlat, recipe.outputCount || 1);
+    const smartCanCraftQty = getSmartCanCraftQtyWithOwnedIntermediates(recipe, recipeIndex, evald.canCraftQty);
 
-    if (evald.missingOwned) {
+    if (evald.missingOwned && (!Number.isFinite(smartCanCraftQty) || smartCanCraftQty <= 0)) {
       missingOwned++;
       continue;
     }
@@ -8131,7 +8247,7 @@ async function buildResearchNoteMode() {
     if (evald.accountBoundValueIgnored) accountBoundIgnoredRows++;
 
     const outputCount = Math.max(1, Number(recipe.outputCount || 1));
-    const canCraftQty = evald.canCraftQty; // number of recipe executions possible
+    const canCraftQty = smartCanCraftQty; // number of recipe executions possible, counting owned refined/intermediate components
     if (!Number.isFinite(canCraftQty) || canCraftQty <= 0) continue;
 
     // In Research Note Mode, Craft Qty should mean total crafted output items,
