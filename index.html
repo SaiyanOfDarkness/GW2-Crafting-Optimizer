@@ -4274,9 +4274,11 @@ function logRecipeUnlockDebug(recipeId, unlocked, reason) {
   const sample = ids.slice(0, 12).join(', ');
   const flags = getRecipeFlagsForRecipeId(n).join(', ') || 'none/unknown';
   const msg = `[RecipeUnlockDebug] ${label || selectedRecipeUnlockSource || 'disabled'} recipe ${n || recipeId}: unlocked=${unlocked} reason=${reason}; loaded=${ids.length.toLocaleString()} IDs; sample=[${sample}]; flags=${flags}`;
-  console.debug(msg);
-  log(msg);
-  recipeUnlockDebugMissCount++;
+  if (window.DEBUG_RECIPE_UNLOCK) {
+    console.debug(msg);
+    recipeUnlockDebugLog(msg);
+    recipeUnlockDebugMissCount++;
+  }
 }
 
 function isRecipeUnlockedForSelectedSource(recipeId) {
@@ -10563,11 +10565,15 @@ function render() {
 function setupTableSorting() {
   document.querySelectorAll('#results th').forEach(th => {
     th.onclick = () => {
+      const __sortDebugStart = (window.DEBUG_SORT && performance && performance.now) ? performance.now() : 0;
       const key = th.dataset.key;
       if (!key) return;
       if (sortState.key === key) sortState.dir *= -1;
       else sortState = { key, dir: currentTableMode === 'research' && key === 'materialValue' ? 1 : -1 };
       render();
+      if (window.DEBUG_SORT && __sortDebugStart) {
+        sortDebugLog(`[SortDebug] click key=${key} dir=${sortState.dir} mode=${tableMode || currentTableMode || ''} total=${Math.round(performance.now() - __sortDebugStart)}ms`);
+      }
     };
   });
 }
