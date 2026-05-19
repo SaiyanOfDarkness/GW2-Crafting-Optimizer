@@ -1737,6 +1737,12 @@ let ownedMaterials = new Map();
 let ownedBreakdown = new Map();
 let itemInfo = new Map();
 let currencyInfo = new Map();
+
+// Hot-path lookup caches used during Profit/RN scans.
+// These avoid repeated full item-name scans and repeated vendor/barter resolution.
+let exactItemNameToIdCache = null;
+const vendorBarterSourceCache = new Map();
+const unlimitedCraftabilityIngredientCache = new Map();
 let recipeCache = [];
 let prices = new Map();
 let listings = new Map();
@@ -4414,7 +4420,8 @@ async function fetchItemDetails(ids) {
   }
 
   log(`[Done] Item metadata loaded: ${loaded.toLocaleString()} loaded, ${skipped.toLocaleString()} skipped.`);
-  log(`Item metadata complete: loaded ${loaded.toLocaleString()}, skipped ${skipped.toLocaleString()}.`);
+  
+  invalidateHotLookupCaches();log(`Item metadata complete: loaded ${loaded.toLocaleString()}, skipped ${skipped.toLocaleString()}.`);
 }
 
 
@@ -5160,15 +5167,24 @@ let SEMANTIC_SPIRIT_SHARD_VENDOR_ALTERNATIVES_BY_NAME = {};
 
 
 function findItemIdByExactName(name) {
+  const cachedExactId = getCachedExactItemIdByName(name);
+  if (cachedExactId != null) return cachedExactId;
+
   name = String(name || "").trim().toLowerCase();
   if (!name) return null;
   for (const [id, info] of itemInfo.entries()) {
     if (String(info?.name || "").trim().toLowerCase() === name) return Number(id);
   }
   return null;
+
 }
 
 function getVendorBarterSourceForItem(itemId) {
+  const __vendorCacheKey = typeof itemId === 'object'
+    ? String((itemId && (itemId.id ?? itemId.name)) || '')
+    : String(itemId ?? '');
+  if (__vendorCacheKey && vendorBarterSourceCache.has(__vendorCacheKey)) return vendorBarterSourceCache.get(__vendorCacheKey);
+
   const name = itemName(itemId);
   let entries = VENDOR_BARTER_BY_NAME[name] || wikiVendorBarterByName[name] || SEMANTIC_SPIRIT_SHARD_VENDOR_BARTER_BY_NAME[name];
 
@@ -5183,13 +5199,13 @@ function getVendorBarterSourceForItem(itemId) {
   entries = maybeApplyKnownVendorPackageQuantity(name, cleanBarterEntries(entries));
   entries = (entries || []).filter(e => !isBannedVendorName(e.vendorName || e.vendorPage || e.vendorBrowseTitle || ''));
 
-  if (!entries || !entries.length) return null;
+  if (!entries || !entries.length) return (__vendorCacheKey ? (vendorBarterSourceCache.set(__vendorCacheKey, (null)), (null)) : (null));
 
   // Guard against old IndexedDB/cache entries produced by earlier builds. If the
   // cached vendor package is actually an indirect container source, do not render
   // it as a vendor cost. compareMissingMaterialAcquisition will then fall through
   // to TP price or Acquisition Info.
-  if (isLikelyIndirectContainerCostPackage(entries)) return null;
+  if (isLikelyIndirectContainerCostPackage(entries)) return (__vendorCacheKey ? (vendorBarterSourceCache.set(__vendorCacheKey, (null)), (null)) : (null));
 
   return entries.map(e => {
     const patched = { ...e };
@@ -6435,11 +6451,16 @@ function isAllowedOwnedIntermediateCraftabilityRecipe(itemId, subRecipe) {
 }
 
 function isUnlimitedCraftabilityIngredient(itemId) {
+  const __unlimitedCacheKey = typeof itemId === 'object'
+    ? String((itemId && (itemId.id ?? itemId.name)) || '')
+    : String(itemId ?? '');
+  if (__unlimitedCacheKey && unlimitedCraftabilityIngredientCache.has(__unlimitedCacheKey)) return unlimitedCraftabilityIngredientCache.get(__unlimitedCacheKey);
+
   const vendorSource = getVendorBulkSourceForIngredient(itemId);
-  if (vendorSource) return true;
+  if (vendorSource) return (__unlimitedCacheKey ? (unlimitedCraftabilityIngredientCache.set(__unlimitedCacheKey, (true)), (true)) : (true));
   const barterCost = getVendorBarterCost(itemId, 1);
-  if (barterCost && !barterCost.missingPrice) return true;
-  return false;
+  if (barterCost && !barterCost.missingPrice) return (__unlimitedCacheKey ? (unlimitedCraftabilityIngredientCache.set(__unlimitedCacheKey, (true)), (true)) : (true));
+  return (__unlimitedCacheKey ? (unlimitedCraftabilityIngredientCache.set(__unlimitedCacheKey, (false)), (false)) : (false));
 }
 
 function consumeOwnedOrCraftableForCanMake(itemId, neededCount, virtualInventory, recipeIndex, path = new Set(), depth = 0) {
@@ -8948,6 +8969,52 @@ function formatNumber(value) {
 function escapeHtml(value) {
   return String(value ?? '').replace(/[&<>"']/g, ch => ({ '&':'&amp;', '<':'&lt;', '>':'&gt;', '"':'&quot;', "'":'&#039;' }[ch]));
 }
+
+function normalizeExactItemNameForCache(name) {
+  return String(name || '').trim().toLowerCase();
+}
+
+function invalidateHotLookupCaches() {
+  exactItemNameToIdCache = null;
+  vendorBarterSourceCache.clear();
+  unlimitedCraftabilityIngredientCache.clear();
+}
+
+function ensureExactItemNameToIdCache() {
+  if (exactItemNameToIdCache) return exactItemNameToIdCache;
+  exactItemNameToIdCache = new Map();
+
+  try {
+    for (const [id, info] of itemInfo.entries()) {
+      const name = info && info.name;
+      if (!name) continue;
+      const key = normalizeExactItemNameForCache(name);
+      if (key && !exactItemNameToIdCache.has(key)) exactItemNameToIdCache.set(key, Number(id));
+    }
+  } catch (_) {}
+
+  try {
+    if (Array.isArray(itemsCache)) {
+      for (const info of itemsCache) {
+        const name = info && info.name;
+        const id = info && info.id;
+        if (!name || id == null) continue;
+        const key = normalizeExactItemNameForCache(name);
+        if (key && !exactItemNameToIdCache.has(key)) exactItemNameToIdCache.set(key, Number(id));
+      }
+    }
+  } catch (_) {}
+
+  return exactItemNameToIdCache;
+}
+
+function getCachedExactItemIdByName(name) {
+  const key = normalizeExactItemNameForCache(name);
+  if (!key) return null;
+  const cache = ensureExactItemNameToIdCache();
+  return cache.has(key) ? cache.get(key) : null;
+}
+
 function escapeRegexLiteral(value) {
   return String(value || '').replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
 }
