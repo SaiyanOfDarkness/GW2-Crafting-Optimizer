@@ -1778,6 +1778,13 @@ const NESTED_RENDER_INITIAL_LIMIT = 100;
 let renderLimit = PROFIT_INITIAL_RENDER_STEP;
 let incrementalRenderCache = null;
 
+// Smart Can Make can get expensive on deep/named gear recipe chains.
+// Keep it useful for normal refinements/components, but avoid runaway recursion/search.
+const OWNED_INTERMEDIATE_CRAFTABILITY_MAX_DEPTH = 4;
+const SMART_CAN_MAKE_MAX_EXTRA_CRAFTS = 10000;
+const SMART_CAN_MAKE_MAX_MULTIPLIER = 4;
+let smartCanMakeScanCache = new Map();
+
 function optimizedIconAttrs() {
   return ' loading="lazy" decoding="async" fetchpriority="low"';
 }
@@ -6435,7 +6442,7 @@ function isUnlimitedCraftabilityIngredient(itemId) {
   return false;
 }
 
-function consumeOwnedOrCraftableForCanMake(itemId, neededCount, virtualInventory, recipeIndex, path = new Set()) {
+function consumeOwnedOrCraftableForCanMake(itemId, neededCount, virtualInventory, recipeIndex, path = new Set(), depth = 0) {
   itemId = Number(itemId);
   neededCount = Number(neededCount || 0);
   if (!itemId || neededCount <= 0) return true;
@@ -6459,6 +6466,7 @@ function consumeOwnedOrCraftableForCanMake(itemId, neededCount, virtualInventory
   if (!subRecipe || !Array.isArray(subRecipe.ingredients) || !subRecipe.ingredients.length) return false;
   if (!isAllowedOwnedIntermediateCraftabilityRecipe(itemId, subRecipe)) return false;
   if (path.has(itemId)) return false;
+  if (depth >= OWNED_INTERMEDIATE_CRAFTABILITY_MAX_DEPTH) return false;
 
   const outputCount = Math.max(1, Number(subRecipe.outputCount || 1));
   const batchesNeeded = Math.ceil(remaining / outputCount);
@@ -6469,7 +6477,7 @@ function consumeOwnedOrCraftableForCanMake(itemId, neededCount, virtualInventory
     const ingId = Number(ing.itemId);
     const ingCount = Number(ing.count || 0) * batchesNeeded;
     if (!ingId || ingCount <= 0) continue;
-    if (!consumeOwnedOrCraftableForCanMake(ingId, ingCount, virtualInventory, recipeIndex, nextPath)) {
+    if (!consumeOwnedOrCraftableForCanMake(ingId, ingCount, virtualInventory, recipeIndex, nextPath, depth + 1)) {
       return false;
     }
   }
@@ -6492,7 +6500,7 @@ function canCraftRecipeExecutionsWithOwnedIntermediates(recipe, recipeIndex, req
     const ingId = Number(ing.itemId);
     const ingCount = Number(ing.count || 0) * crafts;
     if (!ingId || ingCount <= 0) continue;
-    if (!consumeOwnedOrCraftableForCanMake(ingId, ingCount, virtualInventory, recipeIndex, new Set([Number(recipe.outputItemId)]))) {
+    if (!consumeOwnedOrCraftableForCanMake(ingId, ingCount, virtualInventory, recipeIndex, new Set([Number(recipe.outputItemId)]), 0)) {
       return false;
     }
   }
@@ -6500,12 +6508,40 @@ function canCraftRecipeExecutionsWithOwnedIntermediates(recipe, recipeIndex, req
   return true;
 }
 
+function smartCanMakeCacheKey(recipe, baselineQty) {
+  const rid = Number(recipe?.recipeId || recipe?.id || 0);
+  const oid = Number(recipe?.outputItemId || 0);
+  const base = Math.max(0, Math.floor(Number(baselineQty || 0)) || 0);
+  return `${rid || 'r?'}:${oid || 'o?'}:${base}`;
+}
+
+function smartCanMakeSearchCap(low) {
+  const base = Math.max(0, Math.floor(Number(low || 0)) || 0);
+  return Math.min(
+    999999,
+    Math.max(
+      base + SMART_CAN_MAKE_MAX_EXTRA_CRAFTS,
+      base * SMART_CAN_MAKE_MAX_MULTIPLIER,
+      SMART_CAN_MAKE_MAX_EXTRA_CRAFTS
+    )
+  );
+}
+
 function getSmartCanCraftQtyWithOwnedIntermediates(recipe, recipeIndex, baselineQty = 0) {
   if (!recipe || !Array.isArray(recipe.ingredients) || !recipe.ingredients.length) return 0;
 
-  const hardCap = 999999;
-  let low = Math.max(0, Math.floor(Number(baselineQty || 0)));
+  const cacheKey = smartCanMakeCacheKey(recipe, baselineQty);
+  if (smartCanMakeScanCache && smartCanMakeScanCache.has(cacheKey)) return smartCanMakeScanCache.get(cacheKey);
+
+  const hardCap = smartCanMakeSearchCap(baselineQty);
+  let low = Math.max(0, Math.floor(Number(baselineQty || 0)) || 0);
   if (low > hardCap) low = hardCap;
+
+  function finish(value) {
+    const finalValue = Math.max(0, Math.floor(Number(value || 0)) || 0);
+    if (smartCanMakeScanCache) smartCanMakeScanCache.set(cacheKey, finalValue);
+    return finalValue;
+  }
 
   // If the old flattened-requirement estimate was optimistic for a weird recipe,
   // clamp it back down before searching upward.
@@ -6517,7 +6553,7 @@ function getSmartCanCraftQtyWithOwnedIntermediates(recipe, recipeIndex, baseline
       if (canCraftRecipeExecutionsWithOwnedIntermediates(recipe, recipeIndex, mid)) lo = mid;
       else hi = mid - 1;
     }
-    return lo;
+    return finish(lo);
   }
 
   let high = Math.max(1, low || 1);
@@ -6527,8 +6563,8 @@ function getSmartCanCraftQtyWithOwnedIntermediates(recipe, recipeIndex, baseline
     if (high === low) break;
   }
 
-  if (low === hardCap) return low;
-  if (high === hardCap && canCraftRecipeExecutionsWithOwnedIntermediates(recipe, recipeIndex, high)) return high;
+  if (low === hardCap) return finish(low);
+  if (high === hardCap && canCraftRecipeExecutionsWithOwnedIntermediates(recipe, recipeIndex, high)) return finish(high);
 
   let lo = low;
   let hi = high - 1;
@@ -6538,9 +6574,8 @@ function getSmartCanCraftQtyWithOwnedIntermediates(recipe, recipeIndex, baseline
     else hi = mid - 1;
   }
 
-  return lo;
+  return finish(lo);
 }
-
 
 function scaleFlatRequirementsForCrafts(flat, craftCount) {
   const multiplier = Math.max(1, Math.floor(Number(craftCount || 1)));
@@ -8216,6 +8251,7 @@ async function togglePartialResearchRecipes() {
 }
 
 async function buildPartialResearchRecipes() {
+  smartCanMakeScanCache = new Map();
   await loadCurrencyInfo();
   if (!ownedMaterials.size || !recipeCache.length) {
     setStatus('Load owned materials and recipe cache first.');
@@ -8405,6 +8441,7 @@ async function ensureOwnedBulkFoodVendorSourcesLoaded(contextLabel = 'Research')
 
 
 async function buildResearchNoteMode() {
+  smartCanMakeScanCache = new Map();
   if (!ownedMaterials.size || !recipeCache.length) {
     setStatus('Load owned materials and recipe cache first.');
     return;
