@@ -1458,7 +1458,23 @@ td { padding-left: 6px; padding-right: 6px; }
     .mini-search-btn.muted {
       opacity: 0.85;
     }
-  </style>
+  
+    .research-owned-materials-group {
+      display: flex;
+      align-items: center;
+      gap: 6px;
+      min-height: 34px;
+      white-space: nowrap;
+      color: var(--text);
+      font-weight: 700;
+      font-size: 12px;
+      letter-spacing: .02em;
+    }
+    .research-owned-materials-group input {
+      transform: translateY(1px);
+    }
+
+</style>
 </head>
 <body>
 <header>
@@ -5790,6 +5806,31 @@ function formatVendorBarterSource(barterCost) {
 }
 
 
+
+function ensureUseOwnedMaterialsResearchControlVisible() {
+  const select = document.getElementById('researchMaterialValueModeSelect');
+  if (!select) return;
+  if (document.getElementById('useOwnedMaterialsResearch')) return;
+
+  const label = document.createElement('label');
+  label.className = 'filter-group checkbox-group research-owned-materials-group';
+  label.title = 'When unchecked, Research Note Mode ignores your owned inventory and shows craft costs as if buying/acquiring all inputs.';
+
+  const input = document.createElement('input');
+  input.id = 'useOwnedMaterialsResearch';
+  input.type = 'checkbox';
+  input.checked = useOwnedMaterialsForResearch !== false;
+  input.addEventListener('change', () => setUseOwnedMaterialsForResearch(input.checked));
+
+  label.appendChild(input);
+  label.appendChild(document.createTextNode(' Use Owned Materials'));
+
+  const container = select.closest('.filter-group') || select.parentElement;
+  if (container && container.parentElement) {
+    container.parentElement.insertBefore(label, container.nextSibling);
+  }
+}
+
 function shouldUseOwnedMaterialsForResearch() {
   const el = document.getElementById('useOwnedMaterialsResearch');
   if (el) return !!el.checked;
@@ -10024,6 +10065,7 @@ function researchSortValueGetter(displayRowFn, key) {
 }
 
 function render() {
+  ensureUseOwnedMaterialsResearchControlVisible();
   const isResearchTable = tableMode === 'researchNotes' || tableMode === 'researchPartial';
   const q = (document.getElementById(isResearchTable ? 'searchBoxResearch' : 'searchBox')?.value || '').trim().toLowerCase();
   const minProfitGold = Number(document.getElementById('minProfitGold')?.value || 0);
@@ -10261,6 +10303,8 @@ setupFilterControls();
   log(`Embedded Research Note yield entries: ${EMBEDDED_RESEARCH_NOTE_YIELD_COUNT.toLocaleString()}`);
   setToolMode('profit');
 })();
+
+try { ensureUseOwnedMaterialsResearchControlVisible(); } catch (_) {}
 </script>
 </body>
 </html>
