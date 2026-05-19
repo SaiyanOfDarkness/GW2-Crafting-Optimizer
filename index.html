@@ -1787,6 +1787,8 @@ let tableMode = 'profit';
 let lastResearchTableMode = 'researchNotes';
 let researchMaterialValueMode = 'buy';
 let useOwnedMaterialsForResearch = true;
+let researchOwnedOffTpAutoLoadAttempted = false;
+let researchOwnedOffAutoLoadingTpPrices = false;
 const RENDER_STEP = 250;
 const PROFIT_INITIAL_RENDER_STEP = 100;
 const NESTED_INITIAL_RENDER_STEP = 100;
@@ -3867,6 +3869,7 @@ async function loadDataCache() {
 }
 
 async function clearDataCache() {
+  researchOwnedOffTpAutoLoadAttempted = false;
   if (!confirm('Clear optimizer data cache? API keys are kept.')) return;
   await idbDelete(DATA_KEY);
   ownedMaterials.clear();
@@ -5890,6 +5893,52 @@ function updatePartialResearchButtonState() {
   if (!useOwned) ctrl.title = 'Partial Research Recipes require Use Owned Materials.';
 }
 
+
+
+function hasLoadedTpPricesForResearchBrowser() {
+  return prices && prices.size > 0;
+}
+
+async function ensureTpPricesForOwnedOffResearchBrowser() {
+  if (shouldUseOwnedMaterialsForResearch()) return;
+  if (hasLoadedTpPricesForResearchBrowser()) return;
+  if (researchOwnedOffTpAutoLoadAttempted || researchOwnedOffAutoLoadingTpPrices) return;
+
+  researchOwnedOffTpAutoLoadAttempted = true;
+  researchOwnedOffAutoLoadingTpPrices = true;
+  try {
+    log('[Research] Use Owned Materials disabled and TP price cache is empty. Loading TP prices once...');
+    setStatus('Loading TP prices for Research craft-cost browser...');
+    await waitForUiFrame();
+
+    if (typeof refreshTpPrices === 'function') {
+      await refreshTpPrices();
+    } else if (typeof refreshTPPrices === 'function') {
+      await refreshTPPrices();
+    } else if (typeof loadTpPrices === 'function') {
+      const ids = Array.from(new Set(recipeCache.flatMap(r => [
+        Number(r.outputItemId),
+        ...((r.ingredients || []).map(i => Number(i.item_id || i.id || i.itemId)))
+      ]).filter(Boolean)));
+      await loadTpPrices(ids);
+    } else {
+      log('[Research] No TP price refresh function found; owned-off table may show unknown prices until Refresh TP Prices is used.');
+    }
+  } finally {
+    researchOwnedOffAutoLoadingTpPrices = false;
+  }
+}
+
+async function rebuildOwnedOffResearchAfterTpRefreshIfNeeded() {
+  if (tableMode !== 'researchNotes') return;
+  if (shouldUseOwnedMaterialsForResearch()) return;
+  if (researchOwnedOffAutoLoadingTpPrices) return;
+
+  invalidatePartialResearchHotCaches();
+  log('[Research] TP prices updated; rebuilding owned-off Research craft-cost browser.');
+  await waitForUiFrame();
+  await buildResearchNoteMode();
+}
 
 function shouldUseOwnedMaterialsForResearch() {
   const el = document.getElementById('useOwnedMaterialsResearch');
@@ -8819,6 +8868,10 @@ async function buildResearchNoteMode() {
   if (!recipeCache.length || (useOwnedMaterials && !ownedMaterials.size)) {
     setStatus(useOwnedMaterials ? 'Load owned materials and recipe cache first.' : 'Load recipe cache first.');
     return;
+  }
+
+  if (!useOwnedMaterials) {
+    await ensureTpPricesForOwnedOffResearchBrowser();
   }
 
   const recipeIndex = (typeof buildRecipeIndexByOutput === "function")
