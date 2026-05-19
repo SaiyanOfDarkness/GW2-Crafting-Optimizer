@@ -7050,19 +7050,37 @@ function shouldRejectOwnedIntermediateContributorRecipe(recipe, targetItemId = n
   return false;
 }
 
+
+function isGemOrJewelIntermediateItem(itemId) {
+  const name = itemName(Number(itemId)).toLowerCase();
+  if (!name) return false;
+
+  const familyWords = [
+    'agate','amethyst','aquamarine','azurite','beryl','carnelian','chrysocola','coral',
+    'emerald','garnet','lapis','malachite','opal','pearl','peridot','ruby','sapphire',
+    'sunstone','topaz','turquoise','spinel','citrine'
+  ];
+  const formWords = ['crystal','shard','lump','nugget','orb','jewel','doubloon','crest'];
+
+  return familyWords.some(w => name.includes(w)) && formWords.some(w => name.includes(w));
+}
+
 function collectOwnedIntermediateContributors(recipe, recipeIndex, out = new Map(), path = new Set(), depth = 0) {
   const contributors = new Map();
   const seen = new Set();
+
   function addOwned(itemId) {
     itemId = Number(itemId);
     if (!itemId) return;
     const owned = Number(ownedMaterials.get(itemId) || 0);
     if (owned > 0) contributors.set(itemId, Math.max(Number(contributors.get(itemId) || 0), owned));
   }
+
   function getSubRecipeForItem(itemId) {
     if (recipeIndex && typeof recipeIndex.get === 'function') return recipeIndex.get(Number(itemId)) || null;
     return null;
   }
+
   function visit(recipe, depth = 0) {
     if (!recipe || depth > 5) return;
     const recipeId = Number(recipe.id || recipe.recipe_id || recipe.recipeId || 0);
@@ -7070,16 +7088,25 @@ function collectOwnedIntermediateContributors(recipe, recipeIndex, out = new Map
     const seenKey = `${recipeId}:${outputId}:${depth}`;
     if (seen.has(seenKey)) return;
     seen.add(seenKey);
+
     for (const ing of (recipe.ingredients || [])) {
       const itemId = Number(ing.item_id || ing.id || ing.itemId);
       if (!itemId) continue;
+
+      // Count owned gem/jewel intermediates only if directly required by this recipe.
+      // Do not recurse into gem/jewel upgrade/conversion recipes, because those paths
+      // commonly cost far more than buying the target gemstone/intermediate directly.
       addOwned(itemId);
+      if (isGemOrJewelIntermediateItem(itemId)) continue;
+
       const subRecipe = getSubRecipeForItem(itemId);
       if (!subRecipe) continue;
-      if (shouldRejectOwnedIntermediateContributorRecipe(subRecipe, itemId)) continue;
+      if (typeof shouldRejectOwnedIntermediateContributorRecipe === 'function' && shouldRejectOwnedIntermediateContributorRecipe(subRecipe, itemId)) continue;
+
       visit(subRecipe, depth + 1);
     }
   }
+
   visit(recipe, 0);
   return contributors;
 }
