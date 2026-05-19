@@ -1440,6 +1440,13 @@ td { padding-left: 6px; padding-right: 6px; }
   left: auto;
 }
 
+
+.can-make-intermediate-source {
+  color: #7df9ff;
+  border-bottom: 1px dotted rgba(125,249,255,0.65);
+  cursor: help;
+}
+
 </style>
 </head>
 <body>
@@ -1648,7 +1655,7 @@ td { padding-left: 6px; padding-right: 6px; }
 
       <div class="filter-group qty-group">
         <label for="minCraftQtyResearch">MIN CRAFT QTY</label>
-        <input id="minCraftQtyResearch" type="number" min="1" value="1">
+        <input id="minCraftQtyResearch" type="number" min="1" value="1" onchange="render()" oninput="if (tableMode === 'researchPartial') render()">
       </div>
     </div>
   </section>
@@ -6372,6 +6379,74 @@ function getSmartCanCraftQtyWithOwnedIntermediates(recipe, recipeIndex, baseline
   return lo;
 }
 
+
+function scaleFlatRequirementsForCrafts(flat, craftCount) {
+  const multiplier = Math.max(1, Math.floor(Number(craftCount || 1)));
+  const scaled = new Map();
+  for (const [itemId, count] of (flat?.requirements || new Map()).entries()) {
+    addNestedRequirement(scaled, Number(itemId), Number(count || 0) * multiplier);
+  }
+  return {
+    ok: !!flat?.ok,
+    requirements: scaled,
+    steps: (flat?.steps || []).slice()
+  };
+}
+
+function findRecipeByRecipeId(recipeId) {
+  const target = Number(recipeId);
+  if (!Number.isFinite(target)) return null;
+  return (recipeCache || []).find(r => Number(r.recipeId) === target) || null;
+}
+
+function collectOwnedIntermediateContributors(recipe, recipeIndex, out = new Map(), path = new Set(), depth = 0) {
+  if (!recipe || !recipeIndex || depth > 5) return out;
+  const outputId = Number(recipe.outputItemId || 0);
+  if (outputId) path.add(outputId);
+
+  for (const ing of recipe.ingredients || []) {
+    const ingId = Number(ing.itemId || 0);
+    if (!ingId || path.has(ingId)) continue;
+    const subRecipe = recipeIndex.get(ingId);
+    const owned = Number(ownedMaterials.get(ingId) || 0);
+    if (subRecipe && owned > 0 && !isUnlimitedCraftabilityIngredient(ingId)) {
+      out.set(ingId, Math.max(Number(out.get(ingId) || 0), owned));
+    }
+    if (subRecipe) collectOwnedIntermediateContributors(subRecipe, recipeIndex, out, new Set(path), depth + 1);
+  }
+
+  return out;
+}
+
+function buildOwnedIntermediateCanMakeTooltip(row) {
+  const baseQty = Number(row?.baselineCanCraftQty || 0);
+  const smartQty = Number(row?.canCraftQty || 0);
+  if (!Number.isFinite(baseQty) || !Number.isFinite(smartQty) || smartQty <= baseQty) return '';
+
+  const lines = [];
+  lines.push('Can Make includes owned refined/intermediate materials.');
+  lines.push(`Base flattened count: ${Math.floor(baseQty).toLocaleString()}`);
+  lines.push(`With owned intermediates: ${Math.floor(smartQty).toLocaleString()}`);
+
+  const contributors = row?.ownedIntermediateContributors || [];
+  if (contributors.length) {
+    lines.push('Contributors:');
+    for (const c of contributors.slice(0, 8)) {
+      lines.push(`${itemName(c.itemId)} x ${Number(c.owned || 0).toLocaleString()}`);
+    }
+    if (contributors.length > 8) lines.push(`+${contributors.length - 8} more`);
+  }
+
+  return lines.map(line => `<span class="craft-replacement-tooltip-line">${escapeHtml(line)}</span>`).join('');
+}
+
+function renderCanMakeQtyCell(row) {
+  const qty = Number(row?.canCraftQty || 0).toLocaleString();
+  const tooltip = buildOwnedIntermediateCanMakeTooltip(row);
+  if (!tooltip) return qty;
+  return `<span class="craft-replacement-source can-make-intermediate-source">${qty}<span class="craft-replacement-tooltip">${tooltip}</span></span>`;
+}
+
 function evaluateNestedRequirements(flat, outputCount) {
   let canCraftQty = Infinity;
   let materialValue = 0;
@@ -8037,15 +8112,20 @@ async function buildPartialResearchRecipes() {
 
     if (!flat || !flat.ok || !flat.requirements || !flat.requirements.size) continue;
 
-    const expandedFlat = expandRequirementsUsingOwnedCrafting(flat, recipeIndex);
-    const evald = evaluateNestedRequirements(expandedFlat, recipe.outputCount || 1);
-    const smartCanCraftQty = getSmartCanCraftQtyWithOwnedIntermediates(recipe, recipeIndex, evald.canCraftQty);
+    const targetCraftQty = Math.max(1, Math.floor(Number(document.getElementById('minCraftQtyResearch')?.value || 1)));
+    const expandedFlatSingle = expandRequirementsUsingOwnedCrafting(flat, recipeIndex);
+    const evaldSingle = evaluateNestedRequirements(expandedFlatSingle, recipe.outputCount || 1);
+    const smartCanCraftQty = getSmartCanCraftQtyWithOwnedIntermediates(recipe, recipeIndex, evaldSingle.canCraftQty);
 
-    if (!evald.missingOwned || (Number.isFinite(smartCanCraftQty) && smartCanCraftQty > 0)) {
+    // Partial Research should mean "not enough for the requested craft quantity".
+    // If Min Craft Qty is 50, a recipe you can craft 1-49 times should still appear here.
+    if (Number.isFinite(smartCanCraftQty) && smartCanCraftQty >= targetCraftQty) {
       alreadyCraftable++;
       continue;
     }
 
+    const expandedFlat = scaleFlatRequirementsForCrafts(expandedFlatSingle, targetCraftQty);
+    const evald = evaluateNestedRequirements(expandedFlat, recipe.outputCount || 1);
     const coverage = analyzeRequirementCoverage(expandedFlat.requirements);
     coverage.missing = coverage.missing.map(m => ({ ...m, acquisition: compareMissingMaterialAcquisition(m.itemId, m.missing, recipeIndex) }));
     if (coverage.have <= 0) {
@@ -8064,6 +8144,7 @@ async function buildPartialResearchRecipes() {
       disciplinesText: disciplineSortText(recipe.disciplines),
       recipeId: recipe.recipeId,
       outputCount: Math.max(1, Number(recipe.outputCount || 1)),
+      targetCraftQty,
       noteItem,
       valuePerNote,
       materialValue,
@@ -8236,7 +8317,11 @@ async function buildResearchNoteMode() {
     const expandedFlat = expandRequirementsUsingOwnedCrafting(flat, recipeIndex);
     const mergedSteps = [...(flat.steps || []), ...(expandedFlat.steps || [])];
     const evald = evaluateNestedRequirements(expandedFlat, recipe.outputCount || 1);
+    const baselineCanCraftQty = evald.canCraftQty;
     const smartCanCraftQty = getSmartCanCraftQtyWithOwnedIntermediates(recipe, recipeIndex, evald.canCraftQty);
+    const ownedIntermediateContributors = smartCanCraftQty > baselineCanCraftQty
+      ? Array.from(collectOwnedIntermediateContributors(recipe, recipeIndex).entries()).map(([itemId, owned]) => ({ itemId, owned }))
+      : [];
 
     if (evald.missingOwned && (!Number.isFinite(smartCanCraftQty) || smartCanCraftQty <= 0)) {
       missingOwned++;
@@ -8267,6 +8352,8 @@ async function buildResearchNoteMode() {
       recipeId: recipe.recipeId,
       outputCount,
       canCraftQty,
+      baselineCanCraftQty,
+      ownedIntermediateContributors,
       recommendedCraftQty,
       noteItem,
       hasNoteYield: noteItem != null,
@@ -9262,6 +9349,29 @@ function getResearchNoteDisplayRow(row) {
 
 function getPartialResearchDisplayRow(row) {
   const out = Object.assign({}, row || {});
+  const currentTargetCraftQty = Math.max(1, Math.floor(Number(document.getElementById('minCraftQtyResearch')?.value || out.targetCraftQty || 1)));
+
+  // If Min Craft Qty changed after the partial list was built, recompute the visible
+  // Missing Mats/Owned Mats display from the raw recipe instead of showing stale quantities.
+  if (currentTargetCraftQty !== Number(out.targetCraftQty || 1)) {
+    const recipe = findRecipeByRecipeId(out.recipeId);
+    const recipeIndex = activeProfitRecipeIndexForValuation && activeProfitRecipeIndexForValuation.size
+      ? activeProfitRecipeIndexForValuation
+      : buildRecipeIndexByOutput();
+    if (recipe && recipeIndex) {
+      const flat = flattenRecipeIngredients(recipe, recipeIndex);
+      if (flat && flat.ok && flat.requirements && flat.requirements.size) {
+        const expandedSingle = expandRequirementsUsingOwnedCrafting(flat, recipeIndex);
+        const expanded = scaleFlatRequirementsForCrafts(expandedSingle, currentTargetCraftQty);
+        const coverage = analyzeRequirementCoverage(expanded.requirements);
+        out.coveragePct = coverage.coveragePct;
+        out.missing = coverage.missing.map(m => ({ ...m, acquisition: compareMissingMaterialAcquisition(m.itemId, m.missing, recipeIndex) }));
+        out.ingredients = coverage.ownedUsed;
+        out.targetCraftQty = currentTargetCraftQty;
+      }
+    }
+  }
+
   out.ingredients = getResearchDisplayIngredientsForCurrentMode(out.ingredients);
   out.missing = refreshMissingMaterialsForCurrentMode(out.missing);
 
@@ -9395,7 +9505,7 @@ function render() {
         <td><span class="rarity-label rarity-${escapeHtml(o.rarity || itemRarity(o.outputItemId))}">${escapeHtml(o.rarity || itemRarity(o.outputItemId))}</span></td>
         <td>${renderDisciplines(o.disciplines)}</td>
         <td class="num">${renderRecipeIdCell(o.recipeId)}</td>
-        <td class="num">${o.canCraftQty}</td>
+        <td class="num">${renderCanMakeQtyCell(o)}</td>
         <td class="num good">${o.recommendedCraftQty}</td>
         <td class="num note-value">${o.noteItem == null ? '<span class="muted">unknown</span>' : formatNoteValue(o.noteItem)}</td>
         <td class="num note-value">${o.totalExpectedNotes == null ? '<span class="muted">unknown</span>' : formatNoteValue(o.totalExpectedNotes)}</td>
