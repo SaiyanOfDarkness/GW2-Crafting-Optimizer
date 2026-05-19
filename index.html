@@ -1088,6 +1088,16 @@ body.research-mode #filterPanel .research-only {
   min-width: 260px;
 }
 
+#researchFilterPanel .recipe-unlock-group select {
+  min-width: 230px;
+}
+
+.recipe-lock-indicator {
+  margin-left: 6px;
+  color: var(--warn);
+  font-weight: 700;
+}
+
 #profitFilterPanel .qty-group input,
 #researchFilterPanel .qty-group input {
   width: 90px;
@@ -1550,10 +1560,11 @@ td { padding-left: 6px; padding-right: 6px; }
     <div class="row">
       <button class="primary" onclick="runFullScan()">Run Full Scan</button>
       <button onclick="loadOwnedMaterials()">1. Load Owned Materials</button>
-      <button onclick="loadRecipeCache()">2. Load Recipe Cache</button>
-      <button onclick="loadNestedVariantRecipes()">2b. Load Nested Variant Recipes</button>
-      <button onclick="refreshMarketPrices()">3. Refresh TP Prices</button>
-      <button onclick="buildOpportunities()">4. Build Opportunities</button>
+      <button onclick="loadOwnedRecipes()">2. Load Owned Recipes</button>
+      <button onclick="loadRecipeCache()">3. Load Recipe Cache</button>
+      <button onclick="loadNestedVariantRecipes()">3b. Load Nested Variant Recipes</button>
+      <button onclick="refreshMarketPrices()">4. Refresh TP Prices</button>
+      <button onclick="buildOpportunities()">5. Build Opportunities</button>
       <button id="nestedProfitToggleBtn" onclick="toggleNestedProfitRecipes()">SHOW NESTED RECIPES: <span style="color:#F6019D">OFF</span></button>
       <button onclick="render()">Render Table</button>
       <button class="danger" onclick="clearDataCache()">Clear Data Cache</button>
@@ -1564,11 +1575,12 @@ td { padding-left: 6px; padding-right: 6px; }
     <div class="row">
       <button class="primary" onclick="runResearchNoteScan()">Run Research Note Scan</button>
       <button onclick="loadOwnedMaterials()">1. Load Owned Materials</button>
-      <button onclick="loadRecipeCache()">2. Load Recipe Cache</button>
-      <button onclick="loadNestedVariantRecipes()">2b. Load Nested Variant Recipes</button>
-      <button onclick="refreshMarketPrices()">3. Refresh TP Prices</button>
-      <button onclick="loadResearchSalvageableItemIds()">3b. Load Wiki Research Salvage List</button>
-      <button onclick="buildResearchNoteMode()">4. Build Research Note Table</button>
+      <button onclick="loadOwnedRecipes()">2. Load Owned Recipes</button>
+      <button onclick="loadRecipeCache()">3. Load Recipe Cache</button>
+      <button onclick="loadNestedVariantRecipes()">3b. Load Nested Variant Recipes</button>
+      <button onclick="refreshMarketPrices()">4. Refresh TP Prices</button>
+      <button onclick="loadResearchSalvageableItemIds()">4b. Load Wiki Research Salvage List</button>
+      <button onclick="buildResearchNoteMode()">5. Build Research Note Table</button>
       <button id="partialResearchToggleBtn" onclick="togglePartialResearchRecipes()">SHOW PARTIAL RESEARCH RECIPES: <span style="color:#F6019D">OFF</span></button>
       <button onclick="render()">Render Table</button>
       <button class="danger" onclick="clearDataCache()">Clear Data Cache</button>
@@ -1617,6 +1629,13 @@ td { padding-left: 6px; padding-right: 6px; }
       <div class="filter-group search-group">
         <label for="searchBoxResearch">SEARCH</label>
         <input id="searchBoxResearch" type="text" placeholder="item, material, recipe...">
+      </div>
+
+      <div class="filter-group recipe-unlock-group">
+        <label for="recipeUnlockSourceSelect">RECIPE UNLOCK SOURCE</label>
+        <select id="recipeUnlockSourceSelect" onchange="setRecipeUnlockSource(this.value)">
+          <option value="disabled" selected>Disabled</option>
+        </select>
       </div>
 
       <div class="filter-group value-group">
@@ -2912,6 +2931,8 @@ let externalDatasetStatus = {
 const EMBEDDED_RESEARCH_NOTE_YIELDS = {"89853":76.2,"89857":76.2,"89491":76.2,"89877":76.2,"89721":76.2,"89661":76.2,"89447":76.2,"89605":76.2,"89613":76.2,"89921":76.2,"89722":76.2,"89443":76.2,"89465":76.2,"89849":76.2,"89734":76.2,"89436":76.2,"89982":76.2,"89923":76.2,"89600":46.5,"89794":46.5,"89946":46.5,"89575":46.5,"89534":46.5,"89623":46.5,"89761":46.5,"89961":46.5,"89532":46.5,"89618":46.5,"89667":46.5,"89627":46.5,"89439":46.5,"89915":46.5,"89757":46.5,"89817":46.5,"89690":46.5,"89726":46.5,"89724":46.5,"67632":76.2,"67631":76.2,"67633":76.2,"43865":76.2,"43864":76.2,"43863":76.2,"75240":76.2,"74310":76.2,"73680":76.2,"70702":76.2,"74379":76.2,"72095":76.2,"76575":76.2,"70680":76.2,"70721":76.2,"74785":76.2,"76412":76.2,"76634":76.2,"71314":76.2,"71272":76.2,"72046":76.2,"72884":76.2,"74699":76.2,"70412":76.2,"74728":46.5,"72900":46.5,"74466":46.5,"70509":46.5,"73956":46.5,"72844":46.5,"72746":46.5,"74153":46.5,"76451":46.5,"75873":46.5,"77153":46.5,"73226":46.5,"75999":46.5,"75263":46.5,"74526":46.5,"75662":46.5,"75663":46.5,"75003":46.5,"73015":46.5,"70677":76.2,"71162":76.2,"76781":76.2,"74103":76.2,"70824":76.2,"71012":76.2,"74142":76.2,"71934":76.2,"73119":76.2,"72943":76.2,"72570":76.2,"75191":76.2,"75850":76.2,"73562":76.2,"76389":76.2,"71226":76.2,"74298":76.2,"76455":76.2,"71840":46.5,"74895":46.5,"70918":46.5,"72057":46.5,"73439":46.5,"71120":46.5,"76866":46.5,"73904":46.5,"73456":46.5,"75918":46.5,"72885":46.5,"76778":46.5,"73209":46.5,"77042":46.5,"75326":46.5,"74420":46.5,"72493":46.5,"76757":46.5,"74960":46.5,"67614":76.2,"67615":76.2,"67618":76.2,"67613":76.2,"67616":76.2,"67617":76.2,"67629":76.2,"67630":76.2,"67626":76.2,"67625":76.2,"67628":76.2,"67627":76.2,"67623":76.2,"67622":76.2,"67620":76.2,"67621":76.2,"67624":76.2,"67619":76.2,"67635":46.5,"67634":46.5,"67637":46.5,"67636":46.5,"67640":46.5,"67642":46.5,"67638":46.5,"67644":46.5,"67652":46.5,"67651":46.5,"67648":46.5,"67649":46.5,"67650":46.5,"67647":46.5,"67641":46.5,"67646":46.5,"67643":46.5,"67639":46.5,"67645":46.5,"74184":76.2,"77068":76.2,"71770":76.2,"76242":76.2,"74574":76.2,"73793":76.2,"74537":76.2,"74886":76.2,"74948":76.2,"76369":76.2,"70727":76.2,"71845":76.2,"71292":76.2,"73593":76.2,"71053":76.2,"75370":76.2,"72727":76.2,"76480":76.2,"70972":46.5,"74746":46.5,"74865":46.5,"72170":46.5,"73011":46.5,"73238":46.5,"76590":46.5,"72089":46.5,"76303":46.5,"73915":46.5,"74941":46.5,"76277":46.5,"70809":46.5,"72616":46.5,"73318":46.5,"71037":46.5,"74837":46.5,"72405":46.5,"71354":46.5,"43780":76.2,"43781":76.2,"43782":76.2,"43783":76.2,"43784":76.2,"43785":76.2,"43792":76.2,"43793":76.2,"43794":76.2,"43795":76.2,"43796":76.2,"43797":76.2,"43786":76.2,"43787":76.2,"43788":76.2,"43791":76.2,"43789":76.2,"43790":76.2,"43844":46.5,"43846":46.5,"43845":46.5,"43847":46.5,"43853":46.5,"43851":46.5,"43854":46.5,"43848":46.5,"43859":46.5,"43857":46.5,"43856":46.5,"43858":46.5,"43855":46.5,"43862":46.5,"43850":46.5,"43860":46.5,"43861":46.5,"43852":46.5,"43849":46.5,"100893":5.0,"100934":5.0,"100752":5.0,"24711":1.0,"24570":1.0,"24702":1.0,"24618":1.0,"104859":46.5,"105008":46.5,"104989":46.5,"104860":46.5,"104732":46.5,"104792":46.5,"104691":46.5,"104875":46.5,"104721":46.5,"104916":46.5,"104905":46.5,"104878":46.5,"104761":46.5,"104705":46.5,"104787":46.5,"104918":46.5,"104950":46.5,"48915":1.0,"86287":1.0,"81034":1.0,"92218":46.5,"92331":46.5,"92395":46.5,"92222":46.5,"92244":46.5,"92359":46.5,"92367":46.5,"92290":46.5,"92217":46.5,"92261":46.5,"92363":46.5,"92230":46.5,"92354":46.5,"92248":46.5,"92298":46.5,"92343":46.5,"48917":1.0,"86378":1.0,"81079":1.0,"81091":1.0,"81045":1.0,"81157":1.0,"79793":1.0,"79786":1.3,"79748":1.3,"79776":1.3,"87713":76.2,"88074":76.2,"87769":76.2,"87703":76.2,"87792":76.2,"87963":76.2,"88042":76.2,"87818":76.2,"87597":76.2,"87984":76.2,"87900":76.2,"87749":76.2,"87688":76.2,"87585":76.2,"87920":76.2,"87972":76.2,"88067":76.2,"87949":76.2,"87628":46.5,"87700":46.5,"87721":46.5,"87747":46.5,"88050":46.5,"87647":46.5,"87824":46.5,"87962":46.5,"87958":46.5,"87641":46.5,"88040":46.5,"87720":46.5,"87789":46.5,"87871":46.5,"87693":46.5,"88027":46.5,"87877":46.5,"87744":46.5,"87938":46.5,"80211":76.2,"80671":76.2,"80102":76.2,"80608":76.2,"80504":76.2,"80294":76.2,"80467":76.2,"80317":76.2,"80195":76.2,"80119":76.2,"80419":76.2,"80496":76.2,"80535":76.2,"80168":76.2,"80312":76.2,"80167":76.2,"80098":76.2,"80406":76.2,"80443":46.5,"80523":46.5,"80389":46.5,"80204":46.5,"80547":46.5,"80426":46.5,"80156":46.5,"80143":46.5,"80140":46.5,"80088":46.5,"80139":46.5,"80421":46.5,"80129":46.5,"80543":46.5,"80585":46.5,"80154":46.5,"80295":46.5,"80342":46.5,"80619":46.5,"86016":1.0,"85713":1.0,"86170":1.0,"14351":3.15,"14348":3.15,"14731":3.15,"14346":3.15,"46188":3.15,"14403":3.15,"14222":3.15,"14291":3.15,"14288":3.15,"14719":3.15,"14286":3.15,"46149":3.15,"14385":3.15,"14162":3.15,"14231":3.15,"14228":3.15,"14707":3.15,"14226":3.15,"46110":3.15,"14367":3.15,"14172":3.15,"14251":3.15,"14248":3.15,"14711":3.15,"14246":3.15,"46123":3.15,"14373":3.15,"14212":3.15,"14311":3.15,"14308":3.15,"14723":3.15,"14306":3.15,"46162":3.15,"14391":3.15,"14192":3.15,"14331":3.15,"14328":3.15,"14727":3.15,"14326":3.15,"46175":3.15,"14397":3.15,"14182":3.15,"14271":3.15,"14268":3.15,"14715":3.15,"14266":3.15,"46136":3.15,"14379":3.15,"14202":3.15,"13764":3.15,"13762":3.15,"14035":3.15,"13759":3.15,"45990":3.15,"13840":3.15,"13725":3.15,"13804":3.15,"13802":3.15,"14043":3.15,"13799":3.15,"46016":3.15,"13852":3.15,"13735":3.15,"13824":3.15,"13821":3.15,"14047":3.15,"13819":3.15,"46029":3.15,"13858":3.15,"13745":3.15,"30052":1.06,"30046":1.06,"10570":5.05,"10571":5.05,"10569":5.05,"36897":5.05,"45633":5.05,"10567":5.05,"10568":5.05,"10573":5.05,"10605":5.05,"10606":5.05,"10604":5.05,"36850":5.05,"45646":5.05,"10602":5.05,"10603":5.05,"10608":5.05,"10500":5.05,"10501":5.05,"10499":5.05,"36756":5.05,"45607":5.05,"10497":5.05,"10498":5.05,"10503":5.05,"10535":5.05,"10536":5.05,"10534":5.05,"36789":5.05,"45620":5.05,"10532":5.05,"10533":5.05,"10538":5.05,"10645":5.05,"10648":5.05,"10646":5.05,"36872":5.05,"45660":5.05,"10644":5.05,"10650":5.05,"10675":5.05,"10676":5.05,"10674":5.05,"36819":5.05,"45672":5.05,"10672":5.05,"10673":5.05,"10678":5.05,"41450":5.05,"13437":5.05,"13435":5.05,"13441":5.05,"13436":5.05,"45925":5.05,"36778":5.05,"13440":5.05,"13438":5.05,"48594":76.2,"48608":76.2,"48601":76.2,"48615":76.2,"48587":76.2,"48580":76.2,"48685":76.2,"48671":76.2,"48678":76.2,"48699":76.2,"48664":76.2,"48692":76.2,"48629":76.2,"48636":76.2,"48657":76.2,"48622":76.2,"48643":76.2,"48650":76.2,"48600":76.2,"48614":76.2,"48607":76.2,"48621":76.2,"48593":76.2,"48586":76.2,"48691":76.2,"48677":76.2,"48684":76.2,"48705":76.2,"48670":76.2,"48698":76.2,"48635":76.2,"48642":76.2,"48663":76.2,"48628":76.2,"48649":76.2,"48656":76.2,"48595":76.2,"48609":76.2,"48602":76.2,"48616":76.2,"48588":76.2,"48581":76.2,"48686":76.2,"48672":76.2,"48679":76.2,"48700":76.2,"48665":76.2,"48693":76.2,"48630":76.2,"48637":76.2,"48658":76.2,"48623":76.2,"48644":76.2,"48651":76.2,"48597":76.2,"48611":76.2,"48604":76.2,"48618":76.2,"48590":76.2,"48583":76.2,"48688":76.2,"48674":76.2,"48681":76.2,"48702":76.2,"48667":76.2,"48695":76.2,"48632":76.2,"48639":76.2,"48660":76.2,"48625":76.2,"48646":76.2,"48653":76.2,"48596":76.2,"48610":76.2,"48603":76.2,"48617":76.2,"48589":76.2,"48582":76.2,"48687":76.2,"48673":76.2,"48680":76.2,"48701":76.2,"48666":76.2,"48694":76.2,"48631":76.2,"48638":76.2,"48659":76.2,"48624":76.2,"48645":76.2,"48652":76.2,"48599":76.2,"48613":76.2,"48606":76.2,"48620":76.2,"48592":76.2,"48585":76.2,"48690":76.2,"48676":76.2,"48683":76.2,"48704":76.2,"48669":76.2,"48697":76.2,"48634":76.2,"48641":76.2,"48662":76.2,"48627":76.2,"48648":76.2,"48655":76.2,"48598":76.2,"48612":76.2,"48605":76.2,"48619":76.2,"48591":76.2,"48584":76.2,"48689":76.2,"48675":76.2,"48682":76.2,"48703":76.2,"48668":76.2,"48696":76.2,"48633":76.2,"48640":76.2,"48661":76.2,"48626":76.2,"48647":76.2,"48654":76.2,"67379":1.08,"8640":1.08,"67371":1.08,"67367":1.08,"67368":1.08,"77567":1.08,"9467":1.08,"9469":1.08,"9472":1.08,"9473":1.08,"9476":1.08,"9453":1.08,"9456":1.08,"9458":1.08,"9460":1.08,"9461":1.08,"9433":1.08,"9436":1.08,"9438":1.08,"9440":1.08,"9443":1.08,"8820":1.08,"8826":1.08,"8824":1.08,"8832":1.08,"8825":1.08,"8819":1.08,"8830":1.08,"36095":1.08,"8829":1.08,"8827":1.08,"8831":1.08,"8822":1.08,"8828":1.08,"8821":1.08,"8823":1.08,"8833":1.08,"8797":1.08,"8835":1.08,"8841":1.08,"8839":1.08,"8847":1.08,"8840":1.08,"8834":1.08,"8845":1.08,"36096":1.08,"8844":1.08,"8842":1.08,"8846":1.08,"8837":1.08,"8843":1.08,"8836":1.08,"8838":1.08,"8848":1.08,"8850":1.08,"8856":1.08,"8854":1.08,"8862":1.08,"8855":1.08,"8849":1.08,"8860":1.08,"36093":1.08,"8859":1.08,"8857":1.08,"8861":1.08,"8852":1.08,"8858":1.08,"8851":1.08,"8853":1.08,"8863":1.08,"8865":1.08,"8871":1.08,"8869":1.08,"8877":1.08,"8870":1.08,"8864":1.08,"8875":1.08,"36094":1.08,"8874":1.08,"8872":1.08,"8876":1.08,"8867":1.08,"8873":1.08,"8866":1.08,"8868":1.08,"8878":1.08,"91289":1.08,"8880":1.08,"8886":1.08,"8884":1.08,"8892":1.08,"8885":1.08,"8879":1.08,"8890":1.08,"36092":1.08,"8889":1.08,"8887":1.08,"8891":1.08,"91350":1.08,"8882":1.08,"8888":1.08,"8881":1.08,"50082":1.08,"8883":1.08,"8893":1.08,"104934":150.0,"91689":1.0,"12230":1.0,"12383":1.0,"12385":1.0,"96793":1.0,"82541":1.3,"12450":1.0,"12434":1.0,"12288":1.0,"12397":1.0,"12361":1.0,"12348":1.0,"66529":1.0,"38214":1.0,"12449":1.0,"12404":1.0,"12302":1.0,"66523":1.0,"66531":1.0,"12405":1.0,"12411":1.0,"12414":1.0,"12398":1.0,"12412":1.0,"12377":1.0,"76415":1.0,"12290":1.0,"12295":1.0,"12486":1.0,"72575":1.0,"12487":1.0,"12292":1.0,"12298":1.0,"12441":1.0,"12433":1.0,"12149":1.0,"12363":1.0,"12297":1.0,"12485":1.0,"12484":1.0,"12477":1.0,"12483":1.0,"96707":1.0,"12139":1.0,"41565":1.0,"12362":1.0,"38213":1.0,"36817":1.0,"12413":1.0,"12200":1.0,"12489":1.0,"12490":1.0,"12491":1.0,"12406":1.0,"12374":1.0,"12375":1.0,"97422":1.0,"12369":1.0,"73221":1.0,"12481":1.0,"12470":1.0,"12440":1.0,"48921":1.0,"12281":1.0,"12299":1.0,"12379":1.0,"12451":1.0,"38212":1.0,"12428":1.0,"12392":1.0,"74777":1.0,"66530":1.0,"12730":1.0,"12488":1.0,"12482":1.0,"12154":1.0,"71826":1.0,"38211":1.0,"12401":1.0,"12448":1.0,"12444":1.0,"12443":1.0,"12424":1.0,"66539":1.0,"76135":1.0,"12410":1.0,"83955":1.0,"41562":1.0,"12475":1.0,"38210":1.0,"12480":1.0,"36767":1.0,"12291":1.0,"12349":1.0,"75010":1.0,"12471":1.0,"12300":1.0,"12445":1.0,"12284":1.0,"12407":1.0,"12409":1.0,"83345":1.0,"12408":1.0,"12447":1.0,"12446":1.0,"66528":1.0,"41569":1.0,"76840":1.0,"12287":1.0,"12293":1.0,"12296":1.0,"36793":1.0,"36841":1.0,"12461":1.0,"12465":1.0,"12478":1.0,"12378":1.0,"41568":1.0,"12376":1.0,"36075":1.0,"36078":1.0,"41561":1.0,"12218":1.0,"74621":1.0,"12323":1.0,"12319":1.0,"36821":1.0,"12320":1.0,"12365":1.0,"12399":1.0,"12356":1.0,"12222":1.0,"12318":1.0,"12366":1.0,"12314":1.0,"12382":1.0,"12460":1.0,"12453":1.0,"12381":1.0,"12423":1.0,"12417":1.0,"12416":1.0,"12347":1.0,"12472":1.0,"12208":1.0,"12367":1.0,"12282":1.0,"43550":1.0,"12435":1.0,"12403":1.0,"12463":1.0,"12391":1.0,"12306":1.0,"12304":1.0,"97767":1.0,"76603":1.0,"81660":1.0,"82030":1.3,"12479":1.0,"12387":1.0,"36082":1.0,"36081":1.0,"36080":1.0,"36079":1.0,"12322":1.0,"12352":1.0,"12283":1.0,"12233":1.0,"12390":1.0,"73788":1.3,"76302":1.3,"12343":1.0,"80373":1.3,"12289":1.0,"66527":1.0,"12473":1.0,"12474":1.0,"12160":1.0,"12456":1.0,"12195":1.0,"12221":1.0,"95942":1.0,"96916":1.0,"12273":1.0,"12420":1.0,"41566":1.0,"12368":1.0,"12452":1.0,"12455":1.0,"36083":1.0,"12457":1.0,"12459":1.0,"12522":1.0,"12380":1.0,"12388":1.0,"36777":1.0,"96898":1.0,"81786":1.3,"81615":1.3,"81621":1.3,"81867":1.3,"81799":1.3,"36753":1.0,"36828":1.0,"12418":1.0,"12419":1.0,"12422":1.0,"12359":1.0,"12307":1.0,"77643":1.3,"36077":1.0,"12393":1.0,"12389":1.0,"12394":1.0,"12466":1.0,"41564":1.0,"79541":1.3,"71797":1.3,"96578":1.0,"12462":1.0,"74969":1.3,"12468":1.0,"12217":1.0,"12431":1.0,"12395":1.0,"66536":1.0,"41567":1.0,"12430":1.0,"12432":1.0,"83622":1.3,"79488":1.3,"12467":1.0,"12469":1.0,"66538":1.0,"66526":1.0,"12384":1.0,"12464":1.0,"12415":1.0,"12264":1.0,"84550":1.3,"97771":1.0,"12442":1.0,"12438":1.0,"12130":1.0,"80466":1.3,"12476":1.0,"12360":1.0,"12301":1.0,"77630":1.3,"12305":1.0,"75126":1.3,"76359":1.3,"12429":1.0,"12426":1.0,"12454":1.0,"12371":1.0,"41563":1.0,"36084":1.0,"12439":1.0,"12358":1.0,"12146":1.0,"12226":1.0,"12345":1.0,"36076":1.0,"12357":1.0,"12312":1.0,"36835":1.0,"12215":1.0,"12370":1.0,"97933":1.3,"12427":1.0,"12425":1.0,"12739":1.0,"77579":1.3,"12216":1.0,"12303":1.0,"12346":1.0,"95847":1.0,"12372":1.0,"96285":1.0,"99955":1.3};
 const EMBEDDED_RESEARCH_NOTE_YIELD_COUNT = Object.keys(EMBEDDED_RESEARCH_NOTE_YIELDS).length;
 let currentTableMode = 'profit';
+let ownedRecipesByAccount = {};
+let selectedRecipeUnlockSource = 'disabled';
 
 
 const VENDOR_BULK_SOURCES_BY_NAME = new Map([
@@ -3708,6 +3729,20 @@ async function loadExternalRepoDatasets() {
   return externalDatasetStatus;
 }
 
+function serializeOwnedRecipesByAccount() {
+  const out = {};
+  for (const [id, data] of Object.entries(ownedRecipesByAccount || {})) {
+    if (!Array.isArray(data?.recipeIds)) continue;
+    out[id] = {
+      label: data.label || recipeUnlockAccountLabel(id),
+      count: Number(data.count || data.recipeIds.length || 0),
+      recipeIds: data.recipeIds.map(Number).filter(n => Number.isFinite(n) && n > 0),
+      loadedAt: data.loadedAt || null
+    };
+  }
+  return out;
+}
+
 async function saveDataCache() {
   await idbSet(DATA_KEY, {
     ownedMaterials: mapToObject(ownedMaterials),
@@ -3717,6 +3752,7 @@ async function saveDataCache() {
     materialIds: [...materialIdSet],
     invalidItemIds: [...invalidItemIds],
     researchSalvageableItemIds: [...researchSalvageableItemIds],
+    ownedRecipesByAccount: serializeOwnedRecipesByAccount(),
     wikiVendorBarterByName,
     wikiVendorNoVendorByName,
     wikiVendorAmbiguousByName,
@@ -3736,6 +3772,8 @@ async function loadDataCache() {
   materialIdSet = new Set((data.materialIds || []).map(Number));
   invalidItemIds = new Set((data.invalidItemIds || []).map(Number));
   researchSalvageableItemIds = new Set((data.researchSalvageableItemIds || []).map(Number));
+  ownedRecipesByAccount = data.ownedRecipesByAccount || {};
+  updateRecipeUnlockSourceOptions();
   if (data.wikiVendorCacheSchemaVersion === WIKI_VENDOR_CACHE_SCHEMA_VERSION) {
     wikiVendorBarterByName = data.wikiVendorBarterByName || {};
     wikiVendorNoVendorByName = data.wikiVendorNoVendorByName || {};
@@ -3844,6 +3882,7 @@ async function loadAccounts() {
   } else {
     renderAccounts();
   }
+  updateRecipeUnlockSourceOptions();
   setStatus(`Loaded ${accounts.length} saved API key row(s).`);
 }
 
@@ -4004,6 +4043,113 @@ async function loadOwnedMaterials() {
   await fetchItemDetails([...ownedMaterials.keys()]);
   await saveDataCache();
   setStatus(`Loaded owned materials: ${ownedMaterials.size} unique material IDs across ${active.length} account(s).`);
+}
+
+
+function recipeUnlockAccountLabel(accountId) {
+  const acc = accounts.find(a => a.id === accountId);
+  return (acc && acc.label) || ownedRecipesByAccount?.[accountId]?.label || accountId || 'Account';
+}
+
+function updateRecipeUnlockSourceOptions() {
+  const select = document.getElementById('recipeUnlockSourceSelect');
+  if (!select) return;
+
+  const previous = selectedRecipeUnlockSource || select.value || 'disabled';
+  const entries = Object.entries(ownedRecipesByAccount || {})
+    .filter(([, data]) => Array.isArray(data?.recipeIds) && data.recipeIds.length)
+    .sort((a, b) => String(a[1].label || a[0]).localeCompare(String(b[1].label || b[0])));
+
+  select.innerHTML = '<option value="disabled">Disabled</option>' + entries.map(([id, data]) => {
+    const label = data.label || recipeUnlockAccountLabel(id);
+    const count = Number(data.count || data.recipeIds.length || 0).toLocaleString();
+    return `<option value="${escapeHtml(id)}">${escapeHtml(label)} (${count})</option>`;
+  }).join('');
+
+  if (previous !== 'disabled' && ownedRecipesByAccount?.[previous]) {
+    select.value = previous;
+    selectedRecipeUnlockSource = previous;
+  } else {
+    select.value = 'disabled';
+    selectedRecipeUnlockSource = 'disabled';
+  }
+}
+
+function getSelectedRecipeUnlockData() {
+  if (!selectedRecipeUnlockSource || selectedRecipeUnlockSource === 'disabled') return null;
+  return ownedRecipesByAccount?.[selectedRecipeUnlockSource] || null;
+}
+
+function getSelectedRecipeUnlockSet() {
+  const data = getSelectedRecipeUnlockData();
+  if (!data || !Array.isArray(data.recipeIds)) return null;
+  if (!data._recipeSet) data._recipeSet = new Set(data.recipeIds.map(Number));
+  return data._recipeSet;
+}
+
+function isRecipeUnlockedForSelectedSource(recipeId) {
+  const recipeSet = getSelectedRecipeUnlockSet();
+  if (!recipeSet) return true;
+  return recipeSet.has(Number(recipeId));
+}
+
+function renderRecipeIdCell(recipeId) {
+  const idText = escapeHtml(String(recipeId ?? ''));
+  if (!selectedRecipeUnlockSource || selectedRecipeUnlockSource === 'disabled') return idText;
+
+  const data = getSelectedRecipeUnlockData();
+  if (!data) {
+    return `${idText} <span class="recipe-lock-indicator craft-replacement-source">?<span class="craft-replacement-tooltip"><span class="craft-replacement-tooltip-line">Recipe unlocks not loaded for selected account.</span></span></span>`;
+  }
+
+  if (isRecipeUnlockedForSelectedSource(recipeId)) return idText;
+
+  const label = escapeHtml(data.label || recipeUnlockAccountLabel(selectedRecipeUnlockSource));
+  return `${idText} <span class="recipe-lock-indicator craft-replacement-source">⚠<span class="craft-replacement-tooltip"><span class="craft-replacement-tooltip-line">Recipe Not Unlocked</span><span class="craft-replacement-tooltip-line">Not unlocked on ${label}.</span></span></span>`;
+}
+
+function setRecipeUnlockSource(value) {
+  selectedRecipeUnlockSource = value || 'disabled';
+  const select = document.getElementById('recipeUnlockSourceSelect');
+  if (select && select.value !== selectedRecipeUnlockSource) select.value = selectedRecipeUnlockSource;
+  resetRenderLimitAndRender();
+}
+
+async function loadOwnedRecipes() {
+  const active = accounts.filter(a => a.enabled && a.key.trim());
+  if (!active.length) {
+    setStatus('Add at least one enabled API key first.');
+    return;
+  }
+
+  setStatus(`Loading unlocked recipes for ${active.length} account(s)...`);
+
+  let loaded = 0;
+  await promisePool(active, ACCOUNT_CONCURRENCY, async (acc, accountIndex) => {
+    const label = acc.label || `Account ${accountIndex + 1}`;
+    const token = encodeURIComponent(acc.key.trim());
+    log(`Loading unlocked recipes: ${label}`);
+
+    try {
+      const ids = await fetchJson(`${API}/account/recipes?access_token=${token}`);
+      const recipeIds = [...new Set((ids || []).map(Number).filter(n => Number.isFinite(n) && n > 0))].sort((a, b) => a - b);
+      ownedRecipesByAccount[acc.id] = {
+        label,
+        count: recipeIds.length,
+        recipeIds,
+        loadedAt: new Date().toISOString()
+      };
+      loaded++;
+      log(`Unlocked recipes loaded for ${label}: ${recipeIds.length.toLocaleString()} recipe ID(s).`);
+    } catch (e) {
+      console.warn('Owned recipes failed', label, e);
+      log(`Owned recipes failed for ${label}: ${e.message}`);
+    }
+  });
+
+  updateRecipeUnlockSourceOptions();
+  await saveDataCache();
+  setStatus(`Loaded owned recipes for ${loaded.toLocaleString()} / ${active.length.toLocaleString()} enabled account(s).`);
 }
 
 async function loadMaterialIdSet() {
@@ -8793,6 +8939,7 @@ function getRenderControlsSignature() {
     tableMode,
     profitViewMode,
     researchMaterialValueMode,
+    selectedRecipeUnlockSource,
     q,
     minProfitGold,
     minProfitSilver,
@@ -9096,7 +9243,7 @@ function render() {
         <td>${renderOutputItemLink(o.outputItemId, o)}</td>
         <td><span class="rarity-label rarity-${escapeHtml(o.rarity || itemRarity(o.outputItemId))}">${escapeHtml(o.rarity || itemRarity(o.outputItemId))}</span></td>
         <td>${renderDisciplines(o.disciplines)}</td>
-        <td class="num">${o.recipeId}</td>
+        <td class="num">${renderRecipeIdCell(o.recipeId)}</td>
         <td class="num"><span class="coverage-pill">${Math.floor(o.coveragePct)}%</span></td>
         <td class="num note-value">${o.noteItem == null ? '<span class="muted">unknown</span>' : formatNoteValue(o.noteItem)}</td>
         <td class="num">${o.valuePerNote == null ? '<span class="muted">unknown</span>' : formatCoin(o.valuePerNote)}</td>
@@ -9131,7 +9278,7 @@ function render() {
         <td>${renderOutputItemLink(o.outputItemId, o)}</td>
         <td><span class="rarity-label rarity-${escapeHtml(o.rarity || itemRarity(o.outputItemId))}">${escapeHtml(o.rarity || itemRarity(o.outputItemId))}</span></td>
         <td>${renderDisciplines(o.disciplines)}</td>
-        <td class="num">${o.recipeId}</td>
+        <td class="num">${renderRecipeIdCell(o.recipeId)}</td>
         <td class="num">${o.canCraftQty}</td>
         <td class="num good">${o.recommendedCraftQty}</td>
         <td class="num note-value">${o.noteItem == null ? '<span class="muted">unknown</span>' : formatNoteValue(o.noteItem)}</td>
@@ -9222,9 +9369,12 @@ setupTableSorting();
 ` +
       `• Invalid item IDs skipped: ${(cacheInfo.invalidItemIdCount || 0).toLocaleString()} IDs
 ` +
+      `• Owned recipe unlock accounts: ${(cacheInfo.ownedRecipeAccountCount || 0).toLocaleString()}
+` +
       `• Saved at: ${cacheInfo.savedAt || 'unknown time'}`
     );
   }
+  updateRecipeUnlockSourceOptions();
   const repoDataStatus = await loadExternalRepoDatasets();
   log(
     `Repo datasets: ` +
