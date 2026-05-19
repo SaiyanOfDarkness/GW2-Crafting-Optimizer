@@ -4121,6 +4121,14 @@ function isRecipeAutoLearned(recipeId) {
   return flags.includes('AutoLearned') || flags.includes('AutoLearnedFromItem');
 }
 
+function isRecipeExplicitUnlockRequired(recipeId) {
+  const flags = getRecipeFlagsForRecipeId(recipeId);
+  // /v2/account/recipes is reliable for recipe-sheet/item unlocks, but not for
+  // normal discoverable/default crafting recipes. Only warn when the recipe API
+  // says this recipe is learned from an item; otherwise treat it as potentially craftable.
+  return flags.includes('LearnedFromItem');
+}
+
 let recipeUnlockDebugMissCount = 0;
 function logRecipeUnlockDebug(recipeId, unlocked, reason) {
   if (recipeUnlockDebugMissCount >= 40) return;
@@ -4141,9 +4149,9 @@ function isRecipeUnlockedForSelectedSource(recipeId) {
   if (!n) return true;
 
   // API /v2/account/recipes usually contains recipes learned/unlocked by the account.
-  // Recipes that are auto-learned by the discipline may not appear in that account list,
-  // so treat explicit AutoLearned API recipes as unlocked when the flag is available.
-  if (isRecipeAutoLearned(n)) return true;
+  // Recipes that are auto-learned, discoverable, or default discipline recipes may not
+  // appear in that account list, so only enforce this check for explicit recipe-item unlocks.
+  if (isRecipeAutoLearned(n) || !isRecipeExplicitUnlockRequired(n)) return true;
 
   const recipeSet = getSelectedRecipeUnlockSet();
   if (!recipeSet) return true;
@@ -4166,6 +4174,7 @@ function recipeUnlockDebug(recipeId) {
     recipeCacheFound: !!recipe,
     recipeFlags: Array.isArray(recipe?.flags) ? recipe.flags : [],
     autoLearned: isRecipeAutoLearned(n),
+    explicitUnlockRequired: isRecipeExplicitUnlockRequired(n),
     finalUnlockedResult: isRecipeUnlockedForSelectedSource(n)
   };
   console.table(info);
