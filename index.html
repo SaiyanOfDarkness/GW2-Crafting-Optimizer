@@ -1743,6 +1743,15 @@ let currencyInfo = new Map();
 let exactItemNameToIdCache = null;
 const vendorBarterSourceCache = new Map();
 const unlimitedCraftabilityIngredientCache = new Map();
+
+// Partial Research hot-path caches.
+// These are intentionally in-memory and are invalidated when owned/material/value state changes.
+const partialCheapestOwnedPlanCache = new Map();
+const partialExpandedRequirementsCache = new Map();
+const partialCraftReplacementCostCache = new Map();
+const partialVendorOpportunityUnitValueCache = new Map();
+const partialResearchMaterialUnitValueCache = new Map();
+const vendorBarterCostCache = new Map();
 let recipeCache = [];
 let prices = new Map();
 let listings = new Map();
@@ -5680,8 +5689,14 @@ function renderBulkAwareVendorIngredientCostHtml(baseCost, requiredCount = 1, un
 }
 
 function getVendorBarterCost(itemId, count = 1) {
+  const __cacheKey_getVendorBarterCost = partialCacheArgsKey(arguments);
+  if (vendorBarterCostCache.has(__cacheKey_getVendorBarterCost)) {
+    const __cachedValue = vendorBarterCostCache.get(__cacheKey_getVendorBarterCost);
+    return __cachedValue;
+  }
+
   const barter = getVendorBarterSourceForItem(itemId);
-  if (!barter) return null;
+  if (!barter) { const __storedValue = (null); vendorBarterCostCache.set(__cacheKey_getVendorBarterCost, __storedValue); return __storedValue; }
 
   let total = 0;
   let missingPrice = false;
@@ -5772,19 +5787,25 @@ function updateResearchMaterialValuationStatusLine(label) {
 }
 
 function getResearchMaterialUnitValue(itemId) {
+  const __cacheKey_getResearchMaterialUnitValue = partialCacheArgsKey(arguments);
+  if (partialResearchMaterialUnitValueCache.has(__cacheKey_getResearchMaterialUnitValue)) {
+    const __cachedValue = partialResearchMaterialUnitValueCache.get(__cacheKey_getResearchMaterialUnitValue);
+    return __cachedValue;
+  }
+
   itemId = Number(itemId);
 
   const vendorSource = getVendorBulkSourceForIngredient(itemId);
   const vendorCoinEach = getVendorSourceUnitCoinValue(vendorSource);
   if (vendorCoinEach != null) {
-    return getCheapestVendorOrTpUnitValue(itemId, vendorSource, researchMaterialValueMode === 'buy' ? "TP Buy" : "TP Sell");
+    { const __storedValue = (getCheapestVendorOrTpUnitValue(itemId, vendorSource, researchMaterialValueMode === 'buy' ? "TP Buy" : "TP Sell")); partialResearchMaterialUnitValueCache.set(__cacheKey_getResearchMaterialUnitValue, __storedValue); return __storedValue; }
   }
-  if (vendorSource && vendorSource.currency === "karma") return { value: 0, source: "Vendor karma", vendorSource };
+  if (vendorSource && vendorSource.currency === "karma") { const __storedValue = ({ value: 0, source: "Vendor karma", vendorSource }); partialResearchMaterialUnitValueCache.set(__cacheKey_getResearchMaterialUnitValue, __storedValue); return __storedValue; }
 
   const wikiVendorCost = getVendorBarterCost(itemId, 1);
   if (wikiVendorCost && !wikiVendorCost.missingPrice) {
     const tpCompared = getCheapestVendorBarterOrTpUnitValue(itemId, wikiVendorCost, researchMaterialValueMode === 'buy' ? "TP Buy" : "TP Sell");
-    return tpCompared;
+    { const __storedValue = (tpCompared); partialResearchMaterialUnitValueCache.set(__cacheKey_getResearchMaterialUnitValue, __storedValue); return __storedValue; }
   }
 
   if (isAccountBoundOrNoTpIngredient(itemId)) {
@@ -5802,7 +5823,7 @@ function getResearchMaterialUnitValue(itemId) {
       };
     }
 
-    return { value: 0, source: "Account Bound" };
+    { const __storedValue = ({ value: 0, source: "Account Bound" }); partialResearchMaterialUnitValueCache.set(__cacheKey_getResearchMaterialUnitValue, __storedValue); return __storedValue; }
   }
 
   const tpInfo = getSelectedTpUnitValueInfoForMode(itemId);
@@ -5857,18 +5878,24 @@ function getTpOpportunityUnitForProfitMode(itemId, mode = null) {
 }
 
 function getVendorOpportunityUnitValue(itemId, mode = null) {
+  const __cacheKey_getVendorOpportunityUnitValue = partialCacheArgsKey(arguments);
+  if (partialVendorOpportunityUnitValueCache.has(__cacheKey_getVendorOpportunityUnitValue)) {
+    const __cachedValue = partialVendorOpportunityUnitValueCache.get(__cacheKey_getVendorOpportunityUnitValue);
+    return __cachedValue;
+  }
+
   const vendorSource = getVendorBulkSourceForIngredient(itemId);
   const vendorCoinEach = getVendorSourceUnitCoinValue(vendorSource);
   if (vendorCoinEach != null) {
     const materialUnit = getMaterialValueUnitForIngredient(itemId, mode || 'listing');
-    return materialUnit.value == null ? vendorCoinEach : Number(materialUnit.value);
+    { const __storedValue = (materialUnit.value == null ? vendorCoinEach : Number(materialUnit.value)); partialVendorOpportunityUnitValueCache.set(__cacheKey_getVendorOpportunityUnitValue, __storedValue); return __storedValue; }
   }
-  if (vendorSource && vendorSource.currency === "karma") return 0;
+  if (vendorSource && vendorSource.currency === "karma") { const __storedValue = (0); partialVendorOpportunityUnitValueCache.set(__cacheKey_getVendorOpportunityUnitValue, __storedValue); return __storedValue; }
 
   const barterCost = getVendorBarterCost(itemId, 1);
-  if (barterCost && !barterCost.missingPrice) return Number(barterCost.total || 0);
+  if (barterCost && !barterCost.missingPrice) { const __storedValue = (Number(barterCost.total || 0)); partialVendorOpportunityUnitValueCache.set(__cacheKey_getVendorOpportunityUnitValue, __storedValue); return __storedValue; }
 
-  return null;
+  { const __storedValue = (null); partialVendorOpportunityUnitValueCache.set(__cacheKey_getVendorOpportunityUnitValue, __storedValue); return __storedValue; }
 }
 
 function getCraftReplacementCostForMode(itemId, count = 1, mode = null, recipeIndex = null, path = new Set()) {
@@ -6299,6 +6326,12 @@ function buildCheapestOwnedPlan(itemId, neededCount, recipeIndex, path = new Set
 }
 
 function expandRequirementsUsingOwnedCrafting(flat, recipeIndex) {
+  const __cacheKey_expandRequirementsUsingOwnedCrafting = partialCacheArgsKey(arguments);
+  if (partialExpandedRequirementsCache.has(__cacheKey_expandRequirementsUsingOwnedCrafting)) {
+    const __cachedValue = partialExpandedRequirementsCache.get(__cacheKey_expandRequirementsUsingOwnedCrafting);
+    return clonePartialCacheValue(__cachedValue);
+  }
+
   const expanded = new Map();
   const steps = [];
 
@@ -8272,6 +8305,7 @@ async function togglePartialResearchRecipes() {
 }
 
 async function buildPartialResearchRecipes() {
+  invalidatePartialResearchHotCaches();
   smartCanMakeScanCache = new Map();
   await loadCurrencyInfo();
   if (!ownedMaterials.size || !recipeCache.length) {
@@ -8435,6 +8469,7 @@ async function buildPartialResearchRecipes() {
     `No owned materials skipped: ${noMaterialsAtAll.toLocaleString()}`
   );
 
+  log(`[PartialCache] plan=${partialCheapestOwnedPlanCache.size}, expanded=${partialExpandedRequirementsCache.size}, replacement=${partialCraftReplacementCostCache.size}, vendorUnit=${partialVendorOpportunityUnitValueCache.size}, researchUnit=${partialResearchMaterialUnitValueCache.size}, vendorCost=${vendorBarterCostCache.size}.`);
   log(`[Done] Partial Research Recipes built: ${partialResearchOpportunities.length.toLocaleString()} partial rows matched, ${renderedNow.toLocaleString()} rendered.`);
 }
 
@@ -8462,6 +8497,7 @@ async function ensureOwnedBulkFoodVendorSourcesLoaded(contextLabel = 'Research')
 
 
 async function buildResearchNoteMode() {
+  invalidatePartialResearchHotCaches();
   smartCanMakeScanCache = new Map();
   if (!ownedMaterials.size || !recipeCache.length) {
     setStatus('Load owned materials and recipe cache first.');
@@ -8978,7 +9014,46 @@ function invalidateHotLookupCaches() {
   exactItemNameToIdCache = null;
   vendorBarterSourceCache.clear();
   unlimitedCraftabilityIngredientCache.clear();
+
+  try { invalidatePartialResearchHotCaches(); } catch (_) {}}
+
+function invalidatePartialResearchHotCaches() {
+  try { partialCheapestOwnedPlanCache.clear(); } catch (_) {}
+  try { partialExpandedRequirementsCache.clear(); } catch (_) {}
+  try { partialCraftReplacementCostCache.clear(); } catch (_) {}
+  try { partialVendorOpportunityUnitValueCache.clear(); } catch (_) {}
+  try { partialResearchMaterialUnitValueCache.clear(); } catch (_) {}
+  try { vendorBarterCostCache.clear(); } catch (_) {}
 }
+
+function partialCachePrimitiveKey(value) {
+  if (value == null) return '';
+  if (typeof value === 'string' || typeof value === 'number' || typeof value === 'boolean') return String(value);
+  if (Array.isArray(value)) return value.map(partialCachePrimitiveKey).join(',');
+  if (typeof value === 'object') {
+    const id = value.id ?? value.itemId ?? value.output_item_id ?? value.outputItemId ?? value.name ?? '';
+    const qty = value.count ?? value.quantity ?? value.qty ?? '';
+    return String(id) + (qty !== '' ? 'x' + String(qty) : '');
+  }
+  return String(value);
+}
+
+function partialCacheArgsKey(args) {
+  return Array.from(args).map(partialCachePrimitiveKey).join('|');
+}
+
+function clonePartialCacheValue(value) {
+  if (value == null) return value;
+  if (value instanceof Map) return new Map(value);
+  if (value instanceof Set) return new Set(value);
+  if (Array.isArray(value)) return value.map(clonePartialCacheValue);
+  if (typeof value === 'object') {
+    try { return structuredClone(value); } catch (_) {}
+    try { return JSON.parse(JSON.stringify(value)); } catch (_) {}
+  }
+  return value;
+}
+
 
 function ensureExactItemNameToIdCache() {
   if (exactItemNameToIdCache) return exactItemNameToIdCache;
