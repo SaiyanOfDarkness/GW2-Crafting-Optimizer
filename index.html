@@ -1955,6 +1955,113 @@ let nestedProfitOpportunities = [];
 let profitViewMode = 'normal';
 let researchNoteOpportunities = [];
 let partialResearchOpportunities = [];
+
+// Research Recipe Blocklist: recipes that technically qualify for Research Salvage,
+// but should never be suggested/rendered in Research lists.
+// Built-ins are permanent safety blocks for everyone using the tool.
+// 10117 = Finite Result / legendary-backpiece component trap.
+const RESEARCH_RECIPE_BLOCKLIST_STORAGE_KEY = 'gw2ResearchRecipeBlocklistV1';
+const BUILTIN_RESEARCH_RECIPE_BLOCKLIST = new Set([10117]);
+let userResearchRecipeBlocklist = loadUserResearchRecipeBlocklist();
+
+function normalizeResearchRecipeId(recipeOrId) {
+  const id = (recipeOrId && typeof recipeOrId === 'object')
+    ? Number(recipeOrId.recipeId || recipeOrId.id || recipeOrId.recipe_id || 0)
+    : Number(recipeOrId || 0);
+  return Number.isFinite(id) && id > 0 ? Math.floor(id) : 0;
+}
+
+function loadUserResearchRecipeBlocklist() {
+  const ids = new Set();
+  try {
+    const raw = localStorage.getItem(RESEARCH_RECIPE_BLOCKLIST_STORAGE_KEY);
+    if (raw) {
+      const parsed = JSON.parse(raw);
+      const arr = Array.isArray(parsed) ? parsed : Array.isArray(parsed?.recipeIds) ? parsed.recipeIds : [];
+      for (const id of arr) {
+        const n = normalizeResearchRecipeId(id);
+        if (n && !BUILTIN_RESEARCH_RECIPE_BLOCKLIST.has(n)) ids.add(n);
+      }
+    }
+  } catch (err) {
+    console.warn('[ResearchBlocklist] Failed to load user blocklist:', err);
+  }
+  return ids;
+}
+
+function saveUserResearchRecipeBlocklist() {
+  try {
+    const ids = [...userResearchRecipeBlocklist]
+      .filter(id => !BUILTIN_RESEARCH_RECIPE_BLOCKLIST.has(id))
+      .sort((a, b) => a - b);
+    localStorage.setItem(RESEARCH_RECIPE_BLOCKLIST_STORAGE_KEY, JSON.stringify({ recipeIds: ids }));
+  } catch (err) {
+    console.warn('[ResearchBlocklist] Failed to save user blocklist:', err);
+  }
+}
+
+function getAllResearchRecipeBlocklistIds() {
+  return [...new Set([
+    ...BUILTIN_RESEARCH_RECIPE_BLOCKLIST,
+    ...userResearchRecipeBlocklist,
+  ])].sort((a, b) => a - b);
+}
+
+function isResearchRecipeBlocked(recipeOrId) {
+  const id = normalizeResearchRecipeId(recipeOrId);
+  return !!id && (BUILTIN_RESEARCH_RECIPE_BLOCKLIST.has(id) || userResearchRecipeBlocklist.has(id));
+}
+
+function blockResearchRecipe(recipeOrId) {
+  const id = normalizeResearchRecipeId(recipeOrId);
+  if (!id) return false;
+  if (BUILTIN_RESEARCH_RECIPE_BLOCKLIST.has(id)) {
+    log(`[ResearchBlocklist] Recipe ${id} is already built-in blocked.`);
+    return true;
+  }
+  userResearchRecipeBlocklist.add(id);
+  saveUserResearchRecipeBlocklist();
+  log(`[ResearchBlocklist] User-blocked recipe ${id}. Rebuild Research list to apply.`);
+  return true;
+}
+
+function unblockResearchRecipe(recipeOrId) {
+  const id = normalizeResearchRecipeId(recipeOrId);
+  if (!id) return false;
+  if (BUILTIN_RESEARCH_RECIPE_BLOCKLIST.has(id)) {
+    log(`[ResearchBlocklist] Recipe ${id} is built-in blocked and cannot be unblocked by user storage.`);
+    return false;
+  }
+  userResearchRecipeBlocklist.delete(id);
+  saveUserResearchRecipeBlocklist();
+  log(`[ResearchBlocklist] User-unblocked recipe ${id}. Rebuild Research list to apply.`);
+  return true;
+}
+
+function clearResearchRecipeBlocklist() {
+  userResearchRecipeBlocklist = new Set();
+  saveUserResearchRecipeBlocklist();
+  log(`[ResearchBlocklist] Cleared user blocks. Built-in blocks remain: ${[...BUILTIN_RESEARCH_RECIPE_BLOCKLIST].sort((a, b) => a - b).join(', ') || 'none'}.`);
+}
+
+function debugResearchRecipeBlocklist() {
+  const ids = getAllResearchRecipeBlocklistIds();
+  const rows = ids.map(id => {
+    const recipe = typeof findRecipeByRecipeId === 'function' ? findRecipeByRecipeId(id) : null;
+    const outputId = Number(recipe?.outputItemId || 0);
+    const source = BUILTIN_RESEARCH_RECIPE_BLOCKLIST.has(id) ? 'built-in' : 'user';
+    return { recipeId: id, source, outputItemId: outputId || null, outputName: outputId ? itemName(outputId) : '(unknown)' };
+  });
+  console.table(rows);
+  log(`[ResearchBlocklist] ${ids.length.toLocaleString()} blocked recipe(s): ${ids.join(', ') || 'none'} | built-in=${BUILTIN_RESEARCH_RECIPE_BLOCKLIST.size.toLocaleString()} user=${userResearchRecipeBlocklist.size.toLocaleString()}`);
+  return rows;
+}
+
+window.debugResearchRecipeBlocklist = debugResearchRecipeBlocklist;
+window.blockResearchRecipe = blockResearchRecipe;
+window.unblockResearchRecipe = unblockResearchRecipe;
+window.clearResearchRecipeBlocklist = clearResearchRecipeBlocklist;
+window.isResearchRecipeBlocked = isResearchRecipeBlocked;
 let tableMode = 'profit';
 let lastResearchTableMode = 'researchNotes';
 let researchMaterialValueMode = 'buy';
@@ -9624,6 +9731,11 @@ async function buildPartialResearchRecipes() {
     }
   considered++;
 
+    if (isResearchRecipeBlocked(recipe)) {
+      partialDebugLog(`[Research Partial] skipped blocked recipe ${normalizeResearchRecipeId(recipe)}.`);
+      continue;
+    }
+
     const outputId = Number(recipe.outputItemId);
     const noteItem = getResearchNoteYield(outputId);
     if (!isResearchNoteCandidateOutput(outputId, noteItem)) continue;
@@ -9660,6 +9772,15 @@ async function buildPartialResearchRecipes() {
     const evald = evaluateNestedRequirements(expandedFlat, recipe.outputCount || 1, recipe, recipeIndex);
     const coverage = analyzeRequirementCoverage(expandedFlat.requirements);
     coverage.missing = coverage.missing.map(m => ({ ...m, acquisition: compareMissingMaterialAcquisition(m.itemId, m.missing, recipeIndex) }));
+
+    // Partial Research must mean "currently missing something" for the requested craft quantity.
+    // Some nested/vendor-expanded paths report a weak smartCanCraftQty, but coverage still reaches 100%.
+    // Do not let fully-covered rows reach the partial renderer.
+    if (!coverage.missing.length || Number(coverage.coveragePct || 0) >= 99.999) {
+      alreadyCraftable++;
+      continue;
+    }
+
     if (coverage.have <= 0) {
       noMaterialsAtAll++;
       continue;
@@ -11364,6 +11485,9 @@ function render() {
     let filtered = partialResearchOpportunities.filter(o => {
       if (q && !(`${o.outputName} ${o.recipeId} ${o.outputItemId}`.toLowerCase().includes(q))) return false;
       if (o.coveragePct <= 0) return false;
+      if (Number(o.coveragePct || 0) >= 99.999) return false;
+      if (Array.isArray(o.missing) && o.missing.length === 0) return false;
+      if (isResearchRecipeBlocked(o.recipeId)) return false;
       return true;
     });
 
