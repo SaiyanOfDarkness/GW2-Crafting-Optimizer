@@ -1900,6 +1900,7 @@ const DB_VERSION = 1;
 const STORE_NAME = 'kv';
 const ACCOUNTS_KEY = 'accounts';
 const DATA_KEY = 'dataCacheV1_vendorHistoricalSubobjectFix';
+const WIKI_VENDOR_CACHE_KEY = DATA_KEY + '_wikiVendorCacheV1';
 const BATCH_SIZE = 200;
 const ACCOUNT_CONCURRENCY = 3;
 const CHARACTER_CONCURRENCY = 6;
@@ -4007,12 +4008,36 @@ async function saveDataCache() {
     invalidItemIds: [...invalidItemIds],
     researchSalvageableItemIds: [...researchSalvageableItemIds],
     ownedRecipesByAccount: serializeOwnedRecipesByAccount(),
-    wikiVendorBarterByName,
-    wikiVendorNoVendorByName,
-    wikiVendorAmbiguousByName,
+    // Wiki vendor cache is saved separately so vendor lookup finalization does not
+    // rewrite the entire large app cache.
     wikiVendorCacheSchemaVersion: WIKI_VENDOR_CACHE_SCHEMA_VERSION,
     savedAt: new Date().toISOString()
   });
+}
+
+async function saveWikiVendorCacheOnly(reason = 'wikiVendor') {
+  const t0 = performance.now();
+  await idbSet(WIKI_VENDOR_CACHE_KEY, {
+    wikiVendorBarterByName,
+    wikiVendorNoVendorByName,
+    wikiVendorAmbiguousByName,
+    vendorLookupDeadEndCache: Array.from(vendorLookupDeadEndCache || []),
+    wikiVendorCacheSchemaVersion: WIKI_VENDOR_CACHE_SCHEMA_VERSION,
+    savedAt: new Date().toISOString()
+  });
+  const total = Math.round(performance.now() - t0);
+  if (window.DEBUG_SORT) sortDebugLog(`[SortDebug] saveWikiVendorCacheOnly reason=${reason} total=${total}ms barter=${Object.keys(wikiVendorBarterByName || {}).length.toLocaleString()} noVendor=${Object.keys(wikiVendorNoVendorByName || {}).length.toLocaleString()} ambiguous=${Object.keys(wikiVendorAmbiguousByName || {}).length.toLocaleString()} deadEnds=${(vendorLookupDeadEndCache && vendorLookupDeadEndCache.size || 0).toLocaleString()}`);
+}
+
+async function loadWikiVendorCacheOnly() {
+  const data = await idbGet(WIKI_VENDOR_CACHE_KEY);
+  if (!data || data.wikiVendorCacheSchemaVersion !== WIKI_VENDOR_CACHE_SCHEMA_VERSION) return false;
+  wikiVendorBarterByName = data.wikiVendorBarterByName || {};
+  wikiVendorNoVendorByName = data.wikiVendorNoVendorByName || {};
+  wikiVendorAmbiguousByName = data.wikiVendorAmbiguousByName || {};
+  vendorLookupDeadEndCache.clear();
+  for (const key of (data.vendorLookupDeadEndCache || [])) vendorLookupDeadEndCache.add(key);
+  return true;
 }
 
 async function loadDataCache() {
@@ -4029,16 +4054,20 @@ async function loadDataCache() {
   ownedRecipesByAccount = data.ownedRecipesByAccount || {};
   for (const key of Object.keys(ownedRecipesByAccount || {})) normalizeOwnedRecipeData(ownedRecipesByAccount[key]);
   updateRecipeUnlockSourceOptions();
-  if (data.wikiVendorCacheSchemaVersion === WIKI_VENDOR_CACHE_SCHEMA_VERSION) {
+  const loadedSeparateWikiVendorCache = await loadWikiVendorCacheOnly();
+  if (!loadedSeparateWikiVendorCache && data.wikiVendorCacheSchemaVersion === WIKI_VENDOR_CACHE_SCHEMA_VERSION) {
     wikiVendorBarterByName = data.wikiVendorBarterByName || {};
     wikiVendorNoVendorByName = data.wikiVendorNoVendorByName || {};
     wikiVendorAmbiguousByName = data.wikiVendorAmbiguousByName || {};
-  } else {
+    vendorLookupDeadEndCache.clear();
+    for (const key of (data.vendorLookupDeadEndCache || [])) vendorLookupDeadEndCache.add(key);
+  } else if (!loadedSeparateWikiVendorCache) {
     // Vendor_query parsing changed: clear only wiki-derived vendor caches so old
     // duplicate/historical/package-quantity mistakes do not keep rendering.
     wikiVendorBarterByName = {};
     wikiVendorNoVendorByName = {};
     wikiVendorAmbiguousByName = {};
+    vendorLookupDeadEndCache.clear();
   }
 
   return {
@@ -9199,8 +9228,9 @@ function filterVendorDeadEndNames(names) {
   return filtered;
 }
 
-function clearVendorDeadEndCache() {
+async function clearVendorDeadEndCache() {
   vendorLookupDeadEndCache.clear();
+  await saveWikiVendorCacheOnly('clearDeadEnds');
   log('[Debug] Cleared vendor dead-end cache.');
 }
 
@@ -9343,15 +9373,15 @@ async function loadWikiVendorBarterSourcesForMissingItems(missingItems) {
   const noVendorCount = Object.keys(wikiVendorNoVendorByName || {}).length;
   const ambiguousCount = Object.keys(wikiVendorAmbiguousByName || {}).length;
 
+  const vendorDeadEndsAdded = found ? 0 : rememberVendorDeadEndNames(uniqueNames);
   if (found) {
     invalidateProfitDisplayRowCache('wikiVendorSources');
-    await saveDataCache();
+    await saveWikiVendorCacheOnly('foundSources');
     log(`[Done] Wiki vendor/barter sources cached: ${found.toLocaleString()} item(s).`);
   } else {
-    await saveDataCache();
-    const vendorDeadEndsAdded = rememberVendorDeadEndNames(uniqueNames);
-  if (vendorDeadEndsAdded) log(`[VendorCache] Cached ${vendorDeadEndsAdded.toLocaleString()} dead-end vendor candidate(s).`);
-  log(`[Done] Wiki vendor/barter lookup found no new sources.`);
+    if (vendorDeadEndsAdded) log(`[VendorCache] Cached ${vendorDeadEndsAdded.toLocaleString()} dead-end vendor candidate(s).`);
+    await saveWikiVendorCacheOnly(vendorDeadEndsAdded ? 'deadEndsOnly' : 'noNewSources');
+    log(`[Done] Wiki vendor/barter lookup found no new sources.`);
   }
   if (noVendorCount || ambiguousCount) {
     log(`[Info] Vendor_query cache: ${noVendorCount.toLocaleString()} no-vendor item(s), ${ambiguousCount.toLocaleString()} ambiguous multi-cost item(s).`);
