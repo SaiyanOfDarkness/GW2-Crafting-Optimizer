@@ -7163,6 +7163,80 @@ function priceRequirementMap(reqMap) {
 }
 
 
+function getOwnedIntermediateReplacementUnitValue(itemId) {
+  itemId = Number(itemId);
+  if (!itemId) return null;
+
+  try {
+    const researchModes = tableMode === 'researchNotes' || tableMode === 'researchPartial';
+    if (researchModes && typeof getResearchMaterialUnitValue === 'function') {
+      const unit = getResearchMaterialUnitValue(itemId);
+      const value = unit && unit.value != null ? Number(unit.value) : null;
+      return Number.isFinite(value) ? value : null;
+    }
+  } catch (_) {}
+
+  try {
+    if (typeof getMaterialValueUnitForIngredient === 'function') {
+      const mode = typeof getProfitValuationMode === 'function' ? getProfitValuationMode() : null;
+      const unit = getMaterialValueUnitForIngredient(itemId, mode);
+      const value = unit && unit.value != null ? Number(unit.value) : null;
+      return Number.isFinite(value) ? value : null;
+    }
+  } catch (_) {}
+
+  try {
+    if (typeof getIngredientUnitOpportunityValue === 'function') {
+      const value = Number(getIngredientUnitOpportunityValue(itemId));
+      return Number.isFinite(value) ? value : null;
+    }
+  } catch (_) {}
+
+  return null;
+}
+
+function ownedIntermediateCraftIsEconomical(itemId, craftCost, craftedQty, sourceLabel = '') {
+  itemId = Number(itemId);
+  craftCost = Number(craftCost || 0);
+  craftedQty = Number(craftedQty || 0);
+  if (!itemId || craftedQty <= 0) return false;
+  if (!Number.isFinite(craftCost)) return false;
+
+  const replacementUnit = getOwnedIntermediateReplacementUnitValue(itemId);
+  if (replacementUnit == null || !Number.isFinite(replacementUnit)) return false;
+
+  const craftUnit = craftCost / craftedQty;
+  const allowed = craftUnit <= replacementUnit + 0.000001;
+
+  if (!allowed && typeof DEBUG_PROFIT_NESTED !== 'undefined' && DEBUG_PROFIT_NESTED) {
+    try {
+      const source = sourceLabel ? ` ${sourceLabel}` : '';
+      profitNestedDebugLogOnce(`[ProfitNested] rejected owned intermediate${source} ${itemName(itemId)}: craft ${formatCoinPrecise(craftUnit)} each > replacement ${formatCoinPrecise(replacementUnit)} each.`);
+    } catch (_) {}
+  }
+
+  return allowed;
+}
+
+function getImmediateRecipeOpportunityCost(recipe, batches = 1) {
+  if (!recipe || !Array.isArray(recipe.ingredients)) return { total: Infinity, missingPrice: true };
+  let total = 0;
+  let missingPrice = false;
+  for (const ing of recipe.ingredients || []) {
+    const ingId = Number(ing.itemId);
+    const count = Number(ing.count || 0) * Math.max(1, Number(batches || 1));
+    if (!ingId || count <= 0) continue;
+    const unit = getIngredientUnitOpportunityValue(ingId);
+    if (!Number.isFinite(unit)) {
+      missingPrice = true;
+      continue;
+    }
+    total += unit * count;
+  }
+  return { total, missingPrice };
+}
+
+
 
 
 
@@ -7397,14 +7471,15 @@ function buildCheapestOwnedPlan(itemId, neededCount, recipeIndex, path = new Set
   const craftedAvailableQty = Math.min(batchesNeeded, craftedAvailableBatches) * outCount;
   const craftedPrice = priceRequirementMap(craftedReq);
 
+  const craftIsEconomical = !craftedPrice.missingPrice && ownedIntermediateCraftIsEconomical(itemId, craftedPrice.total, craftedAvailableQty, 'plan');
   const craftOnlyPlan = {
     itemId,
     neededCount,
-    requirements: craftedReq,
-    canSatisfy: craftedCanSatisfy && craftedAvailableQty >= neededCount,
-    totalAvailable: craftedAvailableQty,
-    cost: craftedPrice.total,
-    steps: craftedSteps
+    requirements: craftIsEconomical ? craftedReq : new Map(),
+    canSatisfy: craftIsEconomical && craftedCanSatisfy && craftedAvailableQty >= neededCount,
+    totalAvailable: craftIsEconomical ? craftedAvailableQty : 0,
+    cost: craftIsEconomical ? craftedPrice.total : Infinity,
+    steps: craftIsEconomical ? craftedSteps : [`skip crafted ${itemName(itemId)} path; crafting cost exceeds replacement value`]
   };
 
   // For normal refinement families, preserve directly owned logs/ore/scraps/planks/ingots/etc.
@@ -7686,6 +7761,17 @@ function consumeOwnedOrCraftableForCanMake(itemId, neededCount, virtualInventory
 
   const outputCount = Math.max(1, Number(subRecipe.outputCount || 1));
   const batchesNeeded = Math.ceil(remaining / outputCount);
+
+  // Owned-intermediate Can Make should only count crafted-up intermediates when
+  // the consumed materials are not worth more than the intermediate itself.
+  // Example: Orichalcum Ore can count toward Orichalcum Ingots only if the ore
+  // opportunity value per crafted ingot is <= the ingot replacement value.
+  const immediateCost = getImmediateRecipeOpportunityCost(subRecipe, batchesNeeded);
+  const producedQty = batchesNeeded * outputCount;
+  if (immediateCost.missingPrice || !ownedIntermediateCraftIsEconomical(itemId, immediateCost.total, producedQty, 'can-make')) {
+    return false;
+  }
+
   const nextPath = new Set(path);
   nextPath.add(itemId);
 
