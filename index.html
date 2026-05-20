@@ -7898,10 +7898,18 @@ function getProfitDisplayIngredientsForMode(o, mode) {
 }
 
 
-function getProfitDisplayRow(o) {
+function getProfitDisplayRow(o, includeIngredients = true) {
   const mode = getProfitValuationMode();
   const out = Object.assign({}, o || {});
-  out.ingredients = getProfitDisplayIngredientsForMode(out, mode);
+
+  // Important: ingredient display decoration is the expensive part. It can walk
+  // vendor/barter sources, craft-replacement tooltips, and smart owned-material
+  // checks. Sorting/filtering only needs scalar columns, so only do this for the
+  // rows that will actually be rendered.
+  if (includeIngredients) {
+    out.ingredients = getProfitDisplayIngredientsForMode(out, mode);
+  }
+
   const outputCount = Math.max(1, Number(out.outputCount || 1));
   const price = prices.get(Number(out.outputItemId));
   const materialValue = getProfitMaterialValueForMode(out, mode);
@@ -7941,14 +7949,15 @@ function getProfitDisplayRow(o) {
   return out;
 }
 
-function getCachedProfitDisplayRow(o) {
-  if (!o || typeof o !== 'object') return getProfitDisplayRow(o);
+function getCachedProfitDisplayRow(o, includeIngredients = true) {
+  if (!o || typeof o !== 'object') return getProfitDisplayRow(o, includeIngredients);
   const mode = getProfitValuationMode();
+  const cacheKind = includeIngredients ? 'full' : 'scalar';
   const cached = profitDisplayRowCache.get(o);
-  if (cached && cached.version === profitDisplayRowCacheVersion && cached.mode === mode) return cached.row;
+  if (cached && cached.version === profitDisplayRowCacheVersion && cached.mode === mode && cached.kind === cacheKind) return cached.row;
 
-  const row = getProfitDisplayRow(o);
-  profitDisplayRowCache.set(o, { version: profitDisplayRowCacheVersion, mode, row });
+  const row = getProfitDisplayRow(o, includeIngredients);
+  profitDisplayRowCache.set(o, { version: profitDisplayRowCacheVersion, mode, kind: cacheKind, row });
   return row;
 }
 
@@ -11256,8 +11265,10 @@ function render() {
   ensureProfitHeaders();
 
   const __profitPrepStart = (window.DEBUG_SORT && performance && performance.now) ? performance.now() : 0;
-  let filtered = opportunities.map(getCachedProfitDisplayRow);
-  if (__profitPrepStart) sortDebugLog(`[SortDebug] profitDisplayMap rows=${opportunities.length.toLocaleString()} total=${Math.round(performance.now() - __profitPrepStart)}ms cacheVersion=${profitDisplayRowCacheVersion}`);
+  // Build cheap scalar rows for all opportunities. The heavy ingredient/vendor
+  // decoration is delayed until after filter/sort/visibleSlice.
+  let filtered = opportunities.map(o => getCachedProfitDisplayRow(o, false));
+  if (__profitPrepStart) sortDebugLog(`[SortDebug] profitScalarMap rows=${opportunities.length.toLocaleString()} total=${Math.round(performance.now() - __profitPrepStart)}ms cacheVersion=${profitDisplayRowCacheVersion}`);
 
   const __profitFilterStart = (window.DEBUG_SORT && performance && performance.now) ? performance.now() : 0;
   filtered = filtered.filter(o => {
@@ -11272,7 +11283,10 @@ function render() {
   sortRowsByKey(filtered, row => getProfitSortValue(row, sortState.key), sortState.dir);
 
   const totalRows = filtered.length;
-  const visibleRows = visibleSlice(filtered);
+  const visibleScalarRows = visibleSlice(filtered);
+  const __profitVisiblePrepStart = (window.DEBUG_SORT && performance && performance.now) ? performance.now() : 0;
+  const visibleRows = visibleScalarRows.map(o => getCachedProfitDisplayRow(o, true));
+  if (__profitVisiblePrepStart) sortDebugLog(`[SortDebug] profitVisibleDisplayMap rows=${visibleRows.length.toLocaleString()} total=${Math.round(performance.now() - __profitVisiblePrepStart)}ms cacheVersion=${profitDisplayRowCacheVersion}`);
   updateLoadMore(totalRows, visibleRows.length);
 
   const rowHtml = o => `
