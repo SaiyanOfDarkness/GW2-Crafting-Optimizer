@@ -5681,7 +5681,7 @@ function getVendorBarterSourceForItem(itemId) {
   // to TP price or Acquisition Info.
   if (isLikelyIndirectContainerCostPackage(entries)) return (__vendorCacheKey ? (vendorBarterSourceCache.set(__vendorCacheKey, (null)), (null)) : (null));
 
-  return entries.map(e => {
+  const resolvedEntries = entries.map(e => {
     const patched = { ...e };
 
     if (/^Ambrite Fossilized /i.test(String(name || '')) && String(patched.name || '').toLowerCase() === 'unidentified fossilized insect') {
@@ -5696,6 +5696,13 @@ function getVendorBarterSourceForItem(itemId) {
       count: Number(patched.count || 1)
     };
   });
+
+  // Important hot-path memoization: cache positive vendor/barter source results too.
+  // Earlier builds cached only null/dead-end results here, which meant Profit Build
+  // repeatedly re-normalized names and re-resolved ingredient item IDs for the same
+  // vendor ingredients thousands of times.
+  if (__vendorCacheKey) vendorBarterSourceCache.set(__vendorCacheKey, resolvedEntries);
+  return resolvedEntries;
 }
 
 
@@ -6214,13 +6221,18 @@ function getVendorBarterCost(itemId, count = 1) {
 
   const displayParts = dedupeBarterCostPartsForDisplay(parts);
 
-  return {
+  const result = {
     itemId: Number(itemId),
     count: Number(count || 1),
     total,
     missingPrice,
     parts: displayParts
   };
+
+  // Cache positive cost results as well as null results. This function is hit
+  // extremely hard from Profit Mode's vendor/opportunity valuation path.
+  vendorBarterCostCache.set(__cacheKey_getVendorBarterCost, result);
+  return result;
 }
 
 function formatVendorBarterSource(barterCost) {
@@ -10340,6 +10352,26 @@ function invalidatePartialResearchHotCaches() {
   try { partialResearchMaterialUnitValueCache.clear(); } catch (_) {}
   try { vendorBarterCostCache.clear(); } catch (_) {}
 }
+
+function debugVendorLookupCaches() {
+  const msg = `[VendorLookupCache] source=${vendorBarterSourceCache.size.toLocaleString()}, cost=${vendorBarterCostCache.size.toLocaleString()}, exactNameIndex=${itemIdByExactNameIndex ? itemIdByExactNameIndex.size.toLocaleString() : 'not-built'}, legacyExactName=${exactItemNameToIdCache ? exactItemNameToIdCache.size.toLocaleString() : 'not-built'}`;
+  log(msg);
+  return {
+    vendorBarterSourceCacheSize: vendorBarterSourceCache.size,
+    vendorBarterCostCacheSize: vendorBarterCostCache.size,
+    itemIdByExactNameIndexSize: itemIdByExactNameIndex ? itemIdByExactNameIndex.size : null,
+    exactItemNameToIdCacheSize: exactItemNameToIdCache ? exactItemNameToIdCache.size : null
+  };
+}
+
+function clearVendorLookupCaches() {
+  try { vendorBarterSourceCache.clear(); } catch (_) {}
+  try { vendorBarterCostCache.clear(); } catch (_) {}
+  log('[VendorLookupCache] Cleared vendor/barter source and cost memo caches.');
+}
+
+window.debugVendorLookupCaches = debugVendorLookupCaches;
+window.clearVendorLookupCaches = clearVendorLookupCaches;
 
 function partialCachePrimitiveKey(value) {
   if (value == null) return '';
