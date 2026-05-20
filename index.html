@@ -1943,6 +1943,9 @@ const partialCraftReplacementCostCache = new Map();
 const partialVendorOpportunityUnitValueCache = new Map();
 const partialResearchMaterialUnitValueCache = new Map();
 const vendorBarterCostCache = new Map();
+const CHEAPEST_OWNED_PLAN_CACHE_MAX = 75000;
+let cheapestOwnedPlanCacheHits = 0;
+let cheapestOwnedPlanCacheMisses = 0;
 let recipeCache = [];
 let prices = new Map();
 let listings = new Map();
@@ -7123,9 +7126,59 @@ function isBasicRefinementMaterialItem(itemId) {
   );
 }
 
+
+function cheapestOwnedPlanPathKey(path) {
+  if (!path || !path.size) return '';
+  try { return Array.from(path).map(Number).filter(Number.isFinite).sort((a, b) => a - b).join(','); } catch (_) { return ''; }
+}
+
+function cheapestOwnedPlanCacheKey(itemId, neededCount, path, depth) {
+  const qty = Math.ceil(Number(neededCount || 0) * 1000000) / 1000000;
+  return `${Number(itemId)}|${qty}|d${Number(depth || 0)}|p${cheapestOwnedPlanPathKey(path)}`;
+}
+
+function rememberCheapestOwnedPlanCacheValue(key, plan) {
+  if (!key) return plan;
+  if (partialCheapestOwnedPlanCache.size >= CHEAPEST_OWNED_PLAN_CACHE_MAX) {
+    // Cheap FIFO-ish trim: this keeps runaway recursive scans from bloating memory forever.
+    let removed = 0;
+    for (const k of partialCheapestOwnedPlanCache.keys()) {
+      partialCheapestOwnedPlanCache.delete(k);
+      if (++removed >= 5000) break;
+    }
+  }
+  partialCheapestOwnedPlanCache.set(key, clonePartialCacheValue(plan));
+  return plan;
+}
+
+function debugCheapestOwnedPlanCache() {
+  const total = cheapestOwnedPlanCacheHits + cheapestOwnedPlanCacheMisses;
+  const hitPct = total ? ((cheapestOwnedPlanCacheHits / total) * 100).toFixed(1) : '0.0';
+  const msg = `[OwnedPlanCache] size=${partialCheapestOwnedPlanCache.size.toLocaleString()} hits=${cheapestOwnedPlanCacheHits.toLocaleString()} misses=${cheapestOwnedPlanCacheMisses.toLocaleString()} hitRate=${hitPct}%`;
+  log(msg);
+  return { size: partialCheapestOwnedPlanCache.size, hits: cheapestOwnedPlanCacheHits, misses: cheapestOwnedPlanCacheMisses, hitRate: Number(hitPct) };
+}
+
+function clearCheapestOwnedPlanCache() {
+  partialCheapestOwnedPlanCache.clear();
+  cheapestOwnedPlanCacheHits = 0;
+  cheapestOwnedPlanCacheMisses = 0;
+  log('[OwnedPlanCache] cleared');
+}
+
+window.debugCheapestOwnedPlanCache = debugCheapestOwnedPlanCache;
+window.clearCheapestOwnedPlanCache = clearCheapestOwnedPlanCache;
+
 function buildCheapestOwnedPlan(itemId, neededCount, recipeIndex, path = new Set(), depth = 0) {
   itemId = Number(itemId);
   neededCount = Number(neededCount || 0);
+
+  const __cacheKey_buildCheapestOwnedPlan = cheapestOwnedPlanCacheKey(itemId, neededCount, path, depth);
+  if (partialCheapestOwnedPlanCache.has(__cacheKey_buildCheapestOwnedPlan)) {
+    cheapestOwnedPlanCacheHits++;
+    return clonePartialCacheValue(partialCheapestOwnedPlanCache.get(__cacheKey_buildCheapestOwnedPlan));
+  }
+  cheapestOwnedPlanCacheMisses++;
 
   const directOwned = ownedMaterials.get(itemId) || 0;
   const directUse = Math.min(directOwned, neededCount);
@@ -7146,12 +7199,12 @@ function buildCheapestOwnedPlan(itemId, neededCount, recipeIndex, path = new Set
     steps: directUse > 0 ? [`use ${directUse} owned ${itemName(itemId)}`] : []
   };
 
-  if (neededCount <= 0) return directOnlyPlan;
-  if (preserveDirectOwnedBasicMaterial && missingAfterDirect <= 0) return directOnlyPlan;
-  if (depth >= 8 || path.has(itemId)) return directOnlyPlan;
+  if (neededCount <= 0) return rememberCheapestOwnedPlanCacheValue(__cacheKey_buildCheapestOwnedPlan, directOnlyPlan);
+  if (preserveDirectOwnedBasicMaterial && missingAfterDirect <= 0) return rememberCheapestOwnedPlanCacheValue(__cacheKey_buildCheapestOwnedPlan, directOnlyPlan);
+  if (depth >= 8 || path.has(itemId)) return rememberCheapestOwnedPlanCacheValue(__cacheKey_buildCheapestOwnedPlan, directOnlyPlan);
 
   const recipe = getBestRecipeForOwnedExpansion(itemId, recipeIndex);
-  if (!recipe) return directOnlyPlan;
+  if (!recipe) return rememberCheapestOwnedPlanCacheValue(__cacheKey_buildCheapestOwnedPlan, directOnlyPlan);
 
   const outCount = recipeOutputCount(recipe);
   const batchesNeeded = Math.ceil(neededCount / outCount);
@@ -7212,7 +7265,7 @@ function buildCheapestOwnedPlan(itemId, neededCount, recipeIndex, path = new Set
 
     const preserveAvailable = directUse + craftUseQty;
     const preserveCost = priceRequirementMap(preserveReq).total;
-    return {
+    return rememberCheapestOwnedPlanCacheValue(__cacheKey_buildCheapestOwnedPlan, {
       itemId,
       neededCount,
       requirements: preserveReq,
@@ -7220,17 +7273,17 @@ function buildCheapestOwnedPlan(itemId, neededCount, recipeIndex, path = new Set
       totalAvailable: preserveAvailable,
       cost: preserveCost,
       steps: [`use ${directUse} owned ${itemName(itemId)}`, ...((craftOnlyPlan.steps || []).slice(0, 20))]
-    };
+    });
   }
 
   // If both direct and crafted can fully satisfy the request, pick the lower opportunity value.
   if (directOnlyPlan.canSatisfy && craftOnlyPlan.canSatisfy) {
-    if (preserveDirectOwnedBasicMaterial) return directOnlyPlan;
-    return craftOnlyPlan.cost < directOnlyPlan.cost ? craftOnlyPlan : directOnlyPlan;
+    if (preserveDirectOwnedBasicMaterial) return rememberCheapestOwnedPlanCacheValue(__cacheKey_buildCheapestOwnedPlan, directOnlyPlan);
+    return rememberCheapestOwnedPlanCacheValue(__cacheKey_buildCheapestOwnedPlan, craftOnlyPlan.cost < directOnlyPlan.cost ? craftOnlyPlan : directOnlyPlan);
   }
 
-  if (craftOnlyPlan.canSatisfy) return craftOnlyPlan;
-  if (directOnlyPlan.canSatisfy) return directOnlyPlan;
+  if (craftOnlyPlan.canSatisfy) return rememberCheapestOwnedPlanCacheValue(__cacheKey_buildCheapestOwnedPlan, craftOnlyPlan);
+  if (directOnlyPlan.canSatisfy) return rememberCheapestOwnedPlanCacheValue(__cacheKey_buildCheapestOwnedPlan, directOnlyPlan);
 
   // Mixed path: use the cheaper method as much as possible, then add the other.
   // This is intentionally conservative and only mixes when one path alone cannot satisfy.
@@ -7274,7 +7327,7 @@ function buildCheapestOwnedPlan(itemId, neededCount, recipeIndex, path = new Set
 
   const mixedCost = priceRequirementMap(mixedReq).total;
 
-  return {
+  return rememberCheapestOwnedPlanCacheValue(__cacheKey_buildCheapestOwnedPlan, {
     itemId,
     neededCount,
     requirements: mixedReq,
@@ -7282,7 +7335,7 @@ function buildCheapestOwnedPlan(itemId, neededCount, recipeIndex, path = new Set
     totalAvailable: mixedAvailable,
     cost: mixedCost,
     steps: mixedSteps
-  };
+  });
 }
 
 function expandRequirementsUsingOwnedCrafting(flat, recipeIndex) {
@@ -9682,7 +9735,7 @@ async function buildPartialResearchRecipes() {
     `No owned materials skipped: ${noMaterialsAtAll.toLocaleString()}`
   );
 
-  partialDebugLog(`[PartialCache] plan=${partialCheapestOwnedPlanCache.size}, expanded=${partialExpandedRequirementsCache.size}, replacement=${partialCraftReplacementCostCache.size}, vendorUnit=${partialVendorOpportunityUnitValueCache.size}, researchUnit=${partialResearchMaterialUnitValueCache.size}, vendorCost=${vendorBarterCostCache.size}.`);
+  partialDebugLog(`[PartialCache] plan=${partialCheapestOwnedPlanCache.size}, planHits=${cheapestOwnedPlanCacheHits}, planMisses=${cheapestOwnedPlanCacheMisses}, expanded=${partialExpandedRequirementsCache.size}, replacement=${partialCraftReplacementCostCache.size}, vendorUnit=${partialVendorOpportunityUnitValueCache.size}, researchUnit=${partialResearchMaterialUnitValueCache.size}, vendorCost=${vendorBarterCostCache.size}.`);
   log(`[Done] Partial Research Recipes built: ${partialResearchOpportunities.length.toLocaleString()} partial rows matched, ${renderedNow.toLocaleString()} rendered.`);
 }
 
@@ -10280,7 +10333,7 @@ function invalidateHotLookupCaches() {
   try { invalidatePartialResearchHotCaches(); } catch (_) {}}
 
 function invalidatePartialResearchHotCaches() {
-  try { partialCheapestOwnedPlanCache.clear(); } catch (_) {}
+  try { partialCheapestOwnedPlanCache.clear(); cheapestOwnedPlanCacheHits = 0; cheapestOwnedPlanCacheMisses = 0; } catch (_) {}
   try { partialExpandedRequirementsCache.clear(); } catch (_) {}
   try { partialCraftReplacementCostCache.clear(); } catch (_) {}
   try { partialVendorOpportunityUnitValueCache.clear(); } catch (_) {}
