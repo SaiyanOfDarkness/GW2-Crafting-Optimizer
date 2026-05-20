@@ -4218,6 +4218,10 @@ async function loadOwnedMaterials() {
   }
 
   await loadMaterialIdSet();
+  if (!recipeCache.length) {
+    try { await loadRecipeCache(); } catch (e) { console.warn('Recipe cache unavailable before owned scan', e); }
+  }
+  rebuildRecipeIngredientIdSet();
 
   ownedMaterials.clear();
   ownedBreakdown.clear();
@@ -4273,7 +4277,7 @@ async function loadOwnedMaterials() {
 
   await fetchItemDetails([...ownedMaterials.keys()]);
   await saveDataCache();
-  setStatus(`Loaded owned materials: ${ownedMaterials.size} unique material IDs across ${active.length} account(s).`);
+  setStatus(`Loaded owned materials/recipe ingredients: ${ownedMaterials.size} unique item IDs across ${active.length} account(s).`);
 }
 
 
@@ -4503,11 +4507,47 @@ async function loadMaterialIdSet() {
   return materialIdSet;
 }
 
+
+let recipeIngredientIdSet = new Set();
+
+function rebuildRecipeIngredientIdSet() {
+  const ids = new Set();
+  for (const recipe of recipeCache || []) {
+    for (const ing of recipe.ingredients || []) {
+      const id = Number(ing.itemId || ing.item_id || ing.id || 0);
+      if (id) ids.add(id);
+    }
+  }
+  recipeIngredientIdSet = ids;
+  return ids;
+}
+
+function shouldTrackOwnedInventorySlot(slot) {
+  if (!slot || !slot.id || !slot.count) return false;
+  const id = Number(slot.id);
+  if (!id) return false;
+
+  // Always track official material-storage items.
+  if (materialIdSet && materialIdSet.has(id)) return true;
+
+  // Also track normal recipe ingredients from bank/characters.
+  // This catches items like Superior Rune of Holding that are valid recipe inputs
+  // but are not part of the official account/materials storage endpoint.
+  if (recipeIngredientIdSet && recipeIngredientIdSet.has(id)) {
+    const binding = String(slot.binding || '').toLowerCase();
+    const boundTo = String(slot.bound_to || '').trim();
+    // Character-bound items cannot be freely pooled across accounts/characters.
+    if (binding === 'character' || boundTo) return false;
+    return true;
+  }
+
+  return false;
+}
+
 function scanItemListForMaterials(items, accountLabel, source) {
   if (!Array.isArray(items)) return;
   for (const slot of items) {
-    if (!slot || !slot.id || !slot.count) continue;
-    if (!materialIdSet.has(Number(slot.id))) continue;
+    if (!shouldTrackOwnedInventorySlot(slot)) continue;
     addOwnedMaterial(slot.id, slot.count, accountLabel, source);
   }
 }
@@ -6836,6 +6876,18 @@ function priceRequirementMap(reqMap) {
 
 
 
+
+
+function debugOwnedInventoryItem(name) {
+  const id = findItemIdByExactName(name);
+  const owned = id ? Number(ownedMaterials.get(Number(id)) || 0) : 0;
+  const tracked = id ? {
+    material: materialIdSet.has(Number(id)),
+    recipeIngredient: recipeIngredientIdSet.has(Number(id))
+  } : null;
+  log(`[Debug] Owned inventory item: ${name} -> id=${id || '?'} owned=${owned.toLocaleString()} tracked=${tracked ? JSON.stringify(tracked) : 'no'}`);
+  return { id, owned, tracked };
+}
 
 function debugProfitNormalCanMakeForRecipeId(recipeId) {
   const recipe = findRecipeByRecipeId(recipeId);
