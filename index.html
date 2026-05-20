@@ -1098,6 +1098,16 @@ body.research-mode #filterPanel .research-only {
   font-weight: 700;
 }
 
+.recipe-id-unlock-source {
+  color: inherit;
+  border-bottom: 1px dotted rgba(45,226,230,0.55);
+}
+
+.recipe-id-unlock-source .recipe-lock-indicator {
+  margin-left: 4px;
+}
+
+
 #profitFilterPanel .qty-group input,
 #researchFilterPanel .qty-group input {
   width: 90px;
@@ -4649,13 +4659,15 @@ function renderRecipeIdCell(recipeId) {
 
   const data = getSelectedRecipeUnlockData();
   if (!data) {
-    return `${idText} <span class="recipe-lock-indicator craft-replacement-source">?<span class="craft-replacement-tooltip"><span class="craft-replacement-tooltip-line">Recipe unlocks not loaded for selected account.</span></span></span>`;
+    return `<span class="craft-replacement-source recipe-id-unlock-source">${idText}<span class="recipe-lock-indicator">?</span><span class="craft-replacement-tooltip"><span class="craft-replacement-tooltip-line">Recipe unlocks not loaded for selected account.</span></span></span>`;
   }
 
-  if (isRecipeUnlockedForSelectedSource(recipeId)) return idText;
-
   const label = escapeHtml(data.label || recipeUnlockAccountLabel(selectedRecipeUnlockSource));
-  return `${idText} <span class="recipe-lock-indicator craft-replacement-source">⚠<span class="craft-replacement-tooltip"><span class="craft-replacement-tooltip-line">Recipe Not Unlocked</span><span class="craft-replacement-tooltip-line">Not unlocked on ${label}.</span></span></span>`;
+  if (isRecipeUnlockedForSelectedSource(recipeId)) {
+    return `<span class="craft-replacement-source recipe-id-unlock-source">${idText}<span class="craft-replacement-tooltip"><span class="craft-replacement-tooltip-line">Recipe Unlocked</span><span class="craft-replacement-tooltip-line">Unlocked on ${label}.</span></span></span>`;
+  }
+
+  return `<span class="craft-replacement-source recipe-id-unlock-source">${idText}<span class="recipe-lock-indicator">⚠</span><span class="craft-replacement-tooltip"><span class="craft-replacement-tooltip-line">Recipe Not Unlocked</span><span class="craft-replacement-tooltip-line">Not unlocked on ${label}.</span></span></span>`;
 }
 
 function setRecipeUnlockSource(value) {
