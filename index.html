@@ -2093,11 +2093,20 @@ function renderIconImg(className, src, alt = '', extraAttrs = '') {
 
 function setResultsTbodyHtml(tbody, html) {
   if (!tbody) return;
-  // Avoid throwing away and recreating every image/link node when a duplicate
-  // render is triggered by UI state that did not actually change the rows.
-  if (tbody.__lastResultsHtml === html) return;
+  const __enabled = !!window.DEBUG_SORT;
+  const __sameHtml = tbody.__lastResultsHtml === html;
+  if (__sameHtml) {
+    if (__enabled) sortDebugLog(`[SortDebug] domUpdate skipped=sameHtml htmlChars=${String(html || '').length.toLocaleString()}`);
+    return;
+  }
   tbody.__lastResultsHtml = html;
+
+  const __start = (__enabled && performance && performance.now) ? performance.now() : 0;
   tbody.innerHTML = html;
+  if (__enabled && __start) {
+    const renderedRows = tbody.rows ? tbody.rows.length : tbody.querySelectorAll('tr').length;
+    sortDebugLog(`[SortDebug] domUpdate rows=${renderedRows.toLocaleString()} htmlChars=${String(html || '').length.toLocaleString()} total=${Math.round(performance.now() - __start)}ms`);
+  }
   scheduleWikiIconResolution();
 }
 
@@ -11080,6 +11089,30 @@ function researchSortValueGetter(displayRowFn, key) {
   return row => row[key];
 }
 
+
+function buildRowsHtmlWithSortDebug(visibleRows, rowHtmlFn, label = 'rows') {
+  const __enabled = !!window.DEBUG_SORT;
+  const __start = (__enabled && performance && performance.now) ? performance.now() : 0;
+  const html = visibleRows.map(rowHtmlFn).join('');
+  if (__enabled && __start) {
+    sortDebugLog(`[SortDebug] htmlBuild label=${label} rows=${visibleRows.length.toLocaleString()} htmlChars=${html.length.toLocaleString()} total=${Math.round(performance.now() - __start)}ms`);
+  }
+  return html;
+}
+
+function finishSortDebugRender(start, key, dir, mode, rowCount, visibleCount) {
+  if (!window.DEBUG_SORT || !start || !(performance && performance.now)) return;
+  const totalMs = Math.round(performance.now() - start);
+  sortDebugLog(`[SortDebug] render key=${key || 'none'} dir=${dir || ''} mode=${mode || ''} rows=${Number(rowCount || 0).toLocaleString()} visible=${Number(visibleCount || 0).toLocaleString()} total=${totalMs}ms`);
+}
+
+function requestPaintThenRender(debugLabel) {
+  if (window.DEBUG_SORT) sortDebugLog(`[SortDebug] queued ${debugLabel || 'render'}; yielding one frame so logs/status can paint before heavy DOM work`);
+  requestAnimationFrame(() => {
+    requestAnimationFrame(() => render());
+  });
+}
+
 function render() {
   const __sortDebugRenderStart = (window.DEBUG_SORT && performance && performance.now) ? performance.now() : 0;
   const __sortDebugSortKey = sortState && sortState.key ? sortState.key : '';
@@ -11131,7 +11164,8 @@ function render() {
     `;
     const lazyRowHtml = makeLazyDisplayRowRenderer(getPartialResearchDisplayRow, rowHtml);
     cacheIncrementalRender(renderSignature, filtered, visibleRows.length, lazyRowHtml);
-    setResultsTbodyHtml(tbody, visibleRows.map(lazyRowHtml).join(''));
+    setResultsTbodyHtml(tbody, buildRowsHtmlWithSortDebug(visibleRows, lazyRowHtml, 'researchLazyRows'));
+    finishSortDebugRender(__sortDebugRenderStart, __sortDebugSortKey, __sortDebugSortDir, tableMode || currentTableMode || '', totalRows, visibleRows.length);
 
     return;
   }
@@ -11189,7 +11223,8 @@ function render() {
     };
     const lazyRowHtml = makeLazyDisplayRowRenderer(getResearchNoteDisplayRow, rowHtml);
     cacheIncrementalRender(renderSignature, filtered, visibleRows.length, lazyRowHtml);
-    setResultsTbodyHtml(tbody, visibleRows.map(lazyRowHtml).join(''));
+    setResultsTbodyHtml(tbody, buildRowsHtmlWithSortDebug(visibleRows, lazyRowHtml, 'researchLazyRows'));
+    finishSortDebugRender(__sortDebugRenderStart, __sortDebugSortKey, __sortDebugSortDir, tableMode || currentTableMode || '', totalRows, visibleRows.length);
 
     return;
   }
@@ -11231,13 +11266,9 @@ function render() {
     </tr>
   `;
   cacheIncrementalRender(renderSignature, filtered, visibleRows.length, rowHtml);
-  setResultsTbodyHtml(tbody, visibleRows.map(rowHtml).join(''));
+  setResultsTbodyHtml(tbody, buildRowsHtmlWithSortDebug(visibleRows, rowHtml, 'profitRows'));
 
-  if (window.DEBUG_SORT && __sortDebugRenderStart) {
-    const __sortDebugRenderMs = Math.round(performance.now() - __sortDebugRenderStart);
-    const __sortDebugRows = Array.isArray(currentRows) ? currentRows.length : (Array.isArray(opportunities) ? opportunities.length : 0);
-    sortDebugLog(`[SortDebug] render key=${__sortDebugSortKey || 'none'} dir=${__sortDebugSortDir || ''} mode=${tableMode || ''} rows=${__sortDebugRows.toLocaleString()} total=${__sortDebugRenderMs}ms`);
-  }
+  finishSortDebugRender(__sortDebugRenderStart, __sortDebugSortKey, __sortDebugSortDir, tableMode || currentTableMode || '', totalRows, visibleRows.length);
 }
 
 function setupTableSorting() {
@@ -11248,10 +11279,10 @@ function setupTableSorting() {
       if (!key) return;
       if (sortState.key === key) sortState.dir *= -1;
       else sortState = { key, dir: currentTableMode === 'research' && key === 'materialValue' ? 1 : -1 };
-      render();
-      if (window.DEBUG_SORT && __sortDebugStart) {
-        sortDebugLog(`[SortDebug] click key=${key} dir=${sortState.dir} mode=${tableMode || currentTableMode || ''} total=${Math.round(performance.now() - __sortDebugStart)}ms`);
+      if (window.DEBUG_SORT) {
+        sortDebugLog(`[SortDebug] click key=${key} dir=${sortState.dir} mode=${tableMode || currentTableMode || ''}; render queued`);
       }
+      requestPaintThenRender(`sort key=${key}`);
     };
   });
 }
