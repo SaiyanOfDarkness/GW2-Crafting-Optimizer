@@ -1859,6 +1859,7 @@ let tableMode = 'profit';
 let lastResearchTableMode = 'researchNotes';
 let researchMaterialValueMode = 'buy';
 let useOwnedMaterialsForResearch = true;
+let researchDisplaySortCacheVersion = 0;
 let researchOwnedOffTpAutoLoadAttempted = false;
 let researchOwnedOffAutoLoadingTpPrices = false;
 const RENDER_STEP = 250;
@@ -6026,6 +6027,7 @@ function shouldUseOwnedMaterialsForResearch() {
 }
 
 async function setUseOwnedMaterialsForResearch(checked) {
+  invalidateResearchDisplaySortCache();
   // If owned materials are disabled, Partial Research mode is not valid.
   if (!checked && tableMode === 'researchPartial') {
     useOwnedMaterialsForResearch = false;
@@ -6160,6 +6162,7 @@ function renderRecipeInputs(ingredients) {
 }
 
 async function setResearchMaterialValueMode(mode) {
+  invalidateResearchDisplaySortCache();
   researchMaterialValueMode = mode === 'buy' ? 'buy' : 'sell';
   invalidatePartialResearchHotCaches();
   const label = researchMaterialValueMode === 'buy' ? 'Instant Sell' : 'Sell Listing';
@@ -9006,6 +9009,7 @@ async function ensureOwnedBulkFoodVendorSourcesLoaded(contextLabel = 'Research')
 
 
 async function buildResearchNoteMode() {
+  invalidateResearchDisplaySortCache();
   invalidatePartialResearchHotCaches();
   smartCanMakeScanCache = new Map();
   const useOwnedMaterials = shouldUseOwnedMaterialsForResearch();
@@ -10440,13 +10444,33 @@ function ingredientsCheapSortKey(ingredients) {
   }
 }
 
+
+function invalidateResearchDisplaySortCache() {
+  researchDisplaySortCacheVersion++;
+}
+
+function getCachedResearchDisplaySortValue(displayRowFn, row, key) {
+  if (!row || (key !== 'materialValue' && key !== 'valuePerNote')) return row ? row[key] : null;
+
+  if (!row.__researchDisplaySortCache || row.__researchDisplaySortCache.version !== researchDisplaySortCacheVersion) {
+    const display = displayRowFn(row);
+    row.__researchDisplaySortCache = {
+      version: researchDisplaySortCacheVersion,
+      materialValue: display.materialValue,
+      valuePerNote: display.valuePerNote
+    };
+  }
+
+  return row.__researchDisplaySortCache[key];
+}
+
 function researchSortValueGetter(displayRowFn, key) {
   // Most Research columns already exist on the raw opportunity rows. Avoid the
   // expensive ingredient/display-material pass for every matched row unless the
   // user explicitly sorts by a value that depends on the current material
   // valuation mode.
   if (key === 'materialValue' || key === 'valuePerNote') {
-    return makeCachedDisplayValueGetter(displayRowFn, key);
+    return row => getCachedResearchDisplaySortValue(displayRowFn, row, key);
   }
   if (key === 'ingredientsText') {
     return row => {
