@@ -9032,14 +9032,70 @@ function waitForUiFrame() {
   });
 }
 
+
+const vendorLookupDeadEndCache = new Set();
+
+function makeVendorDeadEndCacheKey(itemId, itemNameText = '') {
+  return `${Number(itemId || 0)}::${String(itemNameText || '').trim().toLowerCase()}`;
+}
+
+function makeVendorDeadEndNameKey(itemNameText = '') {
+  return `name::${String(itemNameText || '').trim().toLowerCase()}`;
+}
+
+function rememberVendorDeadEndNames(names) {
+  if (!Array.isArray(names)) return 0;
+  let added = 0;
+  for (const name of names) {
+    const key = makeVendorDeadEndNameKey(name);
+    if (!vendorLookupDeadEndCache.has(key)) {
+      vendorLookupDeadEndCache.add(key);
+      added++;
+    }
+  }
+  return added;
+}
+
+function filterVendorDeadEndNames(names) {
+  if (!Array.isArray(names) || !names.length) return names || [];
+  const before = names.length;
+  const filtered = names.filter(name => !vendorLookupDeadEndCache.has(makeVendorDeadEndNameKey(name)));
+  const skipped = before - filtered.length;
+  if (skipped > 0) {
+    log(`[VendorCache] Skipped ${skipped.toLocaleString()} cached dead-end vendor candidate(s).`);
+  }
+  return filtered;
+}
+
+function clearVendorDeadEndCache() {
+  vendorLookupDeadEndCache.clear();
+  log('[Debug] Cleared vendor dead-end cache.');
+}
+
+function debugVendorDeadEndCache() {
+  const entries = Array.from(vendorLookupDeadEndCache.values()).slice(0, 25);
+  log(`[Debug] Vendor dead-end cache size: ${vendorLookupDeadEndCache.size.toLocaleString()}`);
+  console.table(entries);
+  return {
+    size: vendorLookupDeadEndCache.size,
+    sample: entries
+  };
+}
+
 async function loadWikiVendorBarterSourcesForMissingItems(missingItems) {
-  const uniqueNames = [...new Set(
+  let uniqueNames = [...new Set(
     (missingItems || [])
       .map(m => itemName(m.itemId))
       .filter(name => name && !wikiVendorBarterByName[name] && !VENDOR_BARTER_BY_NAME[name] && !wikiVendorNoVendorByName[name] && !wikiVendorAmbiguousByName[name])
   )];
 
   if (!uniqueNames.length) return 0;
+
+  uniqueNames = filterVendorDeadEndNames(uniqueNames);
+  if (!uniqueNames.length) {
+    log('[VendorCache] No uncached gated vendor candidates to check.');
+    return 0;
+  }
 
   log(`Loading Wiki vendor/bulk lookup for ${uniqueNames.length.toLocaleString()} gated candidate(s)...`);
 
@@ -9160,7 +9216,9 @@ async function loadWikiVendorBarterSourcesForMissingItems(missingItems) {
     log(`[Done] Wiki vendor/barter sources cached: ${found.toLocaleString()} item(s).`);
   } else {
     await saveDataCache();
-    log(`[Done] Wiki vendor/barter lookup found no new sources.`);
+    const vendorDeadEndsAdded = rememberVendorDeadEndNames(uniqueNames);
+  if (vendorDeadEndsAdded) log(`[VendorCache] Cached ${vendorDeadEndsAdded.toLocaleString()} dead-end vendor candidate(s).`);
+  log(`[Done] Wiki vendor/barter lookup found no new sources.`);
   }
   if (noVendorCount || ambiguousCount) {
     log(`[Info] Vendor_query cache: ${noVendorCount.toLocaleString()} no-vendor item(s), ${ambiguousCount.toLocaleString()} ambiguous multi-cost item(s).`);
