@@ -1811,6 +1811,32 @@ function profitNestedDebugLog(message) {
   log(String(message || ''));
 }
 
+let profitNestedDebugEmittedMessages = new Set();
+let profitNestedDebugSuppressedMessages = 0;
+
+function resetProfitNestedDebugDedupe() {
+  profitNestedDebugEmittedMessages = new Set();
+  profitNestedDebugSuppressedMessages = 0;
+}
+
+function profitNestedDebugLogOnce(message) {
+  if (!window.DEBUG_PROFIT_NESTED) return;
+  const text = String(message || '');
+  if (profitNestedDebugEmittedMessages.has(text)) {
+    profitNestedDebugSuppressedMessages++;
+    return;
+  }
+  profitNestedDebugEmittedMessages.add(text);
+  profitNestedDebugLog(text);
+}
+
+function flushProfitNestedDebugDedupeSummary() {
+  if (!window.DEBUG_PROFIT_NESTED) return;
+  if (!profitNestedDebugSuppressedMessages) return;
+  profitNestedDebugLog(`[ProfitNested] duplicate debug lines suppressed: ${Number(profitNestedDebugSuppressedMessages || 0).toLocaleString()}`);
+}
+
+
 let profitNestedRejectCache = new Map();
 let profitNestedRejectStats = new Map();
 let profitNestedRejectCacheHits = 0;
@@ -6675,7 +6701,7 @@ function shouldRejectNestedProfitSubRecipe(itemId, subRecipe) {
 
   if (blocked) {
     recordProfitNestedReject(itemId, subRecipe, reason);
-    profitNestedDebugLog(`[ProfitNested] rejected ${itemName(itemId)} sub-recipe ${subRecipe.recipeId || subRecipe.id || ''}: blocked by ${reason}.`);
+    profitNestedDebugLogOnce(`[ProfitNested] rejected ${itemName(itemId)} sub-recipe ${subRecipe.recipeId || subRecipe.id || ''}: blocked by ${reason}.`);
   }
 
   return blocked;
@@ -9407,6 +9433,7 @@ async function buildResearchNoteMode() {
 }
 
 async function buildNestedOpportunities() {
+  resetProfitNestedDebugDedupe();
   resetProfitNestedRejectCache();
   setNestedProfitToggleBusy(true);
   log('[Nested] Build started.');
@@ -9516,6 +9543,7 @@ log('[Nested] Using cached vendor/barter datasets only (live wiki lookup skipped
   profitViewMode = 'nested';
   updateNestedProfitToggleButton();
   flushProfitNestedRejectSummary();
+  flushProfitNestedDebugDedupeSummary();
   render();
   const renderedNow = Math.min(renderLimit, opportunities.length);
   setStatus(`Built nested opportunities with cost-aware owned sub-crafting expansion: ${opportunities.length.toLocaleString()} profitable crafts. Considered ${considered.toLocaleString()} recipes. Nested paths used: ${nestedUsed.toLocaleString()}. Rendering ${renderedNow.toLocaleString()} now; use Show Another ${RENDER_STEP.toLocaleString()} Rows for more.`);
