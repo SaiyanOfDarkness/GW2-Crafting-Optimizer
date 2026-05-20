@@ -6835,6 +6835,17 @@ function priceRequirementMap(reqMap) {
 
 
 
+
+function debugProfitRowCanMake(recipeId) {
+  const row = (opportunities || []).find(r => Number(r.recipeId) === Number(recipeId));
+  if (!row) {
+    log(`[Debug] Profit row ${recipeId} not found in current opportunities.`);
+    return null;
+  }
+  log(`[Debug] Profit row ${recipeId}: canMake=${row.canCraftQty}, baseline=${row.baselineCanCraftQty}, contributors=${(row.ownedIntermediateContributors || []).map(c => itemName(c.itemId) + ' x ' + c.owned).join(', ')}`);
+  return row;
+}
+
 function debugProfitCanMakeForRecipeId(recipeId) {
   const recipe = findRecipeByRecipeId(recipeId);
   if (!recipe) {
@@ -7437,6 +7448,52 @@ function collectOwnedIntermediateContributors(recipe, recipeIndex, out = new Map
   return contributors;
 }
 
+
+function collectProfitCanMakeContributors(recipe, recipeIndex, limit = 12) {
+  const contributors = new Map();
+  const seen = new Set();
+
+  function add(itemId, owned, source = '') {
+    itemId = Number(itemId);
+    owned = Number(owned || 0);
+    if (!itemId || owned <= 0) return;
+    const cur = contributors.get(itemId) || { itemId, owned: 0, source };
+    cur.owned = Math.max(cur.owned, owned);
+    if (source && !cur.source) cur.source = source;
+    contributors.set(itemId, cur);
+  }
+
+  function visitItem(itemId, depth = 0) {
+    itemId = Number(itemId);
+    if (!itemId || depth > 4) return;
+    const seenKey = `${itemId}:${depth}`;
+    if (seen.has(seenKey)) return;
+    seen.add(seenKey);
+
+    const owned = Number(ownedMaterials.get(itemId) || 0);
+    if (owned > 0) add(itemId, owned, depth ? 'crafted/intermediate source' : 'direct ingredient');
+
+    const subRecipe = recipeIndex && typeof recipeIndex.get === 'function' ? recipeIndex.get(itemId) : null;
+    if (!subRecipe) return;
+    if (typeof shouldRejectNestedProfitSubRecipe === 'function' && shouldRejectNestedProfitSubRecipe(itemId, subRecipe)) return;
+    if (typeof isGemOrJewelIntermediateItem === 'function' && isGemOrJewelIntermediateItem(itemId)) return;
+
+    for (const ing of subRecipe.ingredients || []) {
+      const ingId = Number(ing.itemId || ing.item_id || ing.id || 0);
+      if (ingId) visitItem(ingId, depth + 1);
+    }
+  }
+
+  for (const ing of recipe?.ingredients || []) {
+    const itemId = Number(ing.itemId || ing.item_id || ing.id || 0);
+    if (itemId) visitItem(itemId, 0);
+  }
+
+  return Array.from(contributors.values())
+    .sort((a, b) => String(itemName(a.itemId)).localeCompare(String(itemName(b.itemId))))
+    .slice(0, limit);
+}
+
 function buildOwnedIntermediateCanMakeTooltip(row) {
   const baseQty = Number(row?.baselineCanCraftQty || 0);
   const smartQty = Number(row?.canCraftQty || 0);
@@ -7552,8 +7609,18 @@ function evaluateNestedRequirements(flat, outputCount, originalRecipe = null, re
     }
   }
 
+  const baselineCanCraftQty = canCraftQty;
+
+  if (originalRecipe && recipeIndex && typeof getSmartCanCraftQtyWithOwnedIntermediates === 'function') {
+    const smartQty = getSmartCanCraftQtyWithOwnedIntermediates(originalRecipe, recipeIndex, canCraftQty);
+    if (Number.isFinite(Number(smartQty))) {
+      canCraftQty = Math.max(canCraftQty, Math.floor(Number(smartQty) || 0));
+    }
+  }
+
   return {
     canCraftQty,
+    baselineCanCraftQty,
     materialValue,
     missingOwned,
     missingMaterialPrice,
@@ -9644,7 +9711,7 @@ log('[Nested] Using cached vendor/barter datasets only (live wiki lookup skipped
 
     const expandedFlat = expandRequirementsUsingOwnedCrafting(flat, recipeIndex);
     const mergedSteps = [...(flat.steps || []), ...(expandedFlat.steps || [])];
-    const evald = evaluateNestedRequirements(expandedFlat, recipe.outputCount || 1);
+    const evald = evaluateNestedRequirements(expandedFlat, recipe.outputCount || 1, recipe, recipeIndex);
     if (evald.missingOwned || evald.missingMaterialPrice) continue;
 
     if (NON_TRADABLE_OUTPUT_IDS.has(Number(recipe.outputItemId))) {
@@ -9681,6 +9748,8 @@ log('[Nested] Using cached vendor/barter datasets only (live wiki lookup skipped
       recipeId: recipe.recipeId,
       outputCount,
       canCraftQty: evald.canCraftQty,
+      baselineCanCraftQty: evald.baselineCanCraftQty,
+      ownedIntermediateContributors: collectProfitCanMakeContributors(recipe, recipeIndex),
       profitableDepthQty: depth.profitableDepthQty,
       recommendedCraftQty,
       avgDepthSell: depth.avgDepthSell,
