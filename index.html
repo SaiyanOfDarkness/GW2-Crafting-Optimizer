@@ -6832,6 +6832,39 @@ function priceRequirementMap(reqMap) {
   return { total, missingPrice };
 }
 
+
+
+
+function debugProfitCanMakeForRecipeId(recipeId) {
+  const recipe = findRecipeByRecipeId(recipeId);
+  if (!recipe) {
+    log(`[Debug] Profit Can Make: recipe ${recipeId} not found.`);
+    return null;
+  }
+  const recipeIndex = buildRecipeIndexByOutput();
+  const smartQty = getSmartCanCraftQtyWithOwnedIntermediates(recipe, recipeIndex, 0);
+  log(`[Debug] Profit Can Make smart qty: recipe ${recipeId} ${itemName(recipe.outputItemId)} = ${Number(smartQty || 0).toLocaleString()} crafts.`);
+  return smartQty;
+}
+
+function debugProfitOwnedMaterialCount(name) {
+  const id = findItemIdByExactName(name);
+  const owned = id ? Number(ownedMaterials.get(Number(id)) || 0) : 0;
+  log(`[Debug] Profit owned material check: ${name} -> id=${id || '?'} owned=${owned.toLocaleString()}`);
+  return { id, owned };
+}
+
+function isBasicRefinementMaterialItem(itemId) {
+  const name = String(itemName(Number(itemId)) || '').toLowerCase();
+  if (!name) return false;
+  return (
+    /\b(log|plank)\b/.test(name) ||
+    /\b(ore|ingot)\b/.test(name) ||
+    /\b(scrap|bolt)\b/.test(name) ||
+    /\b(rawhide|leather section|leather square)\b/.test(name)
+  );
+}
+
 function buildCheapestOwnedPlan(itemId, neededCount, recipeIndex, path = new Set(), depth = 0) {
   itemId = Number(itemId);
   neededCount = Number(neededCount || 0);
@@ -6843,6 +6876,7 @@ function buildCheapestOwnedPlan(itemId, neededCount, recipeIndex, path = new Set
   if (directUse > 0) addRequirementWithFraction(directReq, itemId, directUse);
 
   const missingAfterDirect = Math.max(0, neededCount - directUse);
+  const preserveDirectOwnedBasicMaterial = directUse > 0 && isBasicRefinementMaterialItem(itemId);
 
   const directOnlyPlan = {
     itemId,
@@ -6855,6 +6889,7 @@ function buildCheapestOwnedPlan(itemId, neededCount, recipeIndex, path = new Set
   };
 
   if (neededCount <= 0) return directOnlyPlan;
+  if (preserveDirectOwnedBasicMaterial && missingAfterDirect <= 0) return directOnlyPlan;
   if (depth >= 8 || path.has(itemId)) return directOnlyPlan;
 
   const recipe = getBestRecipeForOwnedExpansion(itemId, recipeIndex);
@@ -6906,8 +6941,33 @@ function buildCheapestOwnedPlan(itemId, neededCount, recipeIndex, path = new Set
     steps: craftedSteps
   };
 
+  // For normal refinement families, preserve directly owned logs/ore/scraps/planks/ingots/etc.
+  // and only use crafted expansion for the missing part. Otherwise Profit Mode can hide owned
+  // raw/refined materials by replacing the whole stack with a cheaper recursive crafted path.
+  if (preserveDirectOwnedBasicMaterial && missingAfterDirect > 0 && craftOnlyPlan.totalAvailable > 0) {
+    const preserveReq = new Map();
+    addRequirementWithFraction(preserveReq, itemId, directUse);
+
+    const craftUseQty = Math.min(missingAfterDirect, craftOnlyPlan.totalAvailable);
+    const craftRatio = craftUseQty / Math.max(1, craftOnlyPlan.totalAvailable);
+    mergeRequirementMap(preserveReq, craftOnlyPlan.requirements, craftRatio);
+
+    const preserveAvailable = directUse + craftUseQty;
+    const preserveCost = priceRequirementMap(preserveReq).total;
+    return {
+      itemId,
+      neededCount,
+      requirements: preserveReq,
+      canSatisfy: preserveAvailable >= neededCount,
+      totalAvailable: preserveAvailable,
+      cost: preserveCost,
+      steps: [`use ${directUse} owned ${itemName(itemId)}`, ...((craftOnlyPlan.steps || []).slice(0, 20))]
+    };
+  }
+
   // If both direct and crafted can fully satisfy the request, pick the lower opportunity value.
   if (directOnlyPlan.canSatisfy && craftOnlyPlan.canSatisfy) {
+    if (preserveDirectOwnedBasicMaterial) return directOnlyPlan;
     return craftOnlyPlan.cost < directOnlyPlan.cost ? craftOnlyPlan : directOnlyPlan;
   }
 
@@ -7406,7 +7466,7 @@ function renderCanMakeQtyCell(row) {
   return `<span class="craft-replacement-source can-make-intermediate-source">${qty}<span class="craft-replacement-tooltip">${tooltip}</span></span>`;
 }
 
-function evaluateNestedRequirements(flat, outputCount) {
+function evaluateNestedRequirements(flat, outputCount, originalRecipe = null, recipeIndex = null) {
   let canCraftQty = Infinity;
   let materialValue = 0;
   let missingOwned = false;
@@ -7479,6 +7539,18 @@ function evaluateNestedRequirements(flat, outputCount) {
   }
 
   if (canCraftQty === Infinity) canCraftQty = 999999;
+
+  // Profit/Nested Can Make must count craftable normal intermediates too.
+  // Example: owned Orichalcum Ingots + craftable Ingots from Orichalcum Ore,
+  // Ancient Wood Planks + craftable Planks from Ancient Wood Logs, etc.
+  // The flattened visible ingredient list is still used for value/display, but
+  // quantity should use the smart owned-intermediate craftability solver.
+  if (originalRecipe && recipeIndex && typeof getSmartCanCraftQtyWithOwnedIntermediates === 'function') {
+    const smartQty = getSmartCanCraftQtyWithOwnedIntermediates(originalRecipe, recipeIndex, canCraftQty);
+    if (Number.isFinite(Number(smartQty))) {
+      canCraftQty = Math.max(canCraftQty, Math.floor(Number(smartQty) || 0));
+    }
+  }
 
   return {
     canCraftQty,
@@ -9101,7 +9173,7 @@ async function buildPartialResearchRecipes() {
     }
 
     const expandedFlat = scaleFlatRequirementsForCrafts(expandedFlatSingle, targetCraftQty);
-    const evald = evaluateNestedRequirements(expandedFlat, recipe.outputCount || 1);
+    const evald = evaluateNestedRequirements(expandedFlat, recipe.outputCount || 1, recipe, recipeIndex);
     const coverage = analyzeRequirementCoverage(expandedFlat.requirements);
     coverage.missing = coverage.missing.map(m => ({ ...m, acquisition: compareMissingMaterialAcquisition(m.itemId, m.missing, recipeIndex) }));
     if (coverage.have <= 0) {
