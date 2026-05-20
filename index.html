@@ -4204,7 +4204,7 @@ function addOwnedMaterial(itemId, count, accountLabel, source) {
   const detail = ownedBreakdown.get(itemId) || { total: 0, accounts: {} };
   detail.total += count;
   const key = accountLabel || 'Account';
-  if (!detail.accounts[key]) detail.accounts[key] = { materialStorage: 0, characters: 0, bank: 0 };
+  if (!detail.accounts[key]) detail.accounts[key] = { materialStorage: 0, characters: 0, bank: 0, sharedInventory: 0 };
   if (typeof detail.accounts[key][source] !== 'number') detail.accounts[key][source] = 0;
   detail.accounts[key][source] += count;
   ownedBreakdown.set(itemId, detail);
@@ -4249,6 +4249,16 @@ async function loadOwnedMaterials() {
     } catch (e) {
       console.warn('Bank failed', label, e);
       log(`Bank failed for ${label}: ${e.message}`);
+    }
+
+    log(`Loading shared inventory: ${label}`);
+
+    try {
+      const sharedInventory = await fetchJson(`${API}/account/inventory?access_token=${token}`);
+      scanItemListForMaterials(sharedInventory, label, 'sharedInventory');
+    } catch (e) {
+      console.warn('Shared inventory failed', label, e);
+      log(`Shared inventory failed for ${label}: ${e.message}`);
     }
 
     let chars = [];
@@ -4523,14 +4533,15 @@ function rebuildRecipeIngredientIdSet() {
 }
 
 function shouldTrackOwnedInventorySlot(slot) {
-  if (!slot || !slot.id || !slot.count) return false;
+  if (!slot || !slot.id) return false;
   const id = Number(slot.id);
-  if (!id) return false;
+  const count = Number(slot.count || slot.charges || 1);
+  if (!id || count <= 0) return false;
 
   // Always track official material-storage items.
   if (materialIdSet && materialIdSet.has(id)) return true;
 
-  // Also track normal recipe ingredients from bank/characters.
+  // Also track normal recipe ingredients from bank/shared inventory/characters.
   // This catches items like Superior Rune of Holding that are valid recipe inputs
   // but are not part of the official account/materials storage endpoint.
   if (recipeIngredientIdSet && recipeIngredientIdSet.has(id)) {
@@ -4548,7 +4559,7 @@ function scanItemListForMaterials(items, accountLabel, source) {
   if (!Array.isArray(items)) return;
   for (const slot of items) {
     if (!shouldTrackOwnedInventorySlot(slot)) continue;
-    addOwnedMaterial(slot.id, slot.count, accountLabel, source);
+    addOwnedMaterial(slot.id, Number(slot.count || slot.charges || 1), accountLabel, source);
   }
 }
 
@@ -6882,12 +6893,13 @@ function debugOwnedInventoryItem(name) {
   if (!recipeIngredientIdSet || !recipeIngredientIdSet.size) rebuildRecipeIngredientIdSet();
   const id = findItemIdByExactName(name);
   const owned = id ? Number(ownedMaterials.get(Number(id)) || 0) : 0;
+  const breakdown = id ? ownedBreakdown.get(Number(id)) || null : null;
   const tracked = id ? {
     material: materialIdSet.has(Number(id)),
     recipeIngredient: recipeIngredientIdSet.has(Number(id))
   } : null;
-  log(`[Debug] Owned inventory item: ${name} -> id=${id || '?'} owned=${owned.toLocaleString()} tracked=${tracked ? JSON.stringify(tracked) : 'no'}`);
-  return { id, owned, tracked };
+  log(`[Debug] Owned inventory item: ${name} -> id=${id || '?'} owned=${owned.toLocaleString()} tracked=${tracked ? JSON.stringify(tracked) : 'no'} breakdown=${breakdown ? JSON.stringify(breakdown) : 'none'}`);
+  return { id, owned, tracked, breakdown };
 }
 
 function debugProfitNormalCanMakeForRecipeId(recipeId) {
