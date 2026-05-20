@@ -1811,6 +1811,48 @@ function profitNestedDebugLog(message) {
   log(String(message || ''));
 }
 
+let profitNestedRejectCache = new Map();
+let profitNestedRejectStats = new Map();
+let profitNestedRejectCacheHits = 0;
+
+function resetProfitNestedRejectCache() {
+  profitNestedRejectCache = new Map();
+  profitNestedRejectStats = new Map();
+  profitNestedRejectCacheHits = 0;
+}
+
+function profitNestedRecipeKey(itemId, recipe) {
+  const rid = Number(recipe?.recipeId || recipe?.id || recipe?.recipe_id || 0);
+  return `${Number(itemId) || 0}:${rid || 'no-recipe'}`;
+}
+
+function recordProfitNestedReject(itemId, recipe, reason) {
+  const key = profitNestedRecipeKey(itemId, recipe);
+  const stat = profitNestedRejectStats.get(key) || {
+    itemId: Number(itemId) || 0,
+    recipeId: Number(recipe?.recipeId || recipe?.id || recipe?.recipe_id || 0) || 0,
+    name: itemName(Number(itemId)),
+    reason: reason || 'blocked',
+    count: 0
+  };
+  stat.count++;
+  profitNestedRejectStats.set(key, stat);
+}
+
+function flushProfitNestedRejectSummary() {
+  if (!window.DEBUG_PROFIT_NESTED) return;
+  const entries = Array.from(profitNestedRejectStats.values())
+    .sort((a, b) => Number(b.count || 0) - Number(a.count || 0));
+  if (!entries.length && !profitNestedRejectCacheHits) return;
+
+  const shown = entries.slice(0, 12)
+    .map(e => `${e.name} r${e.recipeId || '?'} x${Number(e.count || 0).toLocaleString()} (${e.reason})`)
+    .join(' | ');
+
+  profitNestedDebugLog(`[ProfitNested] reject summary: unique=${entries.length.toLocaleString()}, cacheHits=${Number(profitNestedRejectCacheHits || 0).toLocaleString()}${shown ? '; top: ' + shown : ''}`);
+}
+
+
 
 
 function researchPerfLog(message) {
@@ -5968,7 +6010,31 @@ function setPartialResearchControlEnabled(enabled) {
   }
 }
 
+
+function clearStalePartialDisabledStateForProfitMode() {
+  if (tableMode === 'researchNotes' || tableMode === 'researchPartial' || document.body.classList.contains('research-mode')) return;
+  const ctrl = findPartialResearchToggleControl();
+  if (!ctrl) return;
+  ctrl.disabled = false;
+  ctrl.classList.remove('disabled');
+  if (ctrl.title === 'Partial Research Recipes require Use Owned Materials.') ctrl.title = '';
+}
+
 function syncResearchOwnedAndPartialControls() {
+  const ctrl = findPartialResearchToggleControl();
+  if (!ctrl) return;
+
+  const isResearchMode = tableMode === 'researchNotes' || tableMode === 'researchPartial' || document.body.classList.contains('research-mode');
+
+  // Use Owned Materials is a Research Note Mode-only control.
+  // Profit/Nested mode should never leave the Partial Research button disabled.
+  if (!isResearchMode) {
+    ctrl.disabled = false;
+    ctrl.classList.remove('disabled');
+    if (ctrl.title === 'Partial Research Recipes require Use Owned Materials.') ctrl.title = '';
+    return;
+  }
+
   const useOwned = shouldUseOwnedMaterialsForResearch();
   setPartialResearchControlEnabled(useOwned);
   try { updatePartialResearchButtonState(); } catch (_) {}
@@ -5977,15 +6043,25 @@ function syncResearchOwnedAndPartialControls() {
 function updatePartialResearchButtonState() {
   const ctrl = findPartialResearchToggleControl();
   if (!ctrl) return;
+
+  const isResearchMode = tableMode === 'researchNotes' || tableMode === 'researchPartial' || document.body.classList.contains('research-mode');
+  const active = tableMode === 'researchPartial';
+
+  if (ctrl.tagName === 'BUTTON' && /partial\s+research/i.test(ctrl.textContent || '')) {
+    ctrl.innerHTML = `SHOW PARTIAL RESEARCH RECIPES: <span style="color:${active ? '#FF6C11' : '#F6019D'}">${active ? 'ON' : 'OFF'}</span>`;
+  }
+
+  if (!isResearchMode) {
+    ctrl.disabled = false;
+    ctrl.classList.remove('disabled');
+    if (ctrl.title === 'Partial Research Recipes require Use Owned Materials.') ctrl.title = '';
+    return;
+  }
+
   const useOwned = shouldUseOwnedMaterialsForResearch();
   ctrl.disabled = !useOwned;
-  if (ctrl.tagName === 'BUTTON') {
-    const active = tableMode === 'researchPartial';
-    if (/partial\s+research/i.test(ctrl.textContent || '')) {
-      ctrl.textContent = active ? 'Show Partial Research Recipes: ON' : 'Show Partial Research Recipes: OFF';
-    }
-  }
-  if (!useOwned) ctrl.title = 'Partial Research Recipes require Use Owned Materials.';
+  ctrl.classList.toggle('disabled', !useOwned);
+  ctrl.title = useOwned ? '' : 'Partial Research Recipes require Use Owned Materials.';
 }
 
 
@@ -6577,17 +6653,32 @@ function recipeOutputCount(recipe) {
 function shouldRejectNestedProfitSubRecipe(itemId, subRecipe) {
   if (!subRecipe) return true;
 
+  const cacheKey = profitNestedRecipeKey(itemId, subRecipe);
+  if (profitNestedRejectCache.has(cacheKey)) {
+    const cached = profitNestedRejectCache.get(cacheKey);
+    if (cached) profitNestedRejectCacheHits++;
+    return cached;
+  }
+
+  let blocked = false;
+  let reason = '';
+
   if (typeof isAllowedOwnedIntermediateCraftabilityRecipe === 'function' && !isAllowedOwnedIntermediateCraftabilityRecipe(itemId, subRecipe)) {
-    profitNestedDebugLog(`[ProfitNested] rejected ${itemName(itemId)} sub-recipe ${subRecipe.recipeId || subRecipe.id || ''}: blocked by owned-intermediate guard.`);
-    return true;
+    blocked = true;
+    reason = 'owned-intermediate guard';
+  } else if (typeof shouldRejectOwnedIntermediateContributorRecipe === 'function' && shouldRejectOwnedIntermediateContributorRecipe(subRecipe, itemId)) {
+    blocked = true;
+    reason = 'contributor/economic guard';
   }
 
-  if (typeof shouldRejectOwnedIntermediateContributorRecipe === 'function' && shouldRejectOwnedIntermediateContributorRecipe(subRecipe, itemId)) {
-    profitNestedDebugLog(`[ProfitNested] rejected ${itemName(itemId)} sub-recipe ${subRecipe.recipeId || subRecipe.id || ''}: blocked by contributor/economic guard.`);
-    return true;
+  profitNestedRejectCache.set(cacheKey, blocked);
+
+  if (blocked) {
+    recordProfitNestedReject(itemId, subRecipe, reason);
+    profitNestedDebugLog(`[ProfitNested] rejected ${itemName(itemId)} sub-recipe ${subRecipe.recipeId || subRecipe.id || ''}: blocked by ${reason}.`);
   }
 
-  return false;
+  return blocked;
 }
 
 function getBestRecipeForOwnedExpansion(itemId, recipeIndex) {
@@ -7451,6 +7542,7 @@ function getProfitSortValue(row, key) {
 }
 
 function setProfitTableHeaders() {
+  clearStalePartialDisabledStateForProfitMode();
   currentTableMode = 'profit';
   const mode = getProfitValuationMode();
   const salePriceHeader = mode === 'listing' ? 'List Price' : 'Top BO';
@@ -7571,6 +7663,7 @@ async function toggleNestedProfitRecipes() {
   if (profitTab) profitTab.classList.add('active');
   if (researchTab) researchTab.classList.remove('active');
   document.body.classList.remove('research-mode');
+  clearStalePartialDisabledStateForProfitMode();
 
   const desc = document.getElementById('modeDescription');
 
@@ -9314,6 +9407,7 @@ async function buildResearchNoteMode() {
 }
 
 async function buildNestedOpportunities() {
+  resetProfitNestedRejectCache();
   setNestedProfitToggleBusy(true);
   log('[Nested] Build started.');
   tableMode = 'profit';
@@ -9421,6 +9515,7 @@ log('[Nested] Using cached vendor/barter datasets only (live wiki lookup skipped
   nestedProfitOpportunities = opportunities.slice();
   profitViewMode = 'nested';
   updateNestedProfitToggleButton();
+  flushProfitNestedRejectSummary();
   render();
   const renderedNow = Math.min(renderLimit, opportunities.length);
   setStatus(`Built nested opportunities with cost-aware owned sub-crafting expansion: ${opportunities.length.toLocaleString()} profitable crafts. Considered ${considered.toLocaleString()} recipes. Nested paths used: ${nestedUsed.toLocaleString()}. Rendering ${renderedNow.toLocaleString()} now; use Show Another ${RENDER_STEP.toLocaleString()} Rows for more.`);
