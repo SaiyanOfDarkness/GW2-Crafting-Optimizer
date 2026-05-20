@@ -1796,6 +1796,9 @@ function sortDebugLog(message) {
   if (!window.DEBUG_SORT) return;
   log(String(message || ''));
 }
+window.enableSortDebugLogs = enableSortDebugLogs;
+window.disableSortDebugLogs = disableSortDebugLogs;
+window.sortDebugLog = sortDebugLog;
 
 window.DEBUG_PROFIT_NESTED = false;
 function enableProfitNestedDebugLogs() {
@@ -3125,7 +3128,6 @@ function invalidateProfitDisplayRowCache(reason = '') {
   incrementalRenderCache = null;
   if (window.DEBUG_SORT) sortDebugLog(`[SortDebug] profitDisplayRowCache invalidated${reason ? ' reason=' + reason : ''} version=${profitDisplayRowCacheVersion}`);
 }
-let activeProfitRecipeIndexForValuation = new Map();
 let materialIdSet = new Set();
 let invalidItemIds = new Set();
 let researchSalvageableItemIds = new Set();
