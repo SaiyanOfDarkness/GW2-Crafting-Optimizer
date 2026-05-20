@@ -3118,6 +3118,14 @@ const RESEARCH_NOTE_YIELDS = new Map([
 let sortState = { key: 'extraProfitTotal', dir: -1 };
 let profitValuationMode = 'instant';
 let activeProfitRecipeIndexForValuation = new Map();
+let profitDisplayRowCacheVersion = 0;
+const profitDisplayRowCache = new WeakMap();
+function invalidateProfitDisplayRowCache(reason = '') {
+  profitDisplayRowCacheVersion++;
+  incrementalRenderCache = null;
+  if (window.DEBUG_SORT) sortDebugLog(`[SortDebug] profitDisplayRowCache invalidated${reason ? ' reason=' + reason : ''} version=${profitDisplayRowCacheVersion}`);
+}
+let activeProfitRecipeIndexForValuation = new Map();
 let materialIdSet = new Set();
 let invalidItemIds = new Set();
 let researchSalvageableItemIds = new Set();
@@ -4047,6 +4055,7 @@ async function clearDataCache() {
   prices.clear();
   listings.clear();
   opportunities = [];
+  invalidateProfitDisplayRowCache('clearDataCache');
   render();
   setStatus('Data cache cleared.');
 }
@@ -7752,6 +7761,7 @@ function setProfitValuationMode(mode) {
   profitValuationMode = mode === 'listing' ? 'listing' : 'instant';
   const el = document.getElementById('profitValuationMode');
   if (el && el.value !== profitValuationMode) el.value = profitValuationMode;
+  invalidateProfitDisplayRowCache('profitValuationMode');
   setProfitTableHeaders();
   render();
 }
@@ -7927,6 +7937,17 @@ function getProfitDisplayRow(o) {
   out.roi = safeMaterialValue ? (out.extraProfitEach / safeMaterialValue) * 100 : null;
   out.profitValuationMode = 'instant';
   return out;
+}
+
+function getCachedProfitDisplayRow(o) {
+  if (!o || typeof o !== 'object') return getProfitDisplayRow(o);
+  const mode = getProfitValuationMode();
+  const cached = profitDisplayRowCache.get(o);
+  if (cached && cached.version === profitDisplayRowCacheVersion && cached.mode === mode) return cached.row;
+
+  const row = getProfitDisplayRow(o);
+  profitDisplayRowCache.set(o, { version: profitDisplayRowCacheVersion, mode, row });
+  return row;
 }
 
 function getProfitSortValue(row, key) {
@@ -9221,6 +9242,7 @@ async function loadWikiVendorBarterSourcesForMissingItems(missingItems) {
   const ambiguousCount = Object.keys(wikiVendorAmbiguousByName || {}).length;
 
   if (found) {
+    invalidateProfitDisplayRowCache('wikiVendorSources');
     await saveDataCache();
     log(`[Done] Wiki vendor/barter sources cached: ${found.toLocaleString()} item(s).`);
   } else {
@@ -11231,13 +11253,19 @@ function render() {
 
   ensureProfitHeaders();
 
-  let filtered = opportunities.map(getProfitDisplayRow).filter(o => {
+  const __profitPrepStart = (window.DEBUG_SORT && performance && performance.now) ? performance.now() : 0;
+  let filtered = opportunities.map(getCachedProfitDisplayRow);
+  if (__profitPrepStart) sortDebugLog(`[SortDebug] profitDisplayMap rows=${opportunities.length.toLocaleString()} total=${Math.round(performance.now() - __profitPrepStart)}ms cacheVersion=${profitDisplayRowCacheVersion}`);
+
+  const __profitFilterStart = (window.DEBUG_SORT && performance && performance.now) ? performance.now() : 0;
+  filtered = filtered.filter(o => {
     if (q && !(`${o.outputName} ${o.recipeId} ${o.outputItemId}`.toLowerCase().includes(q))) return false;
     if ((o.extraProfitEach ?? -Infinity) < minProfit) return false;
     if (o.canCraftQty < minCraftQty) return false;
     if (hideLoss && (o.extraProfitEach ?? -Infinity) <= 0) return false;
     return true;
   });
+  if (__profitFilterStart) sortDebugLog(`[SortDebug] profitFilter rows=${filtered.length.toLocaleString()} total=${Math.round(performance.now() - __profitFilterStart)}ms`);
 
   sortRowsByKey(filtered, row => getProfitSortValue(row, sortState.key), sortState.dir);
 
