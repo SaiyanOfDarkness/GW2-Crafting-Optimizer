@@ -4027,6 +4027,7 @@ async function loadDataCache() {
 }
 
 async function clearDataCache() {
+  invalidateItemIdByExactNameIndex();
   researchOwnedOffTpAutoLoadAttempted = false;
   if (!confirm('Clear optimizer data cache? API keys are kept.')) return;
   await idbDelete(DATA_KEY);
@@ -5377,17 +5378,104 @@ let SEMANTIC_SPIRIT_SHARD_VENDOR_ALTERNATIVES_BY_NAME = {};
 
 
 
-function findItemIdByExactName(name) {
-  const cachedExactId = getCachedExactItemIdByName(name);
-  if (cachedExactId != null) return cachedExactId;
 
-  name = String(name || "").trim().toLowerCase();
-  if (!name) return null;
-  for (const [id, info] of itemInfo.entries()) {
-    if (String(info?.name || "").trim().toLowerCase() === name) return Number(id);
+let itemIdByExactNameIndex = null;
+
+function normalizeExactItemNameKey(name) {
+  return String(name || '').trim().toLowerCase();
+}
+
+function buildItemIdByExactNameIndex() {
+  const index = new Map();
+
+  function add(id, name) {
+    const key = normalizeExactItemNameKey(name);
+    const itemId = Number(id);
+    if (!key || !itemId) return;
+    if (!index.has(key)) index.set(key, itemId);
   }
-  return null;
 
+  try {
+    if (itemInfo instanceof Map) {
+      for (const [id, info] of itemInfo.entries()) add(id, info && info.name);
+    } else if (itemInfo && typeof itemInfo === 'object') {
+      for (const [id, info] of Object.entries(itemInfo)) add(id, info && info.name);
+    }
+  } catch (_) {}
+
+  try {
+    if (typeof itemsById !== 'undefined') {
+      if (itemsById instanceof Map) {
+        for (const [id, info] of itemsById.entries()) add(id, info && info.name);
+      } else if (itemsById && typeof itemsById === 'object') {
+        for (const [id, info] of Object.entries(itemsById)) add(id, info && info.name);
+      }
+    }
+  } catch (_) {}
+
+  try {
+    if (typeof itemCache !== 'undefined' && Array.isArray(itemCache)) {
+      for (const info of itemCache) add(info && (info.id || info.itemId), info && info.name);
+    }
+  } catch (_) {}
+
+  itemIdByExactNameIndex = index;
+  return index;
+}
+
+function invalidateItemIdByExactNameIndex() {
+  itemIdByExactNameIndex = null;
+}
+
+function debugItemNameIndexSize() {
+  const index = itemIdByExactNameIndex || buildItemIdByExactNameIndex();
+  log(`[Debug] Exact item-name index size: ${index.size.toLocaleString()} entries.`);
+  return index.size;
+}
+
+function findItemIdByExactName(name) {
+  const key = normalizeExactItemNameKey(name);
+  if (!key) return null;
+
+  const index = itemIdByExactNameIndex || buildItemIdByExactNameIndex();
+  const indexed = index.get(key);
+  if (indexed) return indexed;
+
+  let found = null;
+
+  try {
+    if (itemInfo instanceof Map) {
+      for (const [id, info] of itemInfo.entries()) {
+        if (normalizeExactItemNameKey(info && info.name) === key) {
+          found = Number(id);
+          break;
+        }
+      }
+    } else if (itemInfo && typeof itemInfo === 'object') {
+      for (const [id, info] of Object.entries(itemInfo)) {
+        if (normalizeExactItemNameKey(info && info.name) === key) {
+          found = Number(id);
+          break;
+        }
+      }
+    }
+  } catch (_) {}
+
+  if (!found) {
+    try {
+      if (typeof itemCache !== 'undefined' && Array.isArray(itemCache)) {
+        const match = itemCache.find(info => normalizeExactItemNameKey(info && info.name) === key);
+        if (match) found = Number(match.id || match.itemId);
+      }
+    } catch (_) {}
+  }
+
+  if (found) {
+    if (itemIdByExactNameIndex) itemIdByExactNameIndex.set(key, found);
+    return found;
+  }
+
+  return null;
 }
 
 function getVendorBarterSourceForItem(itemId) {
