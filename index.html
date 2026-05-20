@@ -1021,7 +1021,7 @@ body.research-mode .research-only {
   display: flex;
   flex-wrap: wrap;
   align-items: center;
-  gap: 14px 18px;
+  gap: 14px 9px;
 }
 
 #filterPanel .filter-group {
@@ -1063,7 +1063,7 @@ body.research-mode #filterPanel .research-only {
   display: flex;
   flex-wrap: wrap;
   align-items: center;
-  gap: 14px 18px;
+  gap: 14px 9px;
 }
 
 #profitFilterPanel .filter-group,
@@ -1081,20 +1081,32 @@ body.research-mode #filterPanel .research-only {
 
 #profitFilterPanel .search-group input,
 #researchFilterPanel .search-group input {
-  min-width: 300px;
+  width: 220px;
+  min-width: 220px;
 }
 
 #researchFilterPanel .value-group select {
-  min-width: 260px;
+  width: auto;
+  min-width: 150px;
+  max-width: 220px;
 }
 
+#profitFilterPanel .profit-value-group select {
+  width: auto;
+  min-width: auto;
+  max-width: 160px;
+}
+
+#profitFilterPanel .recipe-unlock-group select,
 #researchFilterPanel .recipe-unlock-group select {
-  min-width: 230px;
+  width: auto;
+  min-width: 145px;
+  max-width: 220px;
 }
 
 .recipe-lock-indicator {
   margin-left: 6px;
-  color: var(--warn);
+  color: #2DE2E6;
   font-weight: 700;
 }
 
@@ -1110,7 +1122,7 @@ body.research-mode #filterPanel .research-only {
 
 #profitFilterPanel .qty-group input,
 #researchFilterPanel .qty-group input {
-  width: 90px;
+  width: 69px;
 }
 
 #profitFilterPanel .profit-filter-group input {
@@ -1639,6 +1651,13 @@ td { padding-left: 6px; padding-right: 6px; }
         <input id="searchBox" type="text" placeholder="item, material, recipe...">
         <button type="button" class="mini-search-btn" onclick="applySearchFilter('searchBox')">Apply</button>
         <button type="button" class="mini-search-btn muted" onclick="clearSearchFilter('searchBox')">Clear</button>
+      </div>
+
+      <div class="filter-group recipe-unlock-group profit-only">
+        <label for="profitRecipeUnlockSourceSelect">RECIPE UNLOCK SOURCE</label>
+        <select id="profitRecipeUnlockSourceSelect" onchange="setRecipeUnlockSource(this.value)">
+          <option value="disabled" selected>Disabled</option>
+        </select>
       </div>
 
       <div class="filter-group profit-value-group profit-only">
@@ -4528,28 +4547,30 @@ function recipeUnlockAccountLabel(accountId) {
 }
 
 function updateRecipeUnlockSourceOptions() {
-  const select = document.getElementById('recipeUnlockSourceSelect');
-  if (!select) return;
+  const selects = [
+    document.getElementById('recipeUnlockSourceSelect'),
+    document.getElementById('profitRecipeUnlockSourceSelect')
+  ].filter(Boolean);
+  if (!selects.length) return;
 
-  const previous = selectedRecipeUnlockSource || select.value || 'disabled';
+  const previous = selectedRecipeUnlockSource || selects.find(sel => sel.value)?.value || 'disabled';
   const entries = Object.entries(ownedRecipesByAccount || {})
     .map(([id, data]) => [id, normalizeOwnedRecipeData(data)])
     .filter(([, data]) => Array.isArray(data?.recipeIds) && data.recipeIds.length)
     .sort((a, b) => String(a[1].label || a[0]).localeCompare(String(b[1].label || b[0])));
 
-  select.innerHTML = '<option value="disabled">Disabled</option>' + entries.map(([id, data]) => {
+  const html = '<option value="disabled">Disabled</option>' + entries.map(([id, data]) => {
     const label = data.label || recipeUnlockAccountLabel(id);
     const count = Number(data.count || data.recipeIds.length || 0).toLocaleString();
     return `<option value="${escapeHtml(id)}">${escapeHtml(label)} (${count})</option>`;
   }).join('');
 
-  if (previous !== 'disabled' && ownedRecipesByAccount?.[previous]) {
-    select.value = previous;
-    selectedRecipeUnlockSource = previous;
-  } else {
-    select.value = 'disabled';
-    selectedRecipeUnlockSource = 'disabled';
-  }
+  const nextValue = (previous !== 'disabled' && ownedRecipesByAccount?.[previous]) ? previous : 'disabled';
+  selectedRecipeUnlockSource = nextValue;
+  selects.forEach(select => {
+    select.innerHTML = html;
+    select.value = nextValue;
+  });
 }
 
 function getSelectedRecipeUnlockData() {
@@ -4662,19 +4683,22 @@ function renderRecipeIdCell(recipeId) {
     return `<span class="craft-replacement-source recipe-id-unlock-source">${idText}<span class="recipe-lock-indicator">?</span><span class="craft-replacement-tooltip"><span class="craft-replacement-tooltip-line">Recipe unlocks not loaded for selected account.</span></span></span>`;
   }
 
-  const label = escapeHtml(data.label || recipeUnlockAccountLabel(selectedRecipeUnlockSource));
-  if (isRecipeUnlockedForSelectedSource(recipeId)) {
-    return `<span class="craft-replacement-source recipe-id-unlock-source">${idText}<span class="craft-replacement-tooltip"><span class="craft-replacement-tooltip-line">Recipe Unlocked</span><span class="craft-replacement-tooltip-line">Unlocked on ${label}.</span></span></span>`;
-  }
+  if (isRecipeUnlockedForSelectedSource(recipeId)) return idText;
 
+  const label = escapeHtml(data.label || recipeUnlockAccountLabel(selectedRecipeUnlockSource));
   return `<span class="craft-replacement-source recipe-id-unlock-source">${idText}<span class="recipe-lock-indicator">⚠</span><span class="craft-replacement-tooltip"><span class="craft-replacement-tooltip-line">Recipe Not Unlocked</span><span class="craft-replacement-tooltip-line">Not unlocked on ${label}.</span></span></span>`;
 }
 
 function setRecipeUnlockSource(value) {
   recipeUnlockDebugMissCount = 0;
   selectedRecipeUnlockSource = value || 'disabled';
-  const select = document.getElementById('recipeUnlockSourceSelect');
-  if (select && select.value !== selectedRecipeUnlockSource) select.value = selectedRecipeUnlockSource;
+  const selects = [
+    document.getElementById('recipeUnlockSourceSelect'),
+    document.getElementById('profitRecipeUnlockSourceSelect')
+  ].filter(Boolean);
+  selects.forEach(select => {
+    if (select.value !== selectedRecipeUnlockSource) select.value = selectedRecipeUnlockSource;
+  });
   resetRenderLimitAndRender();
 }
 
@@ -11621,7 +11645,7 @@ function render() {
       <td>${renderOutputItemLink(o.outputItemId, o)}</td>
       <td><span class="rarity-label rarity-${escapeHtml(o.rarity || itemRarity(o.outputItemId))}">${escapeHtml(o.rarity || itemRarity(o.outputItemId))}</span></td>
       <td>${renderDisciplines(o.disciplines)}</td>
-      <td class="num">${o.recipeId}</td>
+      <td class="num">${renderRecipeIdCell(o.recipeId)}</td>
       <td class="num">${o.canCraftQty}</td>
       <td class="num">${o.profitableDepthQty}</td>
       <td class="num good">${o.recommendedCraftQty}</td>
