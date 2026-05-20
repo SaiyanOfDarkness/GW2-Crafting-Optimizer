@@ -1917,6 +1917,14 @@ const RECIPE_SEARCH_CONCURRENCY = 5;
 let accounts = [];
 let ownedMaterials = new Map();
 let ownedBreakdown = new Map();
+let OWNED_SCAN_DEBUG = false;
+let lastOwnedScanStats = null;
+function ownedScanDebugLog(msg) {
+  if (!OWNED_SCAN_DEBUG) return;
+  log(`[OwnedScan] ${msg}`);
+}
+window.enableOwnedScanDebugLogs = function() { OWNED_SCAN_DEBUG = true; log('[OwnedScan] debug enabled'); };
+window.disableOwnedScanDebugLogs = function() { OWNED_SCAN_DEBUG = false; log('[OwnedScan] debug disabled'); };
 let itemInfo = new Map();
 let currencyInfo = new Map();
 
@@ -4216,10 +4224,14 @@ async function clearAccounts() {
   setStatus('Saved API keys cleared.');
 }
 
-function addOwnedMaterial(itemId, count, accountLabel, source) {
-  if (!itemId || !count) return;
+function addOwnedMaterial(itemId, count, accountLabel, source, stats = null) {
   itemId = Number(itemId);
   count = Number(count);
+  if (!itemId || !Number.isFinite(itemId) || !Number.isFinite(count) || count <= 0) {
+    if (stats) stats.skippedZeroOrInvalid = (stats.skippedZeroOrInvalid || 0) + 1;
+    return false;
+  }
+  const wasNew = !ownedMaterials.has(itemId);
   ownedMaterials.set(itemId, (ownedMaterials.get(itemId) || 0) + count);
   const detail = ownedBreakdown.get(itemId) || { total: 0, accounts: {} };
   detail.total += count;
@@ -4228,6 +4240,17 @@ function addOwnedMaterial(itemId, count, accountLabel, source) {
   if (typeof detail.accounts[key][source] !== 'number') detail.accounts[key][source] = 0;
   detail.accounts[key][source] += count;
   ownedBreakdown.set(itemId, detail);
+  if (stats) {
+    stats.addedStacks = (stats.addedStacks || 0) + 1;
+    stats.addedQuantity = (stats.addedQuantity || 0) + count;
+    if (wasNew) stats.addedUnique = (stats.addedUnique || 0) + 1;
+    if (!stats.sources) stats.sources = {};
+    if (!stats.sources[source]) stats.sources[source] = { stacks: 0, qty: 0, unique: 0 };
+    stats.sources[source].stacks++;
+    stats.sources[source].qty += count;
+    if (wasNew) stats.sources[source].unique++;
+  }
+  return true;
 }
 
 async function loadOwnedMaterials() {
@@ -4245,19 +4268,38 @@ async function loadOwnedMaterials() {
 
   ownedMaterials.clear();
   ownedBreakdown.clear();
+  invalidateProfitDisplayRowCache('ownedMaterialsReload');
+  const ownedScanStats = {
+    accounts: {},
+    accountCount: active.length,
+    materialIdCount: materialIdSet.size,
+    recipeIngredientIdCount: recipeIngredientIdSet.size,
+    startedAt: new Date().toISOString(),
+    addedStacks: 0, addedQuantity: 0, addedUnique: 0, skippedZeroOrInvalid: 0, slotsSeen: 0, emptySlots: 0, filteredSlots: 0, sources: {}
+  };
+  lastOwnedScanStats = ownedScanStats;
   setStatus(`Loading owned materials across ${active.length} account(s)...`);
+  ownedScanDebugLog(`tracking ${materialIdSet.size.toLocaleString()} material-storage IDs and ${recipeIngredientIdSet.size.toLocaleString()} recipe ingredient IDs.`);
 
   await promisePool(active, ACCOUNT_CONCURRENCY, async (acc, accountIndex) => {
     const label = acc.label || `Account ${accountIndex + 1}`;
     const token = encodeURIComponent(acc.key.trim());
+    const accountStats = { label, materialStorageReturned: 0, materialStorageNonZero: 0, bankSlots: 0, sharedInventorySlots: 0, characterCount: 0, characterSlots: 0, errors: [] };
+    ownedScanStats.accounts[label] = accountStats;
 
     log(`Loading material storage: ${label}`);
 
     try {
       const mats = await fetchJson(`${API}/account/materials?access_token=${token}`);
-      for (const m of mats) addOwnedMaterial(m.id, m.count, label, 'materialStorage');
+      accountStats.materialStorageReturned = Array.isArray(mats) ? mats.length : 0;
+      for (const m of mats || []) {
+        if (Number(m?.count || 0) > 0) accountStats.materialStorageNonZero++;
+        addOwnedMaterial(m.id, m.count, label, 'materialStorage', ownedScanStats);
+      }
+      ownedScanDebugLog(`${label}: material storage returned ${accountStats.materialStorageReturned.toLocaleString()} entries, ${accountStats.materialStorageNonZero.toLocaleString()} non-zero.`);
     } catch (e) {
       console.warn('Material storage failed', label, e);
+      accountStats.errors.push(`materialStorage: ${e.message}`);
       log(`Material storage failed for ${label}: ${e.message}`);
     }
 
@@ -4265,9 +4307,12 @@ async function loadOwnedMaterials() {
 
     try {
       const bank = await fetchJson(`${API}/account/bank?access_token=${token}`);
-      scanItemListForMaterials(bank, label, 'bank');
+      accountStats.bankSlots = Array.isArray(bank) ? bank.length : 0;
+      scanItemListForMaterials(bank, label, 'bank', ownedScanStats);
+      ownedScanDebugLog(`${label}: bank slots scanned ${accountStats.bankSlots.toLocaleString()}.`);
     } catch (e) {
       console.warn('Bank failed', label, e);
+      accountStats.errors.push(`bank: ${e.message}`);
       log(`Bank failed for ${label}: ${e.message}`);
     }
 
@@ -4275,17 +4320,22 @@ async function loadOwnedMaterials() {
 
     try {
       const sharedInventory = await fetchJson(`${API}/account/inventory?access_token=${token}`);
-      scanItemListForMaterials(sharedInventory, label, 'sharedInventory');
+      accountStats.sharedInventorySlots = Array.isArray(sharedInventory) ? sharedInventory.length : 0;
+      scanItemListForMaterials(sharedInventory, label, 'sharedInventory', ownedScanStats);
+      ownedScanDebugLog(`${label}: shared inventory slots scanned ${accountStats.sharedInventorySlots.toLocaleString()}.`);
     } catch (e) {
       console.warn('Shared inventory failed', label, e);
+      accountStats.errors.push(`sharedInventory: ${e.message}`);
       log(`Shared inventory failed for ${label}: ${e.message}`);
     }
 
     let chars = [];
     try {
       chars = await fetchJson(`${API}/characters?access_token=${token}`);
+      accountStats.characterCount = Array.isArray(chars) ? chars.length : 0;
     } catch (e) {
       console.warn('Character list failed', label, e);
+      accountStats.errors.push(`characters: ${e.message}`);
       log(`Character list failed for ${label}: ${e.message}`);
     }
 
@@ -4297,16 +4347,28 @@ async function loadOwnedMaterials() {
       log(`Scanning character ${charIndex + 1}/${chars.length}: ${label} / ${charName}`);
       try {
         const inv = await fetchJson(`${API}/characters/${encodeURIComponent(charName)}/inventory?access_token=${token}`);
-        scanInventoryForMaterials(inv, label);
+        let charSlots = 0;
+        for (const bag of inv?.bags || []) if (bag && Array.isArray(bag.inventory)) charSlots += bag.inventory.length;
+        accountStats.characterSlots += charSlots;
+        scanInventoryForMaterials(inv, label, ownedScanStats);
       } catch (e) {
         console.warn('Character inventory failed', label, charName, e);
+        accountStats.errors.push(`character ${charName}: ${e.message}`);
       }
       await sleep(40);
     });
   });
 
+  ownedScanStats.finishedAt = new Date().toISOString();
+  ownedScanStats.finalUniqueIds = ownedMaterials.size;
+  ownedScanStats.breakdownIds = ownedBreakdown.size;
   await fetchItemDetails([...ownedMaterials.keys()]);
   await saveDataCache();
+  const sourceSummary = Object.entries(ownedScanStats.sources || {}).map(([k, v]) => `${k}: ${Number(v.unique || 0).toLocaleString()} unique / ${Number(v.qty || 0).toLocaleString()} qty`).join('; ');
+  log(`[OwnedScan] Complete: ${ownedMaterials.size.toLocaleString()} unique owned item ID(s), ${Number(ownedScanStats.addedQuantity || 0).toLocaleString()} total quantity. ${sourceSummary || 'No sources added any non-zero tracked items.'}`);
+  if (!ownedMaterials.size) {
+    log(`[OwnedScan] WARNING: zero owned items loaded. Endpoint/scan stats: ${JSON.stringify(ownedScanStats)}`);
+  }
   setStatus(`Loaded owned materials/recipe ingredients: ${ownedMaterials.size} unique item IDs across ${active.length} account(s).`);
 }
 
@@ -4478,6 +4540,8 @@ async function loadOwnedRecipes() {
   await promisePool(active, ACCOUNT_CONCURRENCY, async (acc, accountIndex) => {
     const label = acc.label || `Account ${accountIndex + 1}`;
     const token = encodeURIComponent(acc.key.trim());
+    const accountStats = { label, materialStorageReturned: 0, materialStorageNonZero: 0, bankSlots: 0, sharedInventorySlots: 0, characterCount: 0, characterSlots: 0, errors: [] };
+    ownedScanStats.accounts[label] = accountStats;
     log(`Loading unlocked recipes: ${label}`);
 
     try {
@@ -4575,19 +4639,27 @@ function shouldTrackOwnedInventorySlot(slot) {
   return false;
 }
 
-function scanItemListForMaterials(items, accountLabel, source) {
+function scanItemListForMaterials(items, accountLabel, source, stats = null) {
   if (!Array.isArray(items)) return;
   for (const slot of items) {
-    if (!shouldTrackOwnedInventorySlot(slot)) continue;
-    addOwnedMaterial(slot.id, Number(slot.count || slot.charges || 1), accountLabel, source);
+    if (stats) stats.slotsSeen = (stats.slotsSeen || 0) + 1;
+    if (!slot || !slot.id) {
+      if (stats) stats.emptySlots = (stats.emptySlots || 0) + 1;
+      continue;
+    }
+    if (!shouldTrackOwnedInventorySlot(slot)) {
+      if (stats) stats.filteredSlots = (stats.filteredSlots || 0) + 1;
+      continue;
+    }
+    addOwnedMaterial(slot.id, Number(slot.count || slot.charges || 1), accountLabel, source, stats);
   }
 }
 
-function scanInventoryForMaterials(inv, accountLabel) {
+function scanInventoryForMaterials(inv, accountLabel, stats = null) {
   if (!inv || !Array.isArray(inv.bags)) return;
   for (const bag of inv.bags) {
     if (!bag || !Array.isArray(bag.inventory)) continue;
-    scanItemListForMaterials(bag.inventory, accountLabel, 'characters');
+    scanItemListForMaterials(bag.inventory, accountLabel, 'characters', stats);
   }
 }
 
@@ -6910,6 +6982,24 @@ function priceRequirementMap(reqMap) {
 
 
 
+function debugOwnedMaterialsState() {
+  const top = [...ownedMaterials.entries()]
+    .sort((a, b) => Number(b[1] || 0) - Number(a[1] || 0))
+    .slice(0, 25)
+    .map(([id, count]) => ({ id: Number(id), name: itemName(Number(id)), count: Number(count || 0), breakdown: ownedBreakdown.get(Number(id)) || null }));
+  const out = {
+    ownedMaterialIds: ownedMaterials.size,
+    ownedBreakdownIds: ownedBreakdown.size,
+    materialIdCount: materialIdSet.size,
+    recipeIngredientIdCount: recipeIngredientIdSet.size,
+    lastOwnedScanStats,
+    top
+  };
+  log(`[Debug] Owned materials state: ${JSON.stringify(out)}`);
+  return out;
+}
+window.debugOwnedMaterialsState = debugOwnedMaterialsState;
+
 function debugProfitIngredientAvailability(recipeId) {
   const row = (opportunities || []).find(r => Number(r.recipeId) === Number(recipeId));
   if (!row) {
@@ -7688,7 +7778,8 @@ function evaluateNestedRequirements(flat, outputCount, originalRecipe = null, re
       valueSource = materialUnit.source || (researchModes && researchMaterialValueMode === 'buy' ? "TP Buy" : "TP Sell");
     }
 
-    if (!vendorSource) {
+    const vendorLimitsCanMake = tableMode === 'profit';
+    if (!vendorSource || vendorLimitsCanMake) {
       if (owned < count) missingOwned = true;
       canCraftQty = Math.min(canCraftQty, Math.floor(owned / count));
     }
@@ -10036,30 +10127,26 @@ async function buildOpportunities() {
   await ensureWikiVendorSourcesForIngredientIds(collectOwnedRecipeIngredientIds(), 'Profit Mode ingredient');
 
   for (const recipe of recipeCache) {
-    let canCraftQty = Infinity;
-    let materialValue = 0;
-    let missingOwned = false;
-    let missingMaterialPrice = false;
+    const flat = (typeof flattenRecipeIngredients === 'function')
+      ? flattenRecipeIngredients(recipe, activeProfitRecipeIndexForValuation)
+      : { ok: true, requirements: new Map((recipe.ingredients || []).map(ing => [Number(ing.itemId), Number(ing.count || 0)])), steps: [] };
 
-    for (const ing of recipe.ingredients) {
-      const owned = ownedMaterials.get(ing.itemId) || 0;
-      if (owned < ing.count) {
-        missingOwned = true;
-        break;
-      }
-      canCraftQty = Math.min(canCraftQty, Math.floor(owned / ing.count));
-      // Profit Mode's Material Sell Value should only include owned materials
-      // that can actually be sold on the Trading Post. Vendor/account-bound
-      // values remain display metadata, not opportunity cost.
-      materialValue = addOwnedMaterialTpSellValue(materialValue, ing.itemId, ing.count);
-    }
+    if (!flat || !flat.ok || !flat.requirements || !flat.requirements.size) continue;
 
-    const baselineCanCraftQty = Number.isFinite(canCraftQty) ? Math.max(0, Math.floor(Number(canCraftQty || 0))) : 0;
-    const smartCanCraftQty = getSmartCanCraftQtyWithOwnedIntermediates(recipe, activeProfitRecipeIndexForValuation, baselineCanCraftQty);
-    if (Number.isFinite(Number(smartCanCraftQty))) {
-      canCraftQty = Math.max(baselineCanCraftQty, Math.floor(Number(smartCanCraftQty) || 0));
-      if (canCraftQty > 0) missingOwned = false;
-    }
+    // Normal Profit Mode now displays and evaluates the actual owned-material path.
+    // If an intermediate like Intricate Sunstone Jewel must be crafted, the row should
+    // be gated by and display its base ingredients (Jug of Water, Sunstone Nugget,
+    // Silver Filigree, etc.), not pretend that the missing intermediate is free.
+    const expandedFlat = (typeof expandRequirementsUsingOwnedCrafting === 'function')
+      ? expandRequirementsUsingOwnedCrafting(flat, activeProfitRecipeIndexForValuation)
+      : flat;
+
+    const evald = evaluateNestedRequirements(expandedFlat, recipe.outputCount || 1);
+    let canCraftQty = Math.max(0, Math.floor(Number(evald.canCraftQty || 0)) || 0);
+    const baselineCanCraftQty = Math.max(0, Math.floor(Number(evald.baselineCanCraftQty || canCraftQty || 0)) || 0);
+    const materialValue = Number(evald.materialValue || 0);
+    const missingOwned = !!evald.missingOwned;
+    const missingMaterialPrice = !!evald.missingMaterialPrice;
 
     if (missingOwned || !Number.isFinite(canCraftQty) || canCraftQty <= 0) continue;
     if (missingMaterialPrice) continue;
@@ -10109,19 +10196,8 @@ async function buildOpportunities() {
       extraProfitEach: depthExtraProfitEachCraft,
       extraProfitTotal,
       roi,
-      ingredients: recipe.ingredients.map(ing => {
-        const materialUnit = getMaterialValueUnitForIngredient(ing.itemId);
-        return {
-          ...ing,
-          owned: ownedMaterials.get(ing.itemId) || 0,
-          unitSell: prices.get(ing.itemId)?.sell ?? null,
-          unitValue: materialUnit.value,
-          valueSource: materialUnit.source,
-          vendorSource: materialUnit.vendorSource,
-          vendorBarterCost: materialUnit.vendorBarterCost,
-          vendorBarterCost: materialUnit.vendorBarterCost
-        };
-      })
+      nestedSteps: [...(flat.steps || []), ...(expandedFlat.steps || [])],
+      ingredients: evald.ingredients
     });
   }
 
@@ -11369,6 +11445,8 @@ function setupFilterControls() {
 
 setupTableSorting();
 setupFilterControls();
+window.debugOwnedInventoryItem = debugOwnedInventoryItem;
+window.debugProfitOwnedMaterialCount = debugProfitOwnedMaterialCount;
 
 (async function init() {
   await loadAccounts();
