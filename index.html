@@ -1763,12 +1763,14 @@ function disablePartialDebugLogs() {
   log('[Debug] Partial/cache debug logs disabled.');
 }
 function enableAllDebugLogs() {
+  window.DEBUG_PROFIT_NESTED = true;
   window.DEBUG_SORT = true;
   window.DEBUG_RESEARCH_PERF = true;
   window.DEBUG_PARTIAL_DEBUG = true;
   log('[Debug] All optional debug logs enabled until page refresh.');
 }
 function disableAllDebugLogs() {
+  window.DEBUG_PROFIT_NESTED = false;
   window.DEBUG_SORT = false;
   window.DEBUG_RESEARCH_PERF = false;
   window.DEBUG_PARTIAL_DEBUG = false;
@@ -1794,6 +1796,21 @@ function sortDebugLog(message) {
   if (!window.DEBUG_SORT) return;
   log(String(message || ''));
 }
+
+window.DEBUG_PROFIT_NESTED = false;
+function enableProfitNestedDebugLogs() {
+  window.DEBUG_PROFIT_NESTED = true;
+  log('[Debug] Profit nested/craft-chain debug logs enabled until page refresh.');
+}
+function disableProfitNestedDebugLogs() {
+  window.DEBUG_PROFIT_NESTED = false;
+  log('[Debug] Profit nested/craft-chain debug logs disabled.');
+}
+function profitNestedDebugLog(message) {
+  if (!window.DEBUG_PROFIT_NESTED) return;
+  log(String(message || ''));
+}
+
 
 
 function researchPerfLog(message) {
@@ -6321,6 +6338,9 @@ function getCraftReplacementCostForMode(itemId, count = 1, mode = null, recipeIn
   if (!recipe || !Array.isArray(recipe.ingredients) || !recipe.ingredients.length) {
     return isBoundOrNoTp ? 0 : null;
   }
+  if (shouldRejectNestedProfitSubRecipe(itemId, recipe)) {
+    return isBoundOrNoTp ? 0 : null;
+  }
 
   if (path.has(itemId)) return isBoundOrNoTp ? 0 : null;
 
@@ -6553,9 +6573,27 @@ function recipeOutputCount(recipe) {
   return Math.max(1, Number(recipe?.outputCount || recipe?.output_item_count || 1));
 }
 
+
+function shouldRejectNestedProfitSubRecipe(itemId, subRecipe) {
+  if (!subRecipe) return true;
+
+  if (typeof isAllowedOwnedIntermediateCraftabilityRecipe === 'function' && !isAllowedOwnedIntermediateCraftabilityRecipe(itemId, subRecipe)) {
+    profitNestedDebugLog(`[ProfitNested] rejected ${itemName(itemId)} sub-recipe ${subRecipe.recipeId || subRecipe.id || ''}: blocked by owned-intermediate guard.`);
+    return true;
+  }
+
+  if (typeof shouldRejectOwnedIntermediateContributorRecipe === 'function' && shouldRejectOwnedIntermediateContributorRecipe(subRecipe, itemId)) {
+    profitNestedDebugLog(`[ProfitNested] rejected ${itemName(itemId)} sub-recipe ${subRecipe.recipeId || subRecipe.id || ''}: blocked by contributor/economic guard.`);
+    return true;
+  }
+
+  return false;
+}
+
 function getBestRecipeForOwnedExpansion(itemId, recipeIndex) {
   const recipe = recipeIndex.get(Number(itemId));
   if (!recipe || !Array.isArray(recipe.ingredients) || !recipe.ingredients.length) return null;
+  if (shouldRejectNestedProfitSubRecipe(Number(itemId), recipe)) return null;
   return recipe;
 }
 
@@ -6808,7 +6846,7 @@ function flattenRecipeIngredients(recipe, recipeIndex, path = new Set(), depth =
     }
 
     // If we do not own enough and the ingredient has its own recipe, expand it.
-    if (subRecipe && !path.has(ingId)) {
+    if (subRecipe && !path.has(ingId) && !shouldRejectNestedProfitSubRecipe(ingId, subRecipe)) {
       const outputCount = Math.max(1, Number(subRecipe.outputCount || 1));
       const batchesNeeded = Math.ceil(need / outputCount);
       const child = flattenRecipeIngredients(subRecipe, recipeIndex, new Set(path), depth + 1);
