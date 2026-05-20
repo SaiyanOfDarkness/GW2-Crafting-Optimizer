@@ -6889,6 +6889,26 @@ function priceRequirementMap(reqMap) {
 
 
 
+
+function debugProfitIngredientAvailability(recipeId) {
+  const row = (opportunities || []).find(r => Number(r.recipeId) === Number(recipeId));
+  if (!row) {
+    log(`[Debug] Profit ingredient availability: recipe ${recipeId} not found.`);
+    return null;
+  }
+  const display = getProfitDisplayRow(row);
+  const data = (display.ingredients || []).map(ing => ({
+    itemId: Number(ing.itemId),
+    name: itemName(Number(ing.itemId)),
+    count: Number(ing.count || 0),
+    owned: Number(ing.owned || 0),
+    craftableFromOwned: !!ing.craftableFromOwned,
+    valueSource: ing.valueSource || ''
+  }));
+  log(`[Debug] Profit ingredient availability ${recipeId}: ${data.map(d => `${d.name} x${d.count} owned=${d.owned}${d.craftableFromOwned ? ' craftable' : ''}`).join(' | ')}`);
+  return data;
+}
+
 function debugOwnedInventoryItem(name) {
   if (!recipeIngredientIdSet || !recipeIngredientIdSet.size) rebuildRecipeIngredientIdSet();
   const id = findItemIdByExactName(name);
@@ -7768,6 +7788,35 @@ function getProfitMaterialValueForMode(o, mode) {
 }
 
 
+
+function annotateProfitIngredientCraftableAvailability(ing, mode) {
+  const itemId = Number(ing && ing.itemId || 0);
+  const count = Number(ing && ing.count || 0);
+  if (!itemId || count <= 0) return ing;
+
+  const directOwned = Number(ownedMaterials.get(itemId) || 0);
+  ing.owned = directOwned;
+
+  if (directOwned >= count) return ing;
+
+  const recipeIndex = activeProfitRecipeIndexForValuation;
+  if (!recipeIndex || typeof buildCheapestOwnedPlan !== 'function') return ing;
+
+  const subRecipe = recipeIndex.get(itemId);
+  if (!subRecipe || !Array.isArray(subRecipe.ingredients) || !subRecipe.ingredients.length) return ing;
+
+  if (typeof shouldRejectNestedProfitSubRecipe === 'function' && shouldRejectNestedProfitSubRecipe(itemId, subRecipe)) return ing;
+
+  const plan = buildCheapestOwnedPlan(itemId, count, recipeIndex);
+  if (!plan || !plan.canSatisfy) return ing;
+
+  ing.craftableFromOwned = true;
+  ing.craftableOwnedCount = count;
+  ing.valueSource = ing.valueSource || 'Craftable';
+  ing.valueSourceHtml = craftReplacementTooltipHtml(itemId, count, mode, recipeIndex) || '';
+  return ing;
+}
+
 function getProfitDisplayIngredientsForMode(o, mode) {
   return ((o && o.ingredients) || []).map(raw => {
     const ing = Object.assign({}, raw || {});
@@ -7782,7 +7831,7 @@ function getProfitDisplayIngredientsForMode(o, mode) {
         ing.valueSource = 'Charge';
         ing.accountBoundValueIgnored = false;
       }
-      return ing;
+      return annotateProfitIngredientCraftableAvailability(ing, mode);
     }
 
     if (isExcludedCraftReplacementMaterial(itemId)) {
@@ -7791,7 +7840,7 @@ function getProfitDisplayIngredientsForMode(o, mode) {
       ing.valueSource = 'Account Bound';
       ing.valueSourceHtml = '';
       ing.accountBoundValueIgnored = true;
-      return ing;
+      return annotateProfitIngredientCraftableAvailability(ing, mode);
     }
 
     const replacementUnit = getCraftReplacementUnitForAccountBoundIngredient(itemId, mode, activeProfitRecipeIndexForValuation);
@@ -7801,7 +7850,7 @@ function getProfitDisplayIngredientsForMode(o, mode) {
       ing.valueSource = 'Craft replacement';
       ing.valueSourceHtml = craftReplacementTooltipHtml(itemId, Number(ing.count || 1), mode, activeProfitRecipeIndexForValuation);
       ing.accountBoundValueIgnored = false;
-      return ing;
+      return annotateProfitIngredientCraftableAvailability(ing, mode);
     }
 
     const vendorSource = ing.vendorSource || getVendorBulkSourceForIngredient(itemId);
@@ -7812,7 +7861,7 @@ function getProfitDisplayIngredientsForMode(o, mode) {
         ing.unitSell = Number(materialUnit.value);
         ing.valueSource = materialUnit.source || ing.valueSource || 'Vendor';
       }
-      return ing;
+      return annotateProfitIngredientCraftableAvailability(ing, mode);
     }
 
     const tpInfo = getTpUnitValueInfoForProfitMode(itemId, mode);
@@ -7823,7 +7872,7 @@ function getProfitDisplayIngredientsForMode(o, mode) {
       ing.accountBoundValueIgnored = false;
     }
 
-    return ing;
+    return annotateProfitIngredientCraftableAvailability(ing, mode);
   });
 }
 
@@ -10506,13 +10555,22 @@ function renderVendorCostLabelForIngredient(ing, wikiVendorCost = null) {
 }
 
 
+
+function ingredientAvailabilityText(ing) {
+  const owned = Number(ing && ing.owned || 0);
+  if (ing && ing.craftableFromOwned) {
+    return `Owned ${owned.toLocaleString()} / Craftable`;
+  }
+  return `Owned ${owned.toLocaleString()}`;
+}
+
 function renderIngredients(ingredients) {
   if (!ingredients || !ingredients.length) return '<span class="muted">none</span>';
 
   const chipsHtml = ingredients.map(rawIng => {
     const ing = getDisplayIngredientWithVendorPriority(rawIng);
     const count = Number(ing.count || 0).toLocaleString();
-    const ownedText = `Owned ${Number(ing.owned || 0).toLocaleString()}`;
+    const ownedText = ingredientAvailabilityText(ing);
 
     if (ing.vendorSource && !/^TP\s+(?:Sell|Buy)\b/i.test(String(ing.valueSource || ''))) {
       return `<span class="ingredient-chip">${renderItemLink(ing.itemId)} <span class="muted">x ${count} / ${ownedText} | ${renderVendorSourceHtml(ing.vendorSource, ing.itemId)}</span></span>`;
