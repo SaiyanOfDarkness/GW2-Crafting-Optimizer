@@ -4514,7 +4514,7 @@ function rebuildRecipeIngredientIdSet() {
   const ids = new Set();
   for (const recipe of recipeCache || []) {
     for (const ing of recipe.ingredients || []) {
-      const id = Number(ing.itemId || ing.item_id || ing.id || 0);
+      const id = Number(ing.itemId || ing.item_id || ing.id || ing.item || 0);
       if (id) ids.add(id);
     }
   }
@@ -6879,6 +6879,7 @@ function priceRequirementMap(reqMap) {
 
 
 function debugOwnedInventoryItem(name) {
+  if (!recipeIngredientIdSet || !recipeIngredientIdSet.size) rebuildRecipeIngredientIdSet();
   const id = findItemIdByExactName(name);
   const owned = id ? Number(ownedMaterials.get(Number(id)) || 0) : 0;
   const tracked = id ? {
@@ -7272,16 +7273,10 @@ function isAllowedOwnedIntermediateCraftabilityRecipe(itemId, subRecipe) {
 }
 
 function isUnlimitedCraftabilityIngredient(itemId) {
-  const __unlimitedCacheKey = typeof itemId === 'object'
-    ? String((itemId && (itemId.id ?? itemId.name)) || '')
-    : String(itemId ?? '');
-  if (__unlimitedCacheKey && unlimitedCraftabilityIngredientCache.has(__unlimitedCacheKey)) return unlimitedCraftabilityIngredientCache.get(__unlimitedCacheKey);
-
-  const vendorSource = getVendorBulkSourceForIngredient(itemId);
-  if (vendorSource) return (__unlimitedCacheKey ? (unlimitedCraftabilityIngredientCache.set(__unlimitedCacheKey, (true)), (true)) : (true));
-  const barterCost = getVendorBarterCost(itemId, 1);
-  if (barterCost && !barterCost.missingPrice) return (__unlimitedCacheKey ? (unlimitedCraftabilityIngredientCache.set(__unlimitedCacheKey, (true)), (true)) : (true));
-  return (__unlimitedCacheKey ? (unlimitedCraftabilityIngredientCache.set(__unlimitedCacheKey, (false)), (false)) : (false));
+  // Profit Can Make is an owned/craftable quantity, not an infinite shopping-list quantity.
+  // Vendor/barter/TP-buyable items still affect material value elsewhere, but they must remain
+  // hard bottlenecks here unless actually owned or truly craftable from owned materials.
+  return false;
 }
 
 function consumeOwnedOrCraftableForCanMake(itemId, neededCount, virtualInventory, recipeIndex, path = new Set(), depth = 0) {
@@ -9735,6 +9730,7 @@ async function buildResearchNoteMode() {
 }
 
 async function buildNestedOpportunities() {
+  if (smartCanMakeScanCache && typeof smartCanMakeScanCache.clear === 'function') smartCanMakeScanCache.clear();
   resetProfitNestedDebugDedupe();
   resetProfitNestedRejectCache();
   setNestedProfitToggleBusy(true);
@@ -9856,6 +9852,7 @@ log('[Nested] Using cached vendor/barter datasets only (live wiki lookup skipped
 }
 
 async function buildOpportunities() {
+  if (smartCanMakeScanCache && typeof smartCanMakeScanCache.clear === 'function') smartCanMakeScanCache.clear();
   tableMode = 'profit';
   profitViewMode = 'normal';
   renderLimit = profitInitialRenderLimit();
