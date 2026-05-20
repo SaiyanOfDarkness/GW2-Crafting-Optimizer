@@ -6836,6 +6836,29 @@ function priceRequirementMap(reqMap) {
 
 
 
+
+function debugProfitNormalCanMakeForRecipeId(recipeId) {
+  const recipe = findRecipeByRecipeId(recipeId);
+  if (!recipe) {
+    log(`[Debug] Profit normal Can Make: recipe ${recipeId} not found.`);
+    return null;
+  }
+  const recipeIndex = activeProfitRecipeIndexForValuation || buildRecipeIndexByOutput();
+  const baseline = (() => {
+    let qty = Infinity;
+    for (const ing of recipe.ingredients || []) {
+      const owned = Number(ownedMaterials.get(Number(ing.itemId)) || 0);
+      const count = Number(ing.count || 0);
+      if (!count) continue;
+      qty = Math.min(qty, Math.floor(owned / count));
+    }
+    return qty === Infinity ? 0 : Math.max(0, Math.floor(qty || 0));
+  })();
+  const smartQty = getSmartCanCraftQtyWithOwnedIntermediates(recipe, recipeIndex, baseline);
+  log(`[Debug] Profit normal Can Make: recipe ${recipeId} ${itemName(recipe.outputItemId)} baseline=${baseline.toLocaleString()} smart=${Number(smartQty || 0).toLocaleString()}`);
+  return { baseline, smartQty };
+}
+
 function debugProfitRowCanMake(recipeId) {
   const row = (opportunities || []).find(r => Number(r.recipeId) === Number(recipeId));
   if (!row) {
@@ -9821,6 +9844,13 @@ async function buildOpportunities() {
       materialValue = addOwnedMaterialTpSellValue(materialValue, ing.itemId, ing.count);
     }
 
+    const baselineCanCraftQty = Number.isFinite(canCraftQty) ? Math.max(0, Math.floor(Number(canCraftQty || 0))) : 0;
+    const smartCanCraftQty = getSmartCanCraftQtyWithOwnedIntermediates(recipe, activeProfitRecipeIndexForValuation, baselineCanCraftQty);
+    if (Number.isFinite(Number(smartCanCraftQty))) {
+      canCraftQty = Math.max(baselineCanCraftQty, Math.floor(Number(smartCanCraftQty) || 0));
+      if (canCraftQty > 0) missingOwned = false;
+    }
+
     if (missingOwned || !Number.isFinite(canCraftQty) || canCraftQty <= 0) continue;
     if (missingMaterialPrice) continue;
 
@@ -9854,6 +9884,8 @@ async function buildOpportunities() {
       recipeId: recipe.recipeId,
       outputCount: recipe.outputCount,
       canCraftQty,
+      baselineCanCraftQty,
+      ownedIntermediateContributors: collectProfitCanMakeContributors(recipe, activeProfitRecipeIndexForValuation),
       profitableDepthQty: depth.profitableDepthQty,
       recommendedCraftQty,
       avgDepthSell: depth.avgDepthSell,
