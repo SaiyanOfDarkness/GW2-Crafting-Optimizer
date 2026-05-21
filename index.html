@@ -4497,35 +4497,40 @@ async function loadOwnedMaterials() {
       log(`Shared inventory failed for ${label}: ${e.message}`);
     }
 
-    let chars = [];
-    try {
-      chars = await fetchJson(`${API}/characters?access_token=${token}`);
-      accountStats.characterCount = Array.isArray(chars) ? chars.length : 0;
-    } catch (e) {
-      console.warn('Character list failed', label, e);
-      accountStats.errors.push(`characters: ${e.message}`);
-      log(`Character list failed for ${label}: ${e.message}`);
+let chars = [];
+try {
+  chars = await fetchJson(`${API}/characters?ids=all&access_token=${token}`);
+  accountStats.characterCount = Array.isArray(chars) ? chars.length : 0;
+} catch (e) {
+  console.warn('Bulk character inventory failed', label, e);
+  accountStats.errors.push(`charactersBulk: ${e.message}`);
+  log(`Bulk character inventory failed for ${label}: ${e.message}`);
+}
+
+if (!chars.length) return;
+
+log(`Scanning ${chars.length} character inventories for ${label} via bulk characters endpoint...`);
+
+for (const [charIndex, char] of chars.entries()) {
+  const charName = char?.name || `Character ${charIndex + 1}`;
+  log(`Scanning character ${charIndex + 1}/${chars.length}: ${label} / ${charName}`);
+
+  let charSlots = 0;
+
+  for (const bag of char?.bags || []) {
+    if (bag && Array.isArray(bag.inventory)) {
+      charSlots += bag.inventory.length;
     }
+  }
 
-    if (!chars.length) return;
+  accountStats.characterSlots += charSlots;
 
-    log(`Scanning ${chars.length} character inventories for ${label}...`);
+  scanInventoryForMaterials(char, label, ownedScanStats);
+}
 
-    await promisePool(chars, CHARACTER_CONCURRENCY, async (charName, charIndex) => {
-      log(`Scanning character ${charIndex + 1}/${chars.length}: ${label} / ${charName}`);
-      try {
-        const inv = await fetchJson(`${API}/characters/${encodeURIComponent(charName)}/inventory?access_token=${token}`);
-        let charSlots = 0;
-        for (const bag of inv?.bags || []) if (bag && Array.isArray(bag.inventory)) charSlots += bag.inventory.length;
-        accountStats.characterSlots += charSlots;
-        scanInventoryForMaterials(inv, label, ownedScanStats);
-      } catch (e) {
-        console.warn('Character inventory failed', label, charName, e);
-        accountStats.errors.push(`character ${charName}: ${e.message}`);
-      }
-      await sleep(40);
-    });
-  });
+ownedScanDebugLog(
+  `${label}: bulk character scan loaded ${accountStats.characterCount.toLocaleString()} character(s), ${accountStats.characterSlots.toLocaleString()} inventory slot(s).`
+);
 
   ownedScanStats.finishedAt = new Date().toISOString();
   ownedScanStats.finalUniqueIds = ownedMaterials.size;
