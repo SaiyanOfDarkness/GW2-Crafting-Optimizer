@@ -11898,6 +11898,109 @@ window.debugProfitOwnedMaterialCount = debugProfitOwnedMaterialCount;
 })();
 
 try { ensureUseOwnedMaterialsResearchControlVisible(); } catch (_) {}
+
+window.debugProfitCanMakeTrace = function(recipeId, targetQty) {
+  recipeId = Number(recipeId || 0);
+  targetQty = Math.max(1, Number(targetQty || 1));
+
+  const recipe = typeof findRecipeByRecipeId === 'function'
+    ? findRecipeByRecipeId(recipeId)
+    : null;
+
+  if (!recipe) {
+    console.warn('[Trace] Recipe not found:', recipeId);
+    return false;
+  }
+
+  const recipeIndex = (typeof activeProfitRecipeIndexForValuation !== 'undefined' &&
+    activeProfitRecipeIndexForValuation &&
+    activeProfitRecipeIndexForValuation.size)
+      ? activeProfitRecipeIndexForValuation
+      : (typeof buildRecipeIndexByOutput === 'function'
+          ? buildRecipeIndexByOutput()
+          : null);
+
+  console.group('[Trace] Profit Can Make Trace');
+  console.log('Recipe:', recipeId, recipe.outputItemName || recipe.name || recipe.outputItemId);
+  console.log('Target Crafts:', targetQty);
+
+  for (const ing of (recipe.ingredients || [])) {
+    const itemId = Number(ing.itemId || ing.item_id || ing.id || 0);
+    const perCraft = Number(ing.count || 0);
+    const required = perCraft * targetQty;
+
+    const owned = typeof ownedCount === 'function'
+      ? Number(ownedCount(itemId) || 0)
+      : 0;
+
+    const missing = Math.max(0, required - owned);
+
+    console.group(itemName(itemId) + ' x ' + required);
+    console.log('Owned Direct:', owned);
+    console.log('Missing After Direct:', missing);
+
+    if (missing <= 0) {
+      console.log('Status: PASS (direct owned)');
+      console.groupEnd();
+      continue;
+    }
+
+    let craftRecipe = null;
+
+    if (recipeIndex && recipeIndex.get) {
+      const candidates = recipeIndex.get(itemId) || [];
+      craftRecipe = candidates[0] || null;
+    }
+
+    console.log('Sub Recipe Found:', !!craftRecipe);
+
+    if (!craftRecipe) {
+      console.warn('BLOCKED: no sub recipe');
+      console.groupEnd();
+      continue;
+    }
+
+    try {
+      const craftCost = typeof getImmediateRecipeOpportunityCost === 'function'
+        ? getImmediateRecipeOpportunityCost(craftRecipe, missing)
+        : null;
+
+      console.log('Craft Cost:', craftCost);
+
+      const outputQty = Math.max(1, Number(craftRecipe.outputCount || 1));
+      const perUnitCraft = craftCost && Number.isFinite(Number(craftCost.total))
+        ? Number(craftCost.total) / (missing * outputQty)
+        : null;
+
+      let replacementValue = null;
+
+      if (typeof getOwnedIntermediateReplacementUnitValue === 'function') {
+        replacementValue = getOwnedIntermediateReplacementUnitValue(itemId);
+      }
+
+      console.log('Craft Unit Value:', perUnitCraft);
+      console.log('Replacement Unit Value:', replacementValue);
+
+      if (
+        perUnitCraft != null &&
+        replacementValue != null &&
+        perUnitCraft > replacementValue
+      ) {
+        console.warn('BLOCKED: economic gate rejected crafting path');
+      } else {
+        console.log('Economic Gate: PASS');
+      }
+    } catch (err) {
+      console.error('Trace error:', err);
+    }
+
+    console.groupEnd();
+  }
+
+  console.groupEnd();
+  return true;
+};
+
 </script>
 </body>
 </html>
