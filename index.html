@@ -7776,7 +7776,7 @@ function consumeOwnedOrCraftableForCanMake(itemId, neededCount, virtualInventory
   nextPath.add(itemId);
 
   for (const ing of subRecipe.ingredients || []) {
-    const ingId = Number(ing.itemId);
+    const ingId = Number(ing.itemId || ing.item_id || ing.id || 0);
     const ingCount = Number(ing.count || 0) * batchesNeeded;
     if (!ingId || ingCount <= 0) continue;
     if (!consumeOwnedOrCraftableForCanMake(ingId, ingCount, virtualInventory, recipeIndex, nextPath, depth + 1)) {
@@ -7799,7 +7799,7 @@ function canCraftRecipeExecutionsWithOwnedIntermediates(recipe, recipeIndex, req
   const virtualInventory = new Map(ownedMaterials);
 
   for (const ing of recipe.ingredients || []) {
-    const ingId = Number(ing.itemId);
+    const ingId = Number(ing.itemId || ing.item_id || ing.id || 0);
     const ingCount = Number(ing.count || 0) * crafts;
     if (!ingId || ingCount <= 0) continue;
     if (!consumeOwnedOrCraftableForCanMake(ingId, ingCount, virtualInventory, recipeIndex, new Set([Number(recipe.outputItemId)]), 0)) {
@@ -8133,24 +8133,21 @@ function evaluateNestedRequirements(flat, outputCount, originalRecipe = null, re
 
   if (canCraftQty === Infinity) canCraftQty = 999999;
 
-  // Profit/Nested Can Make must count craftable normal intermediates too.
-  // Example: owned Orichalcum Ingots + craftable Ingots from Orichalcum Ore,
-  // Ancient Wood Planks + craftable Planks from Ancient Wood Logs, etc.
-  // The flattened visible ingredient list is still used for value/display, but
-  // quantity should use the smart owned-intermediate craftability solver.
-  if (originalRecipe && recipeIndex && typeof getSmartCanCraftQtyWithOwnedIntermediates === 'function') {
-    const smartQty = getSmartCanCraftQtyWithOwnedIntermediates(originalRecipe, recipeIndex, canCraftQty);
-    if (Number.isFinite(Number(smartQty))) {
-      canCraftQty = Math.max(canCraftQty, Math.floor(Number(smartQty) || 0));
-    }
-  }
+  // Baseline is the normal flattened/direct-owned quantity. Keep it separate so
+  // the tooltip can explain how much was added by economical owned-intermediate
+  // crafting, and so the smart scan never receives an already-inflated value.
+  const baselineCanCraftQty = Math.max(0, Math.floor(Number(canCraftQty || 0)) || 0);
+  canCraftQty = baselineCanCraftQty;
 
-  const baselineCanCraftQty = canCraftQty;
-
+  // Research + Profit Can Make should count directly owned ingredients plus
+  // intermediates that can be crafted from owned base materials, but only when
+  // that crafted intermediate is economically sane. The recursive consumer does
+  // both parts: consume direct stock first, then craft only the missing amount,
+  // and it rejects recipes whose craft cost exceeds replacement value.
   if (originalRecipe && recipeIndex && typeof getSmartCanCraftQtyWithOwnedIntermediates === 'function') {
-    const smartQty = getSmartCanCraftQtyWithOwnedIntermediates(originalRecipe, recipeIndex, canCraftQty);
+    const smartQty = getSmartCanCraftQtyWithOwnedIntermediates(originalRecipe, recipeIndex, baselineCanCraftQty);
     if (Number.isFinite(Number(smartQty))) {
-      canCraftQty = Math.max(canCraftQty, Math.floor(Number(smartQty) || 0));
+      canCraftQty = Math.max(baselineCanCraftQty, Math.floor(Number(smartQty) || 0));
     }
   }
 
