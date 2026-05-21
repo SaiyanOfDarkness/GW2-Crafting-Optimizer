@@ -5298,6 +5298,7 @@ async function loadRecipeCache() {
             recipeId: r.id,
             outputItemId: r.output_item_id,
             outputCount: r.output_item_count || 1,
+          type: r.type || '',
             disciplines: r.disciplines || [],
             minRating: r.min_rating ?? '',
             flags: Array.isArray(r.flags) ? r.flags : [],
@@ -6431,7 +6432,9 @@ function getVolatileMagicShipmentValueBreakdown(mode = null) {
 
     for (const item of items) {
       const p = prices?.get?.(Number(item.id));
-      const unit = Number(priceKey === 'listing' ? p?.sell : p?.buy);
+      const unit = selectedMode === 'listing'
+        ? Number(p?.sell ?? p?.sells?.unit_price)
+        : Number(p?.buy ?? p?.buys?.unit_price);
       if (!Number.isFinite(unit) || unit <= 0) {
         missingPrice = true;
         continue;
@@ -12355,6 +12358,32 @@ function debugGlobalRecipeTypeExclusions() {
   return { excludedTypes: Array.from(GLOBAL_EXCLUDED_RECIPE_TYPES), counts };
 }
 window.debugGlobalRecipeTypeExclusions = debugGlobalRecipeTypeExclusions;
+
+
+function debugRecipeTypesInCache() {
+  const counts = {};
+  for (const r of recipeCache || []) {
+    const t = String(r?.type || '(missing)');
+    counts[t] = (counts[t] || 0) + 1;
+  }
+  console.table(counts);
+  return counts;
+}
+window.debugRecipeTypesInCache = debugRecipeTypesInCache;
+
+
+function debugVolatileMagicModeCompare() {
+  const instant = getVolatileMagicShipmentValueBreakdown('instant');
+  const listing = getVolatileMagicShipmentValueBreakdown('listing');
+  const bestInstant = instant.find(row => !row.missingPrice && Number.isFinite(row.copperPerVm) && row.copperPerVm > 0);
+  const bestListing = listing.find(row => !row.missingPrice && Number.isFinite(row.copperPerVm) && row.copperPerVm > 0);
+
+  log(`[VolatileMagicCompare] Buy Order best: ${bestInstant ? `${bestInstant.shipmentType} ${Number(bestInstant.copperPerVm).toFixed(3)}c/VM` : 'none'}`);
+  log(`[VolatileMagicCompare] Sell Listing best: ${bestListing ? `${bestListing.shipmentType} ${Number(bestListing.copperPerVm).toFixed(3)}c/VM` : 'none'}`);
+
+  return { buyOrder: bestInstant, sellListing: bestListing, instant, listing };
+}
+window.debugVolatileMagicModeCompare = debugVolatileMagicModeCompare;
 
 </script>
 </body>
