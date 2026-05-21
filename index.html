@@ -6351,6 +6351,133 @@ function renderBulkAwareVendorIngredientCostHtml(baseCost, requiredCount = 1, un
   return `<span class="barter-cost-list">${rendered}</span>`;
 }
 
+
+const VOLATILE_MAGIC_SHIPMENT_VM_COST = 250;
+const VOLATILE_MAGIC_SHIPMENT_COIN_COST = 10000;
+const VOLATILE_MAGIC_SHIPMENT_TP_TAX = 0.15;
+
+const VOLATILE_MAGIC_SHIPMENT_ITEMS = {
+  trophies: [
+    { id: 24350, name: 'Large Bone', multiplier: 4.99 },
+    { id: 24354, name: 'Large Claw', multiplier: 4.91 },
+    { id: 24276, name: 'Pile of Incandescent Dust', multiplier: 4.91 },
+    { id: 24356, name: 'Large Fang', multiplier: 4.93 },
+    { id: 24288, name: 'Large Scale', multiplier: 5.06 },
+    { id: 24299, name: 'Intricate Totem', multiplier: 5.03 },
+    { id: 24282, name: 'Potent Venom Sac', multiplier: 5.15 },
+    { id: 24294, name: 'Vial of Potent Blood', multiplier: 5.18 },
+    { id: 24358, name: 'Ancient Bone', multiplier: 0.99 },
+    { id: 24351, name: 'Vicious Claw', multiplier: 1.00 },
+    { id: 24277, name: 'Pile of Crystalline Dust', multiplier: 1.01 },
+    { id: 24357, name: 'Vicious Fang', multiplier: 1.02 },
+    { id: 24289, name: 'Armored Scale', multiplier: 1.01 },
+    { id: 24300, name: 'Elaborate Totem', multiplier: 0.98 },
+    { id: 24283, name: 'Powerful Venom Sac', multiplier: 0.98 },
+    { id: 24295, name: 'Vial of Powerful Blood', multiplier: 0.98 },
+    { id: 83103, name: 'Eye of Kormir', multiplier: 0.21 },
+    { id: 83757, name: 'Congealed Putrescence', multiplier: 0.20 }
+  ],
+  cloth: [
+    { id: 19718, name: 'Jute Scrap', multiplier: 8.22 },
+    { id: 19739, name: 'Wool Scrap', multiplier: 8.17 },
+    { id: 19741, name: 'Cotton Scrap', multiplier: 7.49 },
+    { id: 19743, name: 'Linen Scrap', multiplier: 8.44 },
+    { id: 19748, name: 'Silk Scrap', multiplier: 59.34 },
+    { id: 19745, name: 'Gossamer Scrap', multiplier: 7.94 }
+  ],
+  leather: [
+    { id: 19719, name: 'Rawhide Leather Section', multiplier: 7.69 },
+    { id: 19728, name: 'Thin Leather Section', multiplier: 7.71 },
+    { id: 19730, name: 'Coarse Leather Section', multiplier: 8.36 },
+    { id: 19731, name: 'Rugged Leather Section', multiplier: 8.29 },
+    { id: 19729, name: 'Thick Leather Section', multiplier: 59.81 },
+    { id: 19732, name: 'Hardened Leather Section', multiplier: 7.97 }
+  ],
+  metal: [
+    { id: 19697, name: 'Copper Ore', multiplier: 8.01 },
+    { id: 19699, name: 'Iron Ore', multiplier: 16.50 },
+    { id: 19702, name: 'Platinum Ore', multiplier: 8.33 },
+    { id: 19700, name: 'Mithril Ore', multiplier: 58.96 },
+    { id: 19701, name: 'Orichalcum Ore', multiplier: 8.20 }
+  ],
+  wood: [
+    { id: 19723, name: 'Green Wood Log', multiplier: 7.72 },
+    { id: 19726, name: 'Soft Wood Log', multiplier: 7.94 },
+    { id: 19727, name: 'Seasoned Wood Log', multiplier: 8.07 },
+    { id: 19724, name: 'Hard Wood Log', multiplier: 7.88 },
+    { id: 19722, name: 'Elder Wood Log', multiplier: 59.90 },
+    { id: 19725, name: 'Ancient Wood Log', multiplier: 8.33 }
+  ]
+};
+
+function getVolatileMagicShipmentItemIds() {
+  return Array.from(new Set(Object.values(VOLATILE_MAGIC_SHIPMENT_ITEMS).flat().map(x => Number(x.id)).filter(Boolean)));
+}
+
+function getVolatileMagicPriceMode(mode = null) {
+  if (mode === 'instant' || mode === 'listing') return mode;
+  if (tableMode === 'profit' && typeof getProfitValuationMode === 'function') return getProfitValuationMode();
+  return researchMaterialValueMode === 'buy' ? 'instant' : 'listing';
+}
+
+function getVolatileMagicShipmentValueBreakdown(mode = null) {
+  const selectedMode = getVolatileMagicPriceMode(mode);
+  const priceKey = selectedMode === 'listing' ? 'sell' : 'buy';
+  const rows = [];
+
+  for (const [shipmentType, items] of Object.entries(VOLATILE_MAGIC_SHIPMENT_ITEMS)) {
+    let gross = 0;
+    let missingPrice = false;
+
+    for (const item of items) {
+      const p = prices?.get?.(Number(item.id));
+      const unit = Number(priceKey === 'listing' ? p?.sell : p?.buy);
+      if (!Number.isFinite(unit) || unit <= 0) {
+        missingPrice = true;
+        continue;
+      }
+      gross += unit * Number(item.multiplier || 0);
+    }
+
+    const afterTax = gross * (1 - VOLATILE_MAGIC_SHIPMENT_TP_TAX);
+    const net = afterTax - VOLATILE_MAGIC_SHIPMENT_COIN_COST;
+    const copperPerVm = net / VOLATILE_MAGIC_SHIPMENT_VM_COST;
+
+    rows.push({ shipmentType, mode: selectedMode, gross, afterTax, net, copperPerVm, missingPrice });
+  }
+
+  rows.sort((a, b) => Number(b.copperPerVm || -Infinity) - Number(a.copperPerVm || -Infinity));
+  return rows;
+}
+
+function getVolatileMagicCopperValue(mode = null) {
+  const best = getVolatileMagicShipmentValueBreakdown(mode)
+    .find(row => !row.missingPrice && Number.isFinite(row.copperPerVm) && row.copperPerVm > 0);
+  return best ? best.copperPerVm : null;
+}
+
+function isVolatileMagicCurrencyName(name) {
+  return String(name || '').trim().toLowerCase() === 'volatile magic';
+}
+
+function getWalletCurrencyCopperValue(nameOrCurrency, mode = null) {
+  const raw = String(nameOrCurrency || '').trim();
+  if (raw === '44' || isVolatileMagicCurrencyName(raw)) return getVolatileMagicCopperValue(mode);
+  return null;
+}
+
+function debugVolatileMagicValue(mode = null) {
+  const rows = getVolatileMagicShipmentValueBreakdown(mode);
+  rows.forEach(row => {
+    log(`[VolatileMagic] ${row.shipmentType}: ${formatCoinPrecise(row.net)} net / ${VOLATILE_MAGIC_SHIPMENT_VM_COST} VM = ${Number(row.copperPerVm || 0).toFixed(2)}c per VM${row.missingPrice ? ' (missing prices)' : ''}`);
+  });
+  const best = rows.find(row => !row.missingPrice && Number.isFinite(row.copperPerVm) && row.copperPerVm > 0);
+  log(best ? `[VolatileMagic] Best: ${best.shipmentType} = ${Number(best.copperPerVm).toFixed(2)}c per VM.` : '[VolatileMagic] No positive shipment value available.');
+  return rows;
+}
+window.debugVolatileMagicValue = debugVolatileMagicValue;
+
+
 function getVendorBarterCost(itemId, count = 1) {
   const __cacheKey_getVendorBarterCost = partialCacheArgsKey(arguments);
   if (vendorBarterCostCache.has(__cacheKey_getVendorBarterCost)) {
@@ -6375,10 +6502,16 @@ function getVendorBarterCost(itemId, count = 1) {
       unit = 1;
       source = "Vendor coin";
     } else if (req.currency) {
-      // Display wallet currency requirements, but do not assign fake coin value.
-      unit = null;
-      source = req.currency;
-      missingPrice = true;
+      const currencyValue = getWalletCurrencyCopperValue(req.currency);
+      if (currencyValue != null && Number.isFinite(Number(currencyValue))) {
+        unit = Number(currencyValue);
+        source = `${req.currency} shipment EV`;
+      } else {
+        // Display wallet currency requirements, but do not assign fake coin value.
+        unit = null;
+        source = req.currency;
+        missingPrice = true;
+      }
     } else if (req.itemId) {
       const materialUnit = getResearchMaterialUnitValue(req.itemId);
       unit = materialUnit.value;
@@ -7964,7 +8097,7 @@ function scaleFlatRequirementsForCrafts(flat, craftCount) {
 
 const GLOBAL_EXCLUDED_RECIPE_TYPES = new Set([
   'GuildConsumableWvw',
-  'GuildDecoration',
+  'GuildDecoration'
   'LegendaryComponent'
 ]);
 
