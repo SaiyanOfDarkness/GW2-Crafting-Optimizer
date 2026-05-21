@@ -10476,7 +10476,11 @@ async function buildOpportunities() {
       ? expandRequirementsUsingOwnedCrafting(flat, activeProfitRecipeIndexForValuation)
       : flat;
 
-    const evald = evaluateNestedRequirements(expandedFlat, recipe.outputCount || 1);
+    // Feed the original recipe into the same smart owned-intermediate Can Make path
+    // used by Research Mode. The one-craft expanded requirements are still used for
+    // material value / displayed ingredients, but Can Make now counts direct stock
+    // plus economically valid crafted-up intermediates like ore -> ingots.
+    const evald = evaluateNestedRequirements(expandedFlat, recipe.outputCount || 1, recipe, activeProfitRecipeIndexForValuation);
     let canCraftQty = Math.max(0, Math.floor(Number(evald.canCraftQty || 0)) || 0);
     const baselineCanCraftQty = Math.max(0, Math.floor(Number(evald.baselineCanCraftQty || canCraftQty || 0)) || 0);
     const materialValue = Number(evald.materialValue || 0);
