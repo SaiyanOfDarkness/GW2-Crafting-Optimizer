@@ -11893,7 +11893,7 @@ function render() {
       <td><span class="rarity-label rarity-${escapeHtml(o.rarity || itemRarity(o.outputItemId))}">${escapeHtml(o.rarity || itemRarity(o.outputItemId))}</span></td>
       <td>${renderDisciplines(o.disciplines)}</td>
       <td class="num">${renderRecipeIdCell(o.recipeId)}</td>
-      <td class="num">${o.canCraftQty}</td>
+      <td class="num">${renderCanMakeQtyCell(o)}</td>
       <td class="num">${o.profitableDepthQty}</td>
       <td class="num good">${o.recommendedCraftQty}</td>
       <td class="num">${formatCoin(o.avgDepthSell)}</td>
