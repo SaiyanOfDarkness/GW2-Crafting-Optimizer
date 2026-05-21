@@ -7023,27 +7023,33 @@ function getCraftReplacementUnitForAccountBoundIngredient(itemId, mode = null, r
 
 
 function getIngredientUnitOpportunityValue(itemId) {
-  const researchModes = tableMode === 'researchNotes' || tableMode === 'researchPartial';
-  if (researchModes) {
-    const unit = getResearchMaterialUnitValue(itemId);
-    return unit.value == null ? Infinity : Number(unit.value);
-  }
+  itemId = Number(itemId);
+  if (!itemId) return Infinity;
 
-  const vendorSource = getVendorBulkSourceForIngredient(itemId);
-  const vendorCoinEach = getVendorSourceUnitCoinValue(vendorSource);
+  try {
+    const mode = (tableMode === 'profit' && typeof getProfitValuationMode === 'function')
+      ? getProfitValuationMode()
+      : null;
 
-  if (vendorCoinEach != null) {
-    const priced = getMaterialValueUnitForIngredient(itemId);
-    return priced.value == null ? vendorCoinEach : Number(priced.value);
-  }
-  if (vendorSource && vendorSource.currency === "karma") return 0;
-  if (isAccountBoundOrNoTpIngredient(itemId)) {
-    const replacementUnit = getCraftReplacementUnitForAccountBoundIngredient(itemId, getProfitValuationMode(), activeProfitRecipeIndexForValuation);
-    return replacementUnit == null ? 0 : replacementUnit;
-  }
+    if (typeof getMaterialValueUnitForIngredient === 'function') {
+      const unit = getMaterialValueUnitForIngredient(itemId, mode);
+      const value = unit && unit.value != null ? Number(unit.value) : null;
+      return Number.isFinite(value) ? value : Infinity;
+    }
+  } catch (_) {}
 
-  const materialUnit = getMaterialValueUnitForIngredient(itemId);
-  return materialUnit.value == null ? Infinity : Number(materialUnit.value);
+  try {
+    const price = prices && prices.get ? prices.get(itemId) : null;
+    if (price) {
+      const mode = (tableMode === 'profit' && typeof getProfitValuationMode === 'function')
+        ? getProfitValuationMode()
+        : 'instant';
+      const value = mode === 'listing' ? Number(price.sell) : Number(price.buy);
+      return Number.isFinite(value) ? value : Infinity;
+    }
+  } catch (_) {}
+
+  return Infinity;
 }
 
 function compareMissingMaterialAcquisition(itemId, count, recipeIndex) {
@@ -7225,13 +7231,21 @@ function getOwnedIntermediateReplacementUnitValue(itemId) {
 
   try {
     if (typeof getMaterialValueUnitForIngredient === 'function') {
-      // Owned-intermediate economic gate should respect the active Profit Value
-      // dropdown. Instant Sell compares buy-order/instant-sell values on both
-      // sides; Sell Listing compares sell-listing values on both sides.
-      const mode = (tableMode === 'profit' && typeof getProfitValuationMode === 'function')
-        ? getProfitValuationMode()
-        : (typeof getProfitValuationMode === 'function' ? getProfitValuationMode() : null);
-
+      // Owned-intermediate economic gate:
+      // - craft side values consumed owned base mats at their opportunity value
+      //   through getImmediateRecipeOpportunityCost()
+      // - replacement side should value the target intermediate at acquisition cost
+      //   in Profit Mode: what it would cost to buy/get the intermediate directly.
+      //
+      // GW2 TP naming reminder:
+      //   instant-sell / buy-order = what owned base mats are worth if sold now
+      //   instant-buy / sell-listing = what the target intermediate costs to acquire
+      //
+      // So for Ore -> Ingot:
+      //   craft side: ore buy-order/instant-sell opportunity value
+      //   replacement side: ingot sell-listing/instant-buy acquisition value
+      const isProfitMode = tableMode === 'profit';
+      const mode = isProfitMode ? 'listing' : (typeof getProfitValuationMode === 'function' ? getProfitValuationMode() : null);
       const unit = getMaterialValueUnitForIngredient(itemId, mode);
       const value = unit && unit.value != null ? Number(unit.value) : null;
       return Number.isFinite(value) ? value : null;
@@ -7279,7 +7293,7 @@ function getImmediateRecipeOpportunityCost(recipe, batches = 1) {
     const ingId = Number(ing.itemId);
     const count = Number(ing.count || 0) * Math.max(1, Number(batches || 1));
     if (!ingId || count <= 0) continue;
-    const unit = getIngredientUnitOpportunityValue(ingId);
+    const unit = getIngredientUnitOpportunityValue(ingId); // respects active Profit Value mode in Profit Mode
     if (!Number.isFinite(unit)) {
       missingPrice = true;
       continue;
@@ -12102,7 +12116,7 @@ window.debugProfitCanMakeTrace = function(recipeId, targetQty) {
         : null;
 
       console.log('Craft Unit:', craftUnit == null ? null : formatCoinPrecise(craftUnit));
-      console.log('Replacement Unit:', replacementUnit == null ? null : formatCoinPrecise(replacementUnit), '(Profit replacement respects Profit Value mode)');
+      console.log('Replacement Unit:', replacementUnit == null ? null : formatCoinPrecise(replacementUnit), '(Profit replacement uses acquisition/sell-listing value)');
 
       if (immediateCost.missingPrice) {
         console.warn('BLOCKED: missing price for craft cost');
