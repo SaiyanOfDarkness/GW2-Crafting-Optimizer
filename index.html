@@ -7225,21 +7225,13 @@ function getOwnedIntermediateReplacementUnitValue(itemId) {
 
   try {
     if (typeof getMaterialValueUnitForIngredient === 'function') {
-      // Owned-intermediate economic gate:
-      // - craft side values consumed owned base mats at their opportunity value
-      //   through getImmediateRecipeOpportunityCost()
-      // - replacement side should value the target intermediate at acquisition cost
-      //   in Profit Mode: what it would cost to buy/get the intermediate directly.
-      //
-      // GW2 TP naming reminder:
-      //   instant-sell / buy-order = what owned base mats are worth if sold now
-      //   instant-buy / sell-listing = what the target intermediate costs to acquire
-      //
-      // So for Ore -> Ingot:
-      //   craft side: ore buy-order/instant-sell opportunity value
-      //   replacement side: ingot sell-listing/instant-buy acquisition value
-      const isProfitMode = tableMode === 'profit';
-      const mode = isProfitMode ? 'listing' : (typeof getProfitValuationMode === 'function' ? getProfitValuationMode() : null);
+      // Owned-intermediate economic gate should respect the active Profit Value
+      // dropdown. Instant Sell compares buy-order/instant-sell values on both
+      // sides; Sell Listing compares sell-listing values on both sides.
+      const mode = (tableMode === 'profit' && typeof getProfitValuationMode === 'function')
+        ? getProfitValuationMode()
+        : (typeof getProfitValuationMode === 'function' ? getProfitValuationMode() : null);
+
       const unit = getMaterialValueUnitForIngredient(itemId, mode);
       const value = unit && unit.value != null ? Number(unit.value) : null;
       return Number.isFinite(value) ? value : null;
@@ -12110,7 +12102,7 @@ window.debugProfitCanMakeTrace = function(recipeId, targetQty) {
         : null;
 
       console.log('Craft Unit:', craftUnit == null ? null : formatCoinPrecise(craftUnit));
-      console.log('Replacement Unit:', replacementUnit == null ? null : formatCoinPrecise(replacementUnit), '(Profit replacement uses acquisition/sell-listing value)');
+      console.log('Replacement Unit:', replacementUnit == null ? null : formatCoinPrecise(replacementUnit), '(Profit replacement respects Profit Value mode)');
 
       if (immediateCost.missingPrice) {
         console.warn('BLOCKED: missing price for craft cost');
