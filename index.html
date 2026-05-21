@@ -4532,6 +4532,8 @@ ownedScanDebugLog(
   `${label}: bulk character scan loaded ${accountStats.characterCount.toLocaleString()} character(s), ${accountStats.characterSlots.toLocaleString()} inventory slot(s).`
 );
 
+  });
+  
   ownedScanStats.finishedAt = new Date().toISOString();
   ownedScanStats.finalUniqueIds = ownedMaterials.size;
   ownedScanStats.breakdownIds = ownedBreakdown.size;
