@@ -1589,7 +1589,7 @@ td { padding-left: 6px; padding-right: 6px; }
   <section class="panel">
     <details id="apiKeyDetails">
       <summary style="cursor:pointer;font-weight:bold;font-size:16px;">API Keys</summary>
-      <div class="sub" style="margin:10px 0;">Keys are saved locally in your browser IndexedDB. Needed permissions: account, characters, inventories.</div>
+      <div class="sub" style="margin:10px 0;">Keys are saved locally in your browser IndexedDB. Needed permissions: account, characters, inventories, unlocks.</div>
       <div id="accounts"></div>
       <div class="row">
         <button onclick="addAccountRow()">Add API Key</button>
@@ -4546,6 +4546,27 @@ function recipeUnlockAccountLabel(accountId) {
   return (acc && acc.label) || ownedRecipesByAccount?.[accountId]?.label || accountId || 'Account';
 }
 
+function stableRecipeUnlockAccountId(acc, index = 0) {
+  // Keep recipe unlock cache keys stable even if imported API rows did not preserve the
+  // random UI row id. Prefer the UI id, but fall back to a deterministic label/key hash.
+  if (acc && acc.id) return String(acc.id);
+  const label = String(acc?.label || `Account ${Number(index || 0) + 1}`).trim() || `Account ${Number(index || 0) + 1}`;
+  const key = String(acc?.key || '').trim();
+  let hash = 2166136261;
+  for (let i = 0; i < key.length; i++) {
+    hash ^= key.charCodeAt(i);
+    hash = Math.imul(hash, 16777619);
+  }
+  return `recipe-${label.toLowerCase().replace(/[^a-z0-9]+/g, '-').replace(/^-|-$/g, '') || 'account'}-${(hash >>> 0).toString(36)}`;
+}
+
+function parseOwnedRecipeIdPayload(payload) {
+  if (Array.isArray(payload)) return payload;
+  if (Array.isArray(payload?.recipes)) return payload.recipes;
+  if (Array.isArray(payload?.ids)) return payload.ids;
+  return [];
+}
+
 function updateRecipeUnlockSourceOptions() {
   const selects = [
     document.getElementById('recipeUnlockSourceSelect'),
@@ -4703,36 +4724,62 @@ function setRecipeUnlockSource(value) {
 }
 
 async function loadOwnedRecipes() {
-  const active = accounts.filter(a => a.enabled && a.key.trim());
+  const active = accounts.filter(a => a.enabled && String(a.key || '').trim());
   if (!active.length) {
     setStatus('Add at least one enabled API key first.');
+    log('[Recipes] No enabled API keys with tokens were available for owned recipe loading.');
     return;
   }
 
   setStatus(`Loading unlocked recipes for ${active.length} account(s)...`);
+  log(`[Recipes] Loading owned recipe unlocks for ${active.length.toLocaleString()} enabled account(s)...`);
 
   let loaded = 0;
+  let failed = 0;
   await promisePool(active, ACCOUNT_CONCURRENCY, async (acc, accountIndex) => {
     const label = acc.label || `Account ${accountIndex + 1}`;
-    const token = encodeURIComponent(acc.key.trim());
-    const accountStats = { label, materialStorageReturned: 0, materialStorageNonZero: 0, bankSlots: 0, sharedInventorySlots: 0, characterCount: 0, characterSlots: 0, errors: [] };
-    ownedScanStats.accounts[label] = accountStats;
-    log(`Loading unlocked recipes: ${label}`);
+    const accountKey = stableRecipeUnlockAccountId(acc, accountIndex);
+    const token = encodeURIComponent(String(acc.key || '').trim());
+    log(`[Recipes] Loading unlocked recipes: ${label}`);
 
     try {
-      const ids = await fetchJson(`${API}/account/recipes?access_token=${token}`);
+      let tokenPermissions = null;
+      if (window.DEBUG_RECIPE_UNLOCK) {
+        try {
+          const tokenInfo = await fetchJson(`${API}/tokeninfo?access_token=${token}`, 1, 12000);
+          tokenPermissions = Array.isArray(tokenInfo?.permissions) ? tokenInfo.permissions : null;
+          recipeUnlockDebugLog(`[Recipes] ${label} token permissions: ${(tokenPermissions || []).join(', ') || 'unknown'}`);
+        } catch (tokenErr) {
+          recipeUnlockDebugLog(`[Recipes] ${label} tokeninfo failed: ${tokenErr.message}`);
+        }
+      }
+
+      const payload = await fetchJson(`${API}/account/recipes?access_token=${token}`);
+      const ids = parseOwnedRecipeIdPayload(payload);
       const recipeIds = [...new Set((ids || []).map(Number).filter(n => Number.isFinite(n) && n > 0))].sort((a, b) => a - b);
-      ownedRecipesByAccount[acc.id] = normalizeOwnedRecipeData({
+
+      ownedRecipesByAccount[accountKey] = normalizeOwnedRecipeData({
         label,
         count: recipeIds.length,
         recipeIds,
-        loadedAt: new Date().toISOString()
+        loadedAt: new Date().toISOString(),
+        permissions: tokenPermissions || undefined
       });
+
+      // If this account row had a generated id and the stable key differs, remove stale duplicate entries.
+      if (acc.id && String(acc.id) !== accountKey && ownedRecipesByAccount[acc.id]) {
+        delete ownedRecipesByAccount[acc.id];
+      }
+
       loaded++;
-      log(`Unlocked recipes loaded for ${label}: ${recipeIds.length.toLocaleString()} recipe ID(s).`);
+      log(`[Recipes] Unlocked recipes loaded for ${label}: ${recipeIds.length.toLocaleString()} recipe ID(s).`);
+      if (!recipeIds.length) {
+        log(`[Recipes] Warning: ${label} returned 0 unlocked recipe IDs. If this is unexpected, enableRecipeUnlockDebugLogs() and reload recipes to inspect token permissions.`);
+      }
     } catch (e) {
+      failed++;
       console.warn('Owned recipes failed', label, e);
-      log(`Owned recipes failed for ${label}: ${e.message}`);
+      log(`[Recipes] Owned recipes failed for ${label}: ${e.message}`);
     }
   });
 
@@ -4740,10 +4787,10 @@ async function loadOwnedRecipes() {
   updateRecipeUnlockSourceOptions();
   await saveDataCache();
   const loadedSummary = Object.values(ownedRecipesByAccount || {})
-    .filter(data => Array.isArray(data?.recipeIds) && data.recipeIds.length)
-    .map(data => `${data.label || 'Account'}: ${data.recipeIds.length.toLocaleString()}`)
+    .filter(data => Array.isArray(data?.recipeIds))
+    .map(data => `${data.label || 'Account'}: ${Number(data.recipeIds.length || 0).toLocaleString()}`)
     .join('; ');
-  log(`[Recipes] Owned recipe cache summary: ${loadedSummary || 'none'}`);
+  log(`[Recipes] Owned recipe cache summary: ${loadedSummary || 'none'}; loaded=${loaded.toLocaleString()}, failed=${failed.toLocaleString()}`);
   resetRenderLimitAndRender();
   setStatus(`Loaded owned recipes for ${loaded.toLocaleString()} / ${active.length.toLocaleString()} enabled account(s).`);
 }
