@@ -11899,6 +11899,7 @@ window.debugProfitOwnedMaterialCount = debugProfitOwnedMaterialCount;
 
 try { ensureUseOwnedMaterialsResearchControlVisible(); } catch (_) {}
 
+
 window.debugProfitCanMakeTrace = function(recipeId, targetQty) {
   recipeId = Number(recipeId || 0);
   targetQty = Math.max(1, Number(targetQty || 1));
@@ -11920,86 +11921,157 @@ window.debugProfitCanMakeTrace = function(recipeId, targetQty) {
           ? buildRecipeIndexByOutput()
           : null);
 
-  console.group('[Trace] Profit Can Make Trace');
-  console.log('Recipe:', recipeId, recipe.outputItemName || recipe.name || recipe.outputItemId);
-  console.log('Target Crafts:', targetQty);
+  function traceItem(itemId, neededCount, virtualInventory, depth, path) {
+    itemId = Number(itemId);
+    neededCount = Number(neededCount || 0);
+    const indent = '  '.repeat(depth);
+    const name = itemName(itemId);
+    const ownedNow = Number(virtualInventory.get(itemId) || 0);
+    const directUsed = Math.min(ownedNow, neededCount);
+    const remaining = Math.max(0, neededCount - directUsed);
 
-  for (const ing of (recipe.ingredients || [])) {
+    console.group(`${indent}${name} x ${neededCount.toLocaleString()}`);
+    console.log('Owned Available At This Step:', ownedNow);
+    console.log('Direct Used:', directUsed);
+    console.log('Remaining After Direct:', remaining);
+
+    if (directUsed > 0) {
+      const left = ownedNow - directUsed;
+      if (left > 0) virtualInventory.set(itemId, left);
+      else virtualInventory.delete(itemId);
+    }
+
+    if (remaining <= 0) {
+      console.log('Status: PASS direct owned');
+      console.groupEnd();
+      return true;
+    }
+
+    const subRecipe = recipeIndex && typeof recipeIndex.get === 'function'
+      ? recipeIndex.get(itemId)
+      : null;
+
+    console.log('Sub Recipe Found:', !!subRecipe, subRecipe ? `recipe ${subRecipe.recipeId || subRecipe.id || '?'}` : '');
+
+    if (!subRecipe) {
+      console.warn('BLOCKED: no sub recipe for missing amount');
+      console.groupEnd();
+      return false;
+    }
+
+    if (typeof isAllowedOwnedIntermediateCraftabilityRecipe === 'function' &&
+        !isAllowedOwnedIntermediateCraftabilityRecipe(itemId, subRecipe)) {
+      console.warn('BLOCKED: sub recipe rejected by owned-intermediate allowlist/guard');
+      console.groupEnd();
+      return false;
+    }
+
+    if (path.has(itemId)) {
+      console.warn('BLOCKED: recursion loop');
+      console.groupEnd();
+      return false;
+    }
+
+    const outputCount = Math.max(1, Number(subRecipe.outputCount || 1));
+    const batchesNeeded = Math.ceil(remaining / outputCount);
+    const producedQty = batchesNeeded * outputCount;
+
+    console.log('Output Count:', outputCount);
+    console.log('Batches Needed:', batchesNeeded);
+    console.log('Produced Qty:', producedQty);
+
+    try {
+      const immediateCost = typeof getImmediateRecipeOpportunityCost === 'function'
+        ? getImmediateRecipeOpportunityCost(subRecipe, batchesNeeded)
+        : { total: null, missingPrice: true };
+
+      console.log('Immediate Craft Cost:', immediateCost);
+
+      let replacementUnit = null;
+      if (typeof getOwnedIntermediateReplacementUnitValue === 'function') {
+        replacementUnit = getOwnedIntermediateReplacementUnitValue(itemId);
+      }
+
+      const craftUnit = immediateCost && Number.isFinite(Number(immediateCost.total))
+        ? Number(immediateCost.total) / producedQty
+        : null;
+
+      console.log('Craft Unit:', craftUnit == null ? null : formatCoinPrecise(craftUnit));
+      console.log('Replacement Unit:', replacementUnit == null ? null : formatCoinPrecise(replacementUnit));
+
+      if (immediateCost.missingPrice) {
+        console.warn('BLOCKED: missing price for craft cost');
+        console.groupEnd();
+        return false;
+      }
+
+      if (typeof ownedIntermediateCraftIsEconomical === 'function' &&
+          !ownedIntermediateCraftIsEconomical(itemId, Number(immediateCost.total || 0), producedQty, 'trace')) {
+        console.warn('BLOCKED: economic gate rejected crafted intermediate');
+        console.groupEnd();
+        return false;
+      }
+
+      console.log('Economic Gate: PASS');
+    } catch (err) {
+      console.error('BLOCKED: economic check threw error', err);
+      console.groupEnd();
+      return false;
+    }
+
+    const nextPath = new Set(path);
+    nextPath.add(itemId);
+
+    for (const ing of subRecipe.ingredients || []) {
+      const childId = Number(ing.itemId || ing.item_id || ing.id || 0);
+      const childNeed = Number(ing.count || 0) * batchesNeeded;
+      if (!childId || childNeed <= 0) continue;
+
+      const ok = traceItem(childId, childNeed, virtualInventory, depth + 1, nextPath);
+      if (!ok) {
+        console.warn('BLOCKED BY CHILD:', itemName(childId), 'x', childNeed);
+        console.groupEnd();
+        return false;
+      }
+    }
+
+    const surplus = producedQty - remaining;
+    if (surplus > 0) {
+      virtualInventory.set(itemId, Number(virtualInventory.get(itemId) || 0) + surplus);
+      console.log('Surplus Added Back:', surplus);
+    }
+
+    console.log('Status: PASS crafted missing amount');
+    console.groupEnd();
+    return true;
+  }
+
+  console.group('[Trace] Profit Can Make Trace v2');
+  console.log('Recipe:', recipeId, recipe.outputItemName || recipe.name || itemName(recipe.outputItemId) || recipe.outputItemId);
+  console.log('Target Crafts:', targetQty);
+  console.log('Recipe Index Size:', recipeIndex && recipeIndex.size);
+
+  const virtualInventory = new Map(ownedMaterials || []);
+  let ok = true;
+
+  for (const ing of recipe.ingredients || []) {
     const itemId = Number(ing.itemId || ing.item_id || ing.id || 0);
     const perCraft = Number(ing.count || 0);
     const required = perCraft * targetQty;
+    if (!itemId || required <= 0) continue;
 
-    const owned = typeof ownedCount === 'function'
-      ? Number(ownedCount(itemId) || 0)
-      : 0;
-
-    const missing = Math.max(0, required - owned);
-
-    console.group(itemName(itemId) + ' x ' + required);
-    console.log('Owned Direct:', owned);
-    console.log('Missing After Direct:', missing);
-
-    if (missing <= 0) {
-      console.log('Status: PASS (direct owned)');
-      console.groupEnd();
-      continue;
+    if (!traceItem(itemId, required, virtualInventory, 0, new Set([Number(recipe.outputItemId)]))) {
+      ok = false;
+      console.warn('FIRST TOP-LEVEL BLOCKER:', itemName(itemId), 'required', required);
+      break;
     }
-
-    let craftRecipe = null;
-
-    if (recipeIndex && recipeIndex.get) {
-      const candidates = recipeIndex.get(itemId) || [];
-      craftRecipe = candidates[0] || null;
-    }
-
-    console.log('Sub Recipe Found:', !!craftRecipe);
-
-    if (!craftRecipe) {
-      console.warn('BLOCKED: no sub recipe');
-      console.groupEnd();
-      continue;
-    }
-
-    try {
-      const craftCost = typeof getImmediateRecipeOpportunityCost === 'function'
-        ? getImmediateRecipeOpportunityCost(craftRecipe, missing)
-        : null;
-
-      console.log('Craft Cost:', craftCost);
-
-      const outputQty = Math.max(1, Number(craftRecipe.outputCount || 1));
-      const perUnitCraft = craftCost && Number.isFinite(Number(craftCost.total))
-        ? Number(craftCost.total) / (missing * outputQty)
-        : null;
-
-      let replacementValue = null;
-
-      if (typeof getOwnedIntermediateReplacementUnitValue === 'function') {
-        replacementValue = getOwnedIntermediateReplacementUnitValue(itemId);
-      }
-
-      console.log('Craft Unit Value:', perUnitCraft);
-      console.log('Replacement Unit Value:', replacementValue);
-
-      if (
-        perUnitCraft != null &&
-        replacementValue != null &&
-        perUnitCraft > replacementValue
-      ) {
-        console.warn('BLOCKED: economic gate rejected crafting path');
-      } else {
-        console.log('Economic Gate: PASS');
-      }
-    } catch (err) {
-      console.error('Trace error:', err);
-    }
-
-    console.groupEnd();
   }
 
+  console.log('Final Result:', ok ? 'PASS' : 'FAIL');
   console.groupEnd();
-  return true;
+  return ok;
 };
+
 
 </script>
 </body>
