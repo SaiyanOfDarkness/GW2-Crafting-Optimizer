@@ -8045,6 +8045,102 @@ function collectOwnedIntermediateContributors(recipe, recipeIndex, out = new Map
 }
 
 
+
+function collectSmartCanMakeContributorsForRecipe(recipe, recipeIndex, targetCrafts, limit = 16) {
+  const contributors = new Map();
+  const virtualInventory = new Map(ownedMaterials || []);
+  const crafts = Math.max(0, Math.floor(Number(targetCrafts || 0)) || 0);
+  if (!recipe || !Array.isArray(recipe.ingredients) || crafts <= 0) return [];
+
+  function addContributor(itemId, qty, source = '') {
+    itemId = Number(itemId);
+    qty = Number(qty || 0);
+    if (!itemId || qty <= 0) return;
+    const cur = contributors.get(itemId) || { itemId, owned: 0, used: 0, source };
+    cur.used += qty;
+    cur.owned = Math.max(cur.owned || 0, Number(ownedMaterials.get(itemId) || 0));
+    if (source && !cur.source) cur.source = source;
+    contributors.set(itemId, cur);
+  }
+
+  function consume(itemId, neededCount, path = new Set(), depth = 0) {
+    itemId = Number(itemId);
+    neededCount = Number(neededCount || 0);
+    if (!itemId || neededCount <= 0) return true;
+    if (depth >= OWNED_INTERMEDIATE_CRAFTABILITY_MAX_DEPTH) return false;
+
+    const ownedNow = Number(virtualInventory.get(itemId) || 0);
+    const directUse = Math.min(ownedNow, neededCount);
+    if (directUse > 0) {
+      addContributor(itemId, directUse, depth ? 'direct intermediate stock' : 'direct ingredient');
+      const left = ownedNow - directUse;
+      if (left > 0) virtualInventory.set(itemId, left);
+      else virtualInventory.delete(itemId);
+    }
+
+    const remaining = neededCount - directUse;
+    if (remaining <= 0) return true;
+
+    const subRecipe = recipeIndex && typeof recipeIndex.get === 'function' ? recipeIndex.get(itemId) : null;
+    if (!subRecipe || !Array.isArray(subRecipe.ingredients) || !subRecipe.ingredients.length) return false;
+    if (typeof isAllowedOwnedIntermediateCraftabilityRecipe === 'function' && !isAllowedOwnedIntermediateCraftabilityRecipe(itemId, subRecipe)) return false;
+    if (path.has(itemId)) return false;
+
+    const outputCount = Math.max(1, Number(subRecipe.outputCount || 1));
+    const batchesNeeded = Math.ceil(remaining / outputCount);
+    const producedQty = batchesNeeded * outputCount;
+
+    try {
+      const immediateCost = typeof getImmediateRecipeOpportunityCost === 'function'
+        ? getImmediateRecipeOpportunityCost(subRecipe, batchesNeeded)
+        : { total: Infinity, missingPrice: true };
+
+      if (immediateCost.missingPrice) return false;
+      if (typeof ownedIntermediateCraftIsEconomical === 'function' &&
+          !ownedIntermediateCraftIsEconomical(itemId, Number(immediateCost.total || 0), producedQty, 'contributors')) {
+        return false;
+      }
+    } catch (_) {
+      return false;
+    }
+
+    const nextPath = new Set(path);
+    nextPath.add(itemId);
+
+    for (const ing of subRecipe.ingredients || []) {
+      const ingId = Number(ing.itemId || ing.item_id || ing.id || 0);
+      const ingCount = Number(ing.count || 0) * batchesNeeded;
+      if (!ingId || ingCount <= 0) continue;
+      if (!consume(ingId, ingCount, nextPath, depth + 1)) return false;
+    }
+
+    const surplus = producedQty - remaining;
+    if (surplus > 0) {
+      virtualInventory.set(itemId, Number(virtualInventory.get(itemId) || 0) + surplus);
+    }
+
+    return true;
+  }
+
+  const rootPath = new Set([Number(recipe.outputItemId || recipe.output_item_id || 0)]);
+  for (const ing of recipe.ingredients || []) {
+    const itemId = Number(ing.itemId || ing.item_id || ing.id || 0);
+    const count = Number(ing.count || 0) * crafts;
+    if (!itemId || count <= 0) continue;
+    consume(itemId, count, rootPath, 0);
+  }
+
+  return Array.from(contributors.values())
+    .sort((a, b) => {
+      const au = Number(a.used || 0);
+      const bu = Number(b.used || 0);
+      if (bu !== au) return bu - au;
+      return String(itemName(a.itemId)).localeCompare(String(itemName(b.itemId)));
+    })
+    .slice(0, limit);
+}
+
+
 function collectProfitCanMakeContributors(recipe, recipeIndex, limit = 12) {
   const contributors = new Map();
   const seen = new Set();
@@ -8104,7 +8200,10 @@ function buildOwnedIntermediateCanMakeTooltip(row) {
   if (contributors.length) {
     lines.push('Contributors:');
     for (const c of contributors.slice(0, 8)) {
-      lines.push(`${itemName(c.itemId)} x ${Number(c.owned || 0).toLocaleString()}`);
+      const usedQty = Number(c.used != null ? c.used : (c.owned || 0));
+      const ownedQty = Number(c.owned || 0);
+      const ownedPart = ownedQty && ownedQty !== usedQty ? ` / owned ${ownedQty.toLocaleString()}` : '';
+      lines.push(`${itemName(c.itemId)} x ${usedQty.toLocaleString()}${ownedPart}`);
     }
     if (contributors.length > 8) lines.push(`+${contributors.length - 8} more`);
   }
@@ -10468,7 +10567,7 @@ log('[Nested] Using cached vendor/barter datasets only (live wiki lookup skipped
       outputCount,
       canCraftQty: evald.canCraftQty,
       baselineCanCraftQty: evald.baselineCanCraftQty,
-      ownedIntermediateContributors: collectProfitCanMakeContributors(recipe, recipeIndex),
+      ownedIntermediateContributors: collectSmartCanMakeContributorsForRecipe(recipe, recipeIndex, evald.canCraftQty || 0),
       profitableDepthQty: depth.profitableDepthQty,
       recommendedCraftQty,
       avgDepthSell: depth.avgDepthSell,
@@ -10582,7 +10681,7 @@ async function buildOpportunities() {
       outputCount: recipe.outputCount,
       canCraftQty,
       baselineCanCraftQty,
-      ownedIntermediateContributors: collectProfitCanMakeContributors(recipe, activeProfitRecipeIndexForValuation),
+      ownedIntermediateContributors: collectSmartCanMakeContributorsForRecipe(recipe, activeProfitRecipeIndexForValuation, canCraftQty || 0),
       profitableDepthQty: depth.profitableDepthQty,
       recommendedCraftQty,
       avgDepthSell: depth.avgDepthSell,
