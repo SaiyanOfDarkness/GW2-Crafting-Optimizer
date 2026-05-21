@@ -1535,7 +1535,7 @@ td { padding-left: 6px; padding-right: 6px; }
           <div class="guide-card">
             <h3>Pricing modes</h3>
             <ul>
-              <li><strong>Instant Sell</strong> values tradeable materials using current buy orders.</li>
+              <li><strong>Buy Order</strong> values tradeable materials using current buy orders.</li>
               <li><strong>Sell Listing</strong> values tradeable materials using current sell listings.</li>
               <li>Some vendor materials are forced to <strong>Vendor</strong> cost even when TP modes are selected.</li>
               <li>Missing buy orders may fall back to TP Sell and should be labeled that way in material details.</li>
@@ -1663,7 +1663,7 @@ td { padding-left: 6px; padding-right: 6px; }
       <div class="filter-group profit-value-group profit-only">
         <label for="profitValuationMode">PROFIT VALUE</label>
         <select id="profitValuationMode" onchange="setProfitValuationMode(this.value)">
-          <option value="instant">Instant Sell</option>
+          <option value="instant">Buy Order</option>
           <option value="listing">Sell Listing</option>
         </select>
       </div>
@@ -1709,7 +1709,7 @@ td { padding-left: 6px; padding-right: 6px; }
       <div class="filter-group value-group">
         <label for="researchMaterialValueModeSelect">RESEARCH MATERIAL VALUE</label>
         <select id="researchMaterialValueModeSelect" onchange="setResearchMaterialValueMode(this.value)">
-          <option value="buy" selected>Instant Sell</option>
+          <option value="buy" selected>Buy Order</option>
           <option value="sell">Sell Listing</option>
         </select>
       </div>
@@ -3349,7 +3349,7 @@ const VENDOR_BULK_SOURCES_BY_NAME = new Map([
   ["coconut", { ingredientName: "Coconut", sourceName: "Coconuts in Bulk", sourcePage: "Lionscout_Tunnira", currency: "karma", cost: 112, outputCount: 25 }],
 
   // Standard chef/vendor staples. These can have TP listings, but their
-  // material valuation should stay at NPC vendor price in both Instant Sell
+  // material valuation should stay at NPC vendor price in both Buy Order
   // and Sell Listing modes.
   ["crafter's backpack frame", { ingredientName: "Crafter's Backpack Frame", sourceName: "Master craftsman", sourcePage: "Crafter%27s_Backpack_Frame", currency: "coin", cost: 8, outputCount: 1, forceVendor: true }],
   ["crystalline bottle", { ingredientName: "Crystalline Bottle", sourceName: "Master scribe", sourcePage: "Crystalline_Bottle", currency: "coin", cost: 32, outputCount: 1, forceVendor: true }],
@@ -5649,6 +5649,7 @@ function ensureResearchNoteHeaders() {
 function buildRecipeIndexByOutput() {
   const index = new Map();
   for (const recipe of recipeCache || []) {
+    if (shouldSkipGlobalRecipe(recipe)) continue;
     if (!recipe.outputItemId) continue;
 
     // Prefer simpler recipes when there are duplicates for the same output.
@@ -6749,7 +6750,7 @@ async function setResearchMaterialValueMode(mode) {
   invalidateResearchDisplaySortCache();
   researchMaterialValueMode = mode === 'buy' ? 'buy' : 'sell';
   invalidatePartialResearchHotCaches();
-  const label = researchMaterialValueMode === 'buy' ? 'Instant Sell' : 'Sell Listing';
+  const label = researchMaterialValueMode === 'buy' ? 'Buy Order' : 'Sell Listing';
   if (tableMode === 'researchNotes' && !shouldUseOwnedMaterialsForResearch()) {
     log(`Research material valuation set to: ${label}. Rebuilding Research rows because Craft Cost depends on this mode.`);
     await buildResearchNoteMode();
@@ -6764,8 +6765,8 @@ function updateResearchMaterialValuationStatusLine(label) {
   const el = document.getElementById('progressStatus') || document.getElementById('status');
   if (!el) return;
   const text = el.textContent || '';
-  if (/Material valuation:\s*(Instant Sell|Sell Listing)/.test(text)) {
-    el.textContent = text.replace(/Material valuation:\s*(Instant Sell|Sell Listing)/g, `Material valuation: ${label}`);
+  if (/Material valuation:\s*(Buy Order|Sell Listing)/.test(text)) {
+    el.textContent = text.replace(/Material valuation:\s*(Buy Order|Sell Listing)/g, `Material valuation: ${label}`);
   }
 }
 
@@ -6841,7 +6842,7 @@ function getTpUnitValueInfoForProfitMode(itemId, mode = null) {
   const buy = p.buy == null ? null : Number(p.buy);
   const sell = p.sell == null ? null : Number(p.sell);
 
-  // In Instant Sell mode, ingredient/material value prefers the buy-order price.
+  // In Buy Order mode, ingredient/material value prefers the buy-order price.
   // If there are no buy orders, fall back to the lowest sell listing instead of
   // treating the material as 0c. The source label intentionally switches to
   // "TP Sell" so the row shows when the fallback was used.
@@ -7238,11 +7239,11 @@ function getOwnedIntermediateReplacementUnitValue(itemId) {
       //   in Profit Mode: what it would cost to buy/get the intermediate directly.
       //
       // GW2 TP naming reminder:
-      //   instant-sell / buy-order = what owned base mats are worth if sold now
+      //   buy-order / buy-order = what owned base mats are worth if sold now
       //   instant-buy / sell-listing = what the target intermediate costs to acquire
       //
       // So for Ore -> Ingot:
-      //   craft side: ore buy-order/instant-sell opportunity value
+      //   craft side: ore buy-order/buy-order opportunity value
       //   replacement side: ingot sell-listing/instant-buy acquisition value
       const isProfitMode = tableMode === 'profit';
       const mode = isProfitMode ? 'listing' : (typeof getProfitValuationMode === 'function' ? getProfitValuationMode() : null);
@@ -7719,7 +7720,7 @@ function flattenRecipeIngredients(recipe, recipeIndex, path = new Set(), depth =
     }
 
     // If we do not own enough and the ingredient has its own recipe, expand it.
-    if (subRecipe && !path.has(ingId) && !shouldRejectNestedProfitSubRecipe(ingId, subRecipe)) {
+    if (subRecipe && !path.has(ingId) && !shouldSkipGlobalRecipe(subRecipe) && !shouldRejectNestedProfitSubRecipe(ingId, subRecipe)) {
       const outputCount = Math.max(1, Number(subRecipe.outputCount || 1));
       const batchesNeeded = Math.ceil(need / outputCount);
       const child = flattenRecipeIngredients(subRecipe, recipeIndex, new Set(path), depth + 1);
@@ -7784,6 +7785,7 @@ function recipeLooksLikeGemUpgradeChain(itemId, subRecipe) {
 
 function isAllowedOwnedIntermediateCraftabilityRecipe(itemId, subRecipe) {
   if (!subRecipe || !Array.isArray(subRecipe.ingredients) || !subRecipe.ingredients.length) return false;
+  if (shouldSkipGlobalRecipe(subRecipe)) return false;
 
   const disciplines = normalizeDisciplines(subRecipe.disciplines).map(d => String(d || '').toLowerCase());
   if (disciplines.some(d => d.includes('mystic'))) return false;
@@ -7959,6 +7961,18 @@ function scaleFlatRequirementsForCrafts(flat, craftCount) {
   };
 }
 
+
+const GLOBAL_EXCLUDED_RECIPE_TYPES = new Set([
+  'GuildConsumableWvw',
+  'GuildDecoration',
+  'LegendaryComponent'
+]);
+
+function shouldSkipGlobalRecipe(recipe) {
+  const type = String(recipe?.type || recipe?.recipeType || '').trim();
+  return !!type && GLOBAL_EXCLUDED_RECIPE_TYPES.has(type);
+}
+
 function findRecipeByRecipeId(recipeId) {
   const target = Number(recipeId);
   if (!Number.isFinite(target)) return null;
@@ -7984,6 +7998,7 @@ function isBlockedOwnedIntermediateUpgradeRecipe(recipe, targetItemId = null) {
 }
 function shouldRejectOwnedIntermediateContributorRecipe(recipe, targetItemId = null) {
   if (!recipe) return false;
+  if (shouldSkipGlobalRecipe(recipe)) return true;
   if (isBlockedOwnedIntermediateUpgradeRecipe(recipe, targetItemId)) return true;
   try { if (typeof isAllowedOwnedIntermediateRecipe === 'function' && !isAllowedOwnedIntermediateRecipe(recipe, targetItemId)) return true; } catch (_) {}
   return false;
@@ -10287,6 +10302,7 @@ async function buildResearchNoteMode() {
 
   for (const recipe of recipeCache) {
     considered++;
+    if (shouldSkipGlobalRecipe(recipe)) continue;
 
     const researchRecipeStart = performance.now();
     let researchRecipeLastMark = researchRecipeStart;
@@ -10476,7 +10492,7 @@ async function buildResearchNoteMode() {
 ` +
     `Use owned materials: ${useOwnedMaterials ? 'yes' : 'no'}\n` +
     `Cost-aware sub-crafting: ${useOwnedMaterials ? 'enabled' : 'disabled for owned-off browser'}\n` +
-    `Material valuation: ${researchMaterialValueMode === 'buy' ? 'Instant Sell' : 'Sell Listing'}`
+    `Material valuation: ${researchMaterialValueMode === 'buy' ? 'Buy Order' : 'Sell Listing'}`
   );
 
   log(`[Done] Research Note Mode built: ${researchNoteOpportunities.length.toLocaleString()} rows matched, ${renderedNow.toLocaleString()} rendered, ${knownYieldRows.toLocaleString()} known yields, ${unknownYieldRows.toLocaleString()} unknown yields.`);
@@ -10521,6 +10537,7 @@ log('[Nested] Using cached vendor/barter datasets only (live wiki lookup skipped
 
   for (const recipe of recipeCache) {
     considered++;
+    if (shouldSkipGlobalRecipe(recipe)) continue;
 
     if (considered % NESTED_BUILD_YIELD_EVERY === 0) {
       setStatus(`Building nested opportunities: ${considered.toLocaleString()} / ${recipeCache.length.toLocaleString()} recipes checked; ${opportunities.length.toLocaleString()} candidates found...`);
@@ -10628,6 +10645,7 @@ async function buildOpportunities() {
   await ensureWikiVendorSourcesForIngredientIds(collectOwnedRecipeIngredientIds(), 'Profit Mode ingredient');
 
   for (const recipe of recipeCache) {
+    if (shouldSkipGlobalRecipe(recipe)) continue;
     const flat = (typeof flattenRecipeIngredients === 'function')
       ? flattenRecipeIngredients(recipe, activeProfitRecipeIndexForValuation)
       : { ok: true, requirements: new Map((recipe.ingredients || []).map(ing => [Number(ing.itemId), Number(ing.count || 0)])), steps: [] };
@@ -12116,7 +12134,7 @@ window.debugProfitCanMakeTrace = function(recipeId, targetQty) {
         : null;
 
       console.log('Craft Unit:', craftUnit == null ? null : formatCoinPrecise(craftUnit));
-      console.log('Replacement Unit:', replacementUnit == null ? null : formatCoinPrecise(replacementUnit), '(Profit replacement uses acquisition/sell-listing value)');
+      console.log('Replacement Unit:', replacementUnit == null ? null : formatCoinPrecise(replacementUnit), '(Profit replacement uses active Profit Value mode: Buy Order or Sell Listing)');
 
       if (immediateCost.missingPrice) {
         console.warn('BLOCKED: missing price for craft cost');
@@ -12191,6 +12209,19 @@ window.debugProfitCanMakeTrace = function(recipeId, targetQty) {
   return ok;
 };
 
+
+
+function debugGlobalRecipeTypeExclusions() {
+  const counts = {};
+  for (const recipe of recipeCache || []) {
+    const type = String(recipe?.type || recipe?.recipeType || '').trim() || '(none)';
+    if (GLOBAL_EXCLUDED_RECIPE_TYPES.has(type)) counts[type] = (counts[type] || 0) + 1;
+  }
+  const summary = Object.entries(counts).map(([k, v]) => `${k}=${v.toLocaleString()}`).join(', ') || 'none found in cache';
+  log(`[RecipeTypeExclusions] ${summary}`);
+  return { excludedTypes: Array.from(GLOBAL_EXCLUDED_RECIPE_TYPES), counts };
+}
+window.debugGlobalRecipeTypeExclusions = debugGlobalRecipeTypeExclusions;
 
 </script>
 </body>
