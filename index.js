@@ -2,7 +2,7 @@ export default {
   async fetch(request) {
     const url = new URL(request.url);
 
-    const SECRET = "CHANGE_THIS_RANDOM_STRING";
+    const SECRET = "TopOnePercentOfTheTopOnePercent";
 
     if (url.searchParams.get("secret") !== SECRET) {
       return new Response("Forbidden", { status: 403 });
