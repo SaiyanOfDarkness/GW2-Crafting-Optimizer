@@ -3536,12 +3536,24 @@ async function idbDelete(key) {
   });
 }
 
+function withWorkerSecret(url) {
+  const u = new URL(url);
+  u.searchParams.set("secret", "TopOnePercentOfTheTopOnePercent");
+  return u.toString();
+}
 async function fetchJson(url, retries = 3, timeoutMs = 25000) {
   for (let attempt = 1; attempt <= retries; attempt++) {
+    
+    const finalUrl = url.startsWith("https://my-cors-proxy.saiyan-of-darkness.workers.dev/")
+    ? withWorkerSecret(url)
+    : url;
+    
     const controller = new AbortController();
     const timer = setTimeout(() => controller.abort(), timeoutMs);
     try {
-      const res = await fetch(url, { signal: controller.signal, cache: 'no-store' });
+
+
+const res = await fetch(finalUrl, { signal: controller.signal, cache: 'no-store' });
       clearTimeout(timer);
       if (!res.ok) {
         const text = await res.text().catch(() => "");
@@ -3551,7 +3563,7 @@ async function fetchJson(url, retries = 3, timeoutMs = 25000) {
     } catch (err) {
       clearTimeout(timer);
       if (attempt >= retries) throw err;
-      log(`Waiting on API / retry ${attempt}/${retries}: ${url.slice(0, 120)}`);
+      log(`Waiting on API / retry ${attempt}/${retries}: ${finalUrl.slice(0, 120)}`);
       await sleep(800 * attempt);
     }
   }
