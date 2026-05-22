@@ -1,8 +1,8 @@
 export default {
-  async fetch(request) {
+  async fetch(request, env) {
     const url = new URL(request.url);
 
-    const SECRET = "TopOnePercentOfTheTopOnePercent";
+    const SECRET = env.SECRET;
 
     if (url.searchParams.get("secret") !== SECRET) {
       return new Response("Forbidden", { status: 403 });
