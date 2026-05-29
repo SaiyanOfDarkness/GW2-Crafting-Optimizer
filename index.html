@@ -11078,10 +11078,14 @@ function wikiUrlForOutputOpportunity(o) {
 
 function wikiBaseIngredientsUrlForItem(itemId) {
   const name = itemName(itemId);
+  // Base_ingredients[id] is a wiki recipe-id field, not a GW2 item id.
+  // Missing Mats links are item-based lookups, so leave id blank and let the
+  // wiki resolve the base ingredients from Base_ingredients[item]. Passing the
+  // item id here made links like Bolt of Damask report bogus recipe ids such as 46741.
   return 'https://wiki.guildwars2.com/index.php?title=Special:RunQuery/Base_ingredients_query' +
     '&Base_ingredients%5Bquantity%5D=1' +
     '&Base_ingredients%5Bitem%5D=' + encodeURIComponent(String(name || '')) +
-    '&Base_ingredients%5Bid%5D=' + encodeURIComponent(String(itemId || '')) +
+    '&Base_ingredients%5Bid%5D=' +
     '&Base_ingredients%5Binfo%5D=Instant+buy+(best+sell+price)' +
     '&_run';
 }
@@ -11920,6 +11924,59 @@ function requestPaintThenRender(debugLabel) {
   });
 }
 
+
+// === Material-aware search helpers ===
+// The filter placeholders say "item, material, recipe", so searches should match
+// output names, recipe IDs, direct/nested ingredient names, missing materials,
+// owned intermediate contributors, and nested craft-step text.
+function normalizeOpportunitySearchText(value) {
+  return String(value == null ? '' : value).toLowerCase().replace(/[_\-]+/g, ' ').replace(/\s+/g, ' ').trim();
+}
+
+function appendSearchItem(parts, itemId) {
+  const id = Number(itemId || 0);
+  if (!id) return;
+  parts.push(String(id));
+  const name = itemName(id);
+  if (name) parts.push(name);
+}
+
+function appendIngredientSearchText(parts, list) {
+  for (const ing of (list || [])) {
+    appendSearchItem(parts, ing && ing.itemId);
+    if (ing && ing.valueSource) parts.push(ing.valueSource);
+  }
+}
+
+function opportunitySearchText(row) {
+  if (!row || typeof row !== 'object') return '';
+  if (row.__gw2MaterialAwareSearchText) return row.__gw2MaterialAwareSearchText;
+
+  const parts = [
+    row.outputName,
+    row.recipeId,
+    row.outputItemId,
+    row.rarity,
+    row.disciplinesText
+  ];
+
+  appendSearchItem(parts, row.outputItemId);
+  appendIngredientSearchText(parts, row.ingredients);
+  appendIngredientSearchText(parts, row.missing);
+
+  for (const c of (row.ownedIntermediateContributors || [])) appendSearchItem(parts, c && c.itemId);
+  for (const step of (row.nestedSteps || [])) parts.push(step);
+
+  row.__gw2MaterialAwareSearchText = normalizeOpportunitySearchText(parts.filter(v => v != null && v !== '').join(' '));
+  return row.__gw2MaterialAwareSearchText;
+}
+
+function opportunityMatchesSearch(row, query) {
+  const q = normalizeOpportunitySearchText(query);
+  if (!q) return true;
+  return opportunitySearchText(row).includes(q);
+}
+
 function render() {
   const __sortDebugRenderStart = (window.DEBUG_SORT && performance && performance.now) ? performance.now() : 0;
   const __sortDebugSortKey = sortState && sortState.key ? sortState.key : '';
@@ -11945,7 +12002,7 @@ function render() {
     ensurePartialResearchHeaders();
 
     let filtered = partialResearchOpportunities.filter(o => {
-      if (q && !(`${o.outputName} ${o.recipeId} ${o.outputItemId}`.toLowerCase().includes(q))) return false;
+      if (q && !opportunityMatchesSearch(o, q)) return false;
       if (o.coveragePct <= 0) return false;
       if (Number(o.coveragePct || 0) >= 99.999) return false;
       if (Array.isArray(o.missing) && o.missing.length === 0) return false;
@@ -11984,7 +12041,7 @@ function render() {
     ensureResearchNoteHeaders();
 
     let filtered = researchNoteOpportunities.filter(o => {
-      if (q && !(`${o.outputName} ${o.recipeId} ${o.outputItemId}`.toLowerCase().includes(q))) return false;
+      if (q && !opportunityMatchesSearch(o, q)) return false;
       if (shouldUseOwnedMaterialsForResearch() && o.canCraftQty < minCraftQty) return false;
       return true;
     });
@@ -12049,7 +12106,7 @@ function render() {
 
   const __profitFilterStart = (window.DEBUG_SORT && performance && performance.now) ? performance.now() : 0;
   filtered = filtered.filter(o => {
-    if (q && !(`${o.outputName} ${o.recipeId} ${o.outputItemId}`.toLowerCase().includes(q))) return false;
+    if (q && !opportunityMatchesSearch(o, q)) return false;
     if ((o.extraProfitEach ?? -Infinity) < minProfit) return false;
     if (o.canCraftQty < minCraftQty) return false;
     if (hideLoss && (o.extraProfitEach ?? -Infinity) <= 0) return false;
